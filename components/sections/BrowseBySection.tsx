@@ -1,9 +1,11 @@
 export default function BrowseBySection() {
   return (
-    <section className="bg-white border-t border-gray-200 px-8 py-6">
-      <div className="flex gap-8">
-        <div className="shrink-0 w-36">
-          <p className="text-xs font-extrabold text-gray-800 uppercase leading-tight tracking-wide">
+    <section className="bg-white border-t border-gray-200 px-4 md:px-8 py-6">
+      <div className="flex flex-col md:flex-row gap-5 md:gap-8">
+        
+        {/* LEFT TITLE */}
+        <div className="shrink-0 md:w-36">
+          <p className="text-xs md:text-sm font-extrabold text-gray-800 uppercase leading-tight tracking-wide">
             Browse
             <br />
             Matrimonial
@@ -11,8 +13,12 @@ export default function BrowseBySection() {
             Profiles By
           </p>
         </div>
-        <div className="flex-1 flex flex-col gap-1.5 text-xs text-gray-600">
-          <div className="flex flex-wrap gap-x-1">
+
+        {/* LINKS */}
+        <div className="flex-1 flex flex-col gap-3 text-xs text-gray-600">
+          
+          {/* Mother Tongue */}
+          <div className="flex flex-wrap gap-x-1 gap-y-1 leading-6">
             {[
               "Mother tongue",
               "Tamil",
@@ -28,16 +34,22 @@ export default function BrowseBySection() {
               "Urdu",
             ].map((item, i, arr) => (
               <span key={item}>
-                <a href="#" className="hover:text-[#c0174c] hover:underline">
+                <a
+                  href="#"
+                  className="hover:text-[#c0174c] hover:underline"
+                >
                   {item}
                 </a>
+
                 {i < arr.length - 1 && (
                   <span className="text-gray-300 mx-0.5">|</span>
                 )}
               </span>
             ))}
           </div>
-          <div className="flex flex-wrap gap-x-1">
+
+          {/* Community */}
+          <div className="flex flex-wrap gap-x-1 gap-y-1 leading-6">
             {[
               "Community",
               "Agarwal",
@@ -47,31 +59,48 @@ export default function BrowseBySection() {
               "Goswami",
             ].map((item, i, arr) => (
               <span key={item}>
-                <a href="#" className="hover:text-[#c0174c] hover:underline">
+                <a
+                  href="#"
+                  className="hover:text-[#c0174c] hover:underline"
+                >
                   {item}
                 </a>
+
                 {i < arr.length - 1 && (
                   <span className="text-gray-300 mx-0.5">|</span>
                 )}
               </span>
             ))}
           </div>
-          <div className="flex flex-wrap gap-x-1">
-            {["Religion", "Hindu", "Sikh", "Muslim", "Christian", "Jain"].map(
-              (item, i, arr) => (
-                <span key={item}>
-                  <a href="#" className="hover:text-[#c0174c] hover:underline">
-                    {item}
-                  </a>
-                  {i < arr.length - 1 && (
-                    <span className="text-gray-300 mx-0.5">|</span>
-                  )}
-                </span>
-              ),
-            )}
+
+          {/* Religion */}
+          <div className="flex flex-wrap gap-x-1 gap-y-1 leading-6">
+            {[
+              "Religion",
+              "Hindu",
+              "Sikh",
+              "Muslim",
+              "Christian",
+              "Jain",
+            ].map((item, i, arr) => (
+              <span key={item}>
+                <a
+                  href="#"
+                  className="hover:text-[#c0174c] hover:underline"
+                >
+                  {item}
+                </a>
+
+                {i < arr.length - 1 && (
+                  <span className="text-gray-300 mx-0.5">|</span>
+                )}
+              </span>
+            ))}
           </div>
         </div>
-        <div className="shrink-0">
+
+        {/* MORE */}
+        <div className="shrink-0 self-start md:self-auto">
           <a
             href="#"
             className="text-xs font-semibold text-gray-700 hover:text-[#c0174c]"
