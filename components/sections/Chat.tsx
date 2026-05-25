@@ -1,3 +1,5 @@
+
+
 "use client";
 import { useState, useRef, useEffect } from "react";
 interface Message {
@@ -118,6 +120,7 @@ const QUICK_REPLIES = [
   "Can we schedule a call?",
   "Please share your contact details",
 ];
+
 export default function Chat() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Record<string, Message[]>>(MESSAGES);
@@ -128,7 +131,10 @@ export default function Chat() {
   const [mobileScreen, setMobileScreen] = useState<"list" | "chat" | "profile">("list");
   const [animating, setAnimating] = useState(false);
   const [slideDirection, setSlideDirection] = useState<"in" | "out">("in");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // ✅ FIXED: added | null to the generic
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
   const currentMessages = selectedContact ? messages[selectedContact.id] || [] : [];
   const filteredContacts = CONTACTS.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
@@ -137,6 +143,7 @@ export default function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [currentMessages]);
+
   const navigateTo = (screen: "list" | "chat" | "profile", direction: "in" | "out") => {
     if (animating) return;
     setSlideDirection(direction);
@@ -185,12 +192,14 @@ export default function Chat() {
     setInput("");
     setShowQuickReplies(false);
   };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage(input);
     }
   };
+
   return (
     <>
       <style>{`
@@ -216,12 +225,11 @@ export default function Chat() {
         .slide-out-right { animation: slideOutToRight   0.28s cubic-bezier(0.25,0.46,0.45,0.94) forwards; }
       `}</style>
 
-      <div className=" bg-gray-100">
+      <div className="bg-gray-100">
         <div className="max-w-7xl mx-auto sm:px-4 sm:py-6">
-          <div
-            className="bg-white sm:rounded-2xl shadow-xl flex overflow-hidden h-[93svh] sm:h-[85svh]"
-          
-          >
+          <div className="bg-white sm:rounded-2xl shadow-xl flex overflow-hidden h-[93svh] sm:h-[85svh]">
+
+            {/* Desktop Sidebar */}
             <div className="hidden lg:flex w-80 shrink-0 flex-col border-r border-gray-100">
               <SidebarContent
                 search={search}
@@ -231,7 +239,9 @@ export default function Chat() {
                 onSelect={(c) => { setSelectedContact(c); setInput(""); setShowQuickReplies(false); }}
               />
             </div>
-            <div className="hidden lg:flex flex-1 flex-col min-w-0">
+
+            {/* Desktop Chat */}
+            <div className="hidden lg:flex flex-1 flex-col min-w-0 min-h-0 overflow-hidden">
               {selectedContact ? (
                 <ChatContent
                   selectedContact={selectedContact}
@@ -255,6 +265,8 @@ export default function Chat() {
                 </div>
               )}
             </div>
+
+            {/* Desktop Profile Panel */}
             {showProfile && selectedContact && (
               <div className="hidden lg:flex w-64 shrink-0 flex-col border-l border-gray-100">
                 <ProfileContent
@@ -263,7 +275,11 @@ export default function Chat() {
                 />
               </div>
             )}
+
+            {/* Mobile Screens */}
             <div className="flex lg:hidden w-full h-full overflow-hidden relative">
+
+              {/* Screen 1 — List */}
               <div
                 className={`absolute inset-0 flex flex-col bg-white
                   ${mobileScreen === "list" && !animating ? "" :
@@ -284,6 +300,8 @@ export default function Chat() {
                   onSelect={handleSelectContact}
                 />
               </div>
+
+              {/* Screen 2 — Chat */}
               {selectedContact && (
                 <div
                   className={`absolute inset-0 flex flex-col bg-white
@@ -317,7 +335,7 @@ export default function Chat() {
                 </div>
               )}
 
-              {/* SCREEN 3 — Profile */}
+              {/* Screen 3 — Profile */}
               {selectedContact && (
                 <div
                   className={`absolute inset-0 flex flex-col bg-white
@@ -338,6 +356,7 @@ export default function Chat() {
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </div>
@@ -345,7 +364,7 @@ export default function Chat() {
   );
 }
 
-/* ─── Sidebar Content ──────────────────────────────────────────────────────── */
+/* ─── Sidebar Content ─────────────────────────────────────────────── */
 function SidebarContent({
   search, setSearch, filteredContacts, selectedContact, onSelect,
 }: {
@@ -438,7 +457,7 @@ function SidebarContent({
   );
 }
 
-/* ─── Chat Content ──────────────────────────────────────────────────────────── */
+/* ─── Chat Content ────────────────────────────────────────────────── */
 function ChatContent({
   selectedContact, currentMessages, input, setInput,
   showQuickReplies, setShowQuickReplies, showProfile,
@@ -455,7 +474,8 @@ function ChatContent({
   onBack: () => void;
   onSend: (text: string) => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  // ✅ FIXED: added | null
+  messagesEndRef: React.RefObject<HTMLDivElement | null>;
   showBackButton: boolean;
 }) {
   return (
@@ -518,7 +538,7 @@ function ChatContent({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 space-y-3 bg-[#fdf8f8]">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-5 py-4 space-y-3 bg-[#fdf8f8]">
         <div className="flex items-center gap-3 my-2">
           <div className="flex-1 h-px bg-gray-200" />
           <span className="text-[10px] text-gray-400 bg-white px-3 py-1 rounded-full border border-gray-200">Today</span>
@@ -584,7 +604,7 @@ function ChatContent({
 
       {/* Input */}
       <div className="px-3 sm:px-4 py-3 bg-white border-t border-gray-100 shrink-0">
-        <div className="flex items-center  gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="flex gap-1 justify-center items-center">
             <button
               onClick={() => setShowQuickReplies(!showQuickReplies)}
@@ -610,20 +630,19 @@ function ChatContent({
             onClick={() => onSend(input)}
             disabled={!input.trim()}
             className="w-10 h-10 rounded-xl bg-[#b22234] hover:bg-[#9a1d2b] disabled:bg-gray-200 text-white flex items-center justify-center transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed shrink-0"
-           >
+          >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13" />
               <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
           </button>
         </div>
-        {/* <p className="text-[9px] text-gray-300 text-center mt-1.5 hidden sm:block">Press Enter to send • Shift+Enter for new line</p> */}
       </div>
     </>
   );
 }
 
-/* ─── Profile Content ──────────────────────────────────────────────────────── */
+/* ─── Profile Content ─────────────────────────────────────────────── */
 function ProfileContent({ contact, onClose }: { contact: Contact; onClose: () => void }) {
   return (
     <>
@@ -665,12 +684,12 @@ function ProfileContent({ contact, onClose }: { contact: Contact; onClose: () =>
           <hr className="border-gray-100" />
 
           {[
-            { label: "Age", value: `${contact.age} years` },
-            { label: "Location", value: contact.location },
-            { label: "Profile ID", value: "GM001247" },
-            { label: "Religion", value: "Hindu – Brahmin" },
+            { label: "Age",       value: `${contact.age} years` },
+            { label: "Location",  value: contact.location },
+            { label: "Profile ID",value: "GM001247" },
+            { label: "Religion",  value: "Hindu – Brahmin" },
             { label: "Education", value: "B.Tech Software" },
-            { label: "Profession", value: "Software Engineer" },
+            { label: "Profession",value: "Software Engineer" },
           ].map((item) => (
             <div key={item.label} className="flex justify-between items-center">
               <span className="text-[11px] text-gray-400">{item.label}</span>
