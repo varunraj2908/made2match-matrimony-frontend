@@ -10,7 +10,7 @@ export default function CoastHeaderBar({
   const currentTab = activeTab ?? "Regular";
 
   return (
-    <div className="relative flex items-center justify-center pt-10">
+    <div className="relative flex items-center justify-center pt-7 lg:pt-10">
       
       {/* Horizontal Line */}
       <div className="absolute w-[77%] h-px bg-gray-300"></div>

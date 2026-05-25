@@ -34,7 +34,7 @@ const navItems: NavItem[] = [
   },
   {
     key: "Working Flow",
-    label: "How It Works",
+    label: "Connect",
     badge: null,
     icon: (
       <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">

@@ -786,7 +786,7 @@ const LeftSidebar = ({
   setActiveMenu: (s: string) => void;
 }) => (
   <aside
-    className="w-72 shrink-0 bg-white border border-gray-200 rounded-xl  shadow-sm overflow-y-auto"
+    className="w-72 shrink-0 bg-white border border-gray-200 rounded-xl hidden lg:block  shadow-sm overflow-y-auto"
     style={{ maxHeight: "calc(113vh - 3rem)" }}
   >
     {SIDEBAR_SECTIONS.map((section, si) => (
