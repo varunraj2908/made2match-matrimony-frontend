@@ -70,7 +70,7 @@ export default function BasicDetailsPage() {
       </FieldGroup>
 
       {/* Mother tongue */}
-      <FieldGroup label="Mother tongue" error={err.motherTongue}>
+      <FieldGroup label="Mother tongue" error={err.motherTongue} isHeight='h-22'>
         <StyledSelect
           label="Mother tongue"
           value={formData.motherTongue}
@@ -80,26 +80,7 @@ export default function BasicDetailsPage() {
         />
       </FieldGroup>
 
-      {/* Email */}
-      <FieldGroup label="Email address" error={err.email}>
-        <PlainInput
-          placeholder="Enter your email"
-          value={formData.email}
-          onChange={set("email")}
-          type="email"
-        />
-      </FieldGroup>
-
-      {/* Password */}
-      <FieldGroup label="Create password" isHeight="h-27" error={err.password}>
-        <PlainInput
-          placeholder="Create a password"
-          value={formData.password}
-          onChange={set("password")}
-          type="password"
-        />
-        <p className="text-xs mt-1.5 text-gray-400">Password must be 8–20 characters</p>
-      </FieldGroup>
+     
 
       <ActionBtn onClick={handleContinue} label="Continue →" />
     </div>

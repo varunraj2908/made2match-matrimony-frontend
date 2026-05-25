@@ -62,3 +62,6 @@ http://localhost:3000/edit-profile/profile-preview
 http://localhost:3000/onboarding/additional-details
 http://localhost:3000/onboarding/personal-religious-details
 http://localhost:3000/onboarding/location-professional-details
+
+
+![Made2Match API Flow](./public/made2match_api_flow.svg)
