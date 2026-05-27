@@ -13,6 +13,8 @@ import {
 
 export interface FormData {
   /* Step 1 – Basic Details */
+  profileCreatedFor: string;
+  gender: string;
   day: string;
   month: string;
   year: string;
@@ -54,6 +56,8 @@ export interface FormData {
 
 const defaultForm: FormData = {
   /* Step 1 */
+  profileCreatedFor: "",
+  gender: "",
   day: "",
   month: "",
   year: "",
