@@ -5,12 +5,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOnboarding } from "../OnboardingContext";
 import { ActionBtn, BackBtn, castesByReligion, Checkbox, Divider, FieldGroup, heights, jathakamOptions, maritalOptions, physicalOptions, PillSelect, religions, SectionHeading, StyledSelect } from "../shared-components";
+import {
+  heightLabelToCm,
+  mapMaritalStatus,
+  mapPhysicalStatus,
+  mapShudhajathakam,
+  savePersonalDetails,
+} from "@/services/profileService";
 
 
 export default function PersonalReligiousPage() {
   const router = useRouter();
   const { formData, setFormData } = useOnboarding();
   const [err, setErr] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const set = (k: string) => (v: any) =>
     setFormData(d => ({ ...d, [k]: v }));
@@ -28,10 +36,32 @@ export default function PersonalReligiousPage() {
     return e;
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErr(e); return; }
-    router.push("/onboarding/location-professional-details");
+    setErr({});
+    setSubmitting(true);
+    try {
+      await savePersonalDetails({
+        heightCm: heightLabelToCm(formData.height),
+        physicalStatus: mapPhysicalStatus(formData.physicalStatus),
+        maritalStatus: mapMaritalStatus(formData.maritalStatus),
+        religion: formData.religion,
+        caste: formData.caste,
+        subcaste: formData.subcaste || undefined,
+        willingToMarryAnyCaste: !!formData.anycaste,
+        shudhajathakam: mapShudhajathakam(formData.jathakam),
+      });
+      router.push("/onboarding/location-professional-details");
+    } catch (ex: any) {
+      const msg =
+        ex?.response?.data?.message ||
+        ex?.message ||
+        "Could not save personal details. Please try again.";
+      setErr({ submit: msg });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -97,11 +127,19 @@ export default function PersonalReligiousPage() {
         <PillSelect options={jathakamOptions} value={formData.jathakam} onChange={set("jathakam")} />
       </FieldGroup>
 
+      {err.submit && (
+        <p className="text-sm text-red-500">{err.submit}</p>
+      )}
+
       {/* Nav */}
       <div className="flex gap-3 pt-2 ">
         <BackBtn onClick={() => router.push("/onboarding/basic-details")} />
         <div className="flex-2">
-          <ActionBtn onClick={handleContinue} label="Continue →" />
+          <ActionBtn
+            onClick={handleContinue}
+            label={submitting ? "Saving..." : "Continue →"}
+            disabled={submitting}
+          />
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { saveHoroscope, timeLabelToHHmm } from "@/services/profileService";
 
 const ChevronIcon = () => (
   <svg
@@ -94,10 +95,30 @@ export default function HoroscopeForm() {
   const [country, setCountry] = useState("India");
   const [state, setState] = useState("Andaman & Nicobar");
   const [city, setCity] = useState("Meroe-i (Nicobar)");
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = () => {
-    const data = { dob, tob, country, state, city };
-    console.log("Horoscope details submitted:", data);
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    setErrorMsg("");
+    try {
+      await saveHoroscope({
+        dateOfBirth: dob || undefined,
+        timeOfBirth: tob ? timeLabelToHHmm(tob) : undefined,
+        birthCountry: country || undefined,
+        birthState: state || undefined,
+        birthCity: city || undefined,
+      });
+      router.push("/star-details");
+    } catch (ex: any) {
+      setErrorMsg(
+        ex?.response?.data?.message ||
+          ex?.message ||
+          "Could not save horoscope details. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -224,13 +245,17 @@ export default function HoroscopeForm() {
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          className="w-full py-3.5 rounded-2xl text-white text-base font-medium tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:opacity-90 active:scale-95"
+          disabled={submitting}
+          className="w-full py-3.5 rounded-2xl text-white text-base font-medium tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:opacity-90 active:scale-95 disabled:opacity-60"
           style={{
             background: "linear-gradient(135deg, #d4145a  0%, #d4145a  100%)",
           }}
         >
-          Continue
+          {submitting ? "Saving..." : "Continue"}
         </button>
+        {errorMsg && (
+          <p className="mt-3 text-xs text-red-500 text-center">{errorMsg}</p>
+        )}
       </div>
     </div>
   );

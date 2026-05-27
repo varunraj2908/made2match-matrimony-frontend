@@ -19,6 +19,10 @@ import {
   SectionHeading,
   StyledSelect,
 } from "../shared-components";
+import {
+  mapFamilyStatus,
+  saveAdditionalDetails,
+} from "@/services/profileService";
 
 const familyStatusOptions: string[] = [
   "Middle Class",
@@ -40,6 +44,7 @@ export default function AdditionalDetailsPage(): JSX.Element {
 
   const [submitted, setSubmitted] =
     useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string>("");
 
   const setField =
     (key: FormKey) =>
@@ -50,12 +55,24 @@ export default function AdditionalDetailsPage(): JSX.Element {
       }));
     };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): Promise<void> => {
     setSubmitted(true);
-
-    window.setTimeout((): void => {
+    setErrorMsg("");
+    try {
+      const mappedStatus = mapFamilyStatus(formData.familyStatus);
+      await saveAdditionalDetails({
+        familyStatus: mappedStatus ?? undefined,
+        bio: formData.aboutYourself || undefined,
+      });
       router.push("/success-onboarding");
-    }, 1500);
+    } catch (ex: any) {
+      const msg =
+        ex?.response?.data?.message ||
+        ex?.message ||
+        "Could not complete registration. Please try again.";
+      setErrorMsg(msg);
+      setSubmitted(false);
+    }
   };
 
   // if (submitted) {
@@ -125,6 +142,10 @@ export default function AdditionalDetailsPage(): JSX.Element {
         />
       </FieldGroup>
 
+      {errorMsg && (
+        <p className="text-sm text-red-500">{errorMsg}</p>
+      )}
+
       {/* Buttons */}
       <div className="flex gap-3 pt-2">
         <BackBtn
@@ -138,7 +159,8 @@ export default function AdditionalDetailsPage(): JSX.Element {
         <div className="flex-1">
           <ActionBtn
             onClick={handleSubmit}
-            label="Complete Registration"
+            label={submitted ? "Submitting..." : "Complete Registration"}
+            disabled={submitted}
           />
         </div>
       </div>

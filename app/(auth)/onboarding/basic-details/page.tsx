@@ -4,13 +4,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOnboarding } from "../OnboardingContext";
-import { ActionBtn, days, FieldGroup, genders, months, motherTongues, profileCreatedForOptions, SectionHeading, StyledSelect, years } from "../shared-components";
-
+import {
+  ActionBtn,
+  days,
+  FieldGroup,
+  genders,
+  months,
+  motherTongues,
+  profileCreatedForOptions,
+  SectionHeading,
+  StyledSelect,
+  years,
+} from "../shared-components";
+import { saveBasicDetails } from "@/services/profileService";
 
 export default function BasicDetailsPage() {
   const router = useRouter();
   const { formData, setFormData } = useOnboarding();
   const [err, setErr] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const set = (k: string) => (v: any) =>
     setFormData(d => ({ ...d, [k]: v }));
@@ -22,19 +34,41 @@ export default function BasicDetailsPage() {
     if (!formData.day || !formData.month || !formData.year)
       e.dob = "Please select your date of birth";
     if (!formData.motherTongue) e.motherTongue = "Required";
-    if (!formData.email.trim()) e.email = "Required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-      e.email = "Invalid email address";
-    if (!formData.password.trim()) e.password = "Required";
-    else if (formData.password.length < 8 || formData.password.length > 20)
-      e.password = "Must be 8–20 characters";
     return e;
   };
 
-  const handleContinue = () => {
+  const buildDateOfBirth = () => {
+    const monthIdx = months.indexOf(formData.month) + 1;
+    const dd = formData.day.padStart(2, "0");
+    const mm = String(monthIdx).padStart(2, "0");
+    return `${formData.year}-${mm}-${dd}`;
+  };
+
+  const handleContinue = async () => {
     const e = validate();
-    if (Object.keys(e).length) { setErr(e); return; }
-    router.push("/onboarding/personal-religious-details");
+    if (Object.keys(e).length) {
+      setErr(e);
+      return;
+    }
+    setErr({});
+    setSubmitting(true);
+    try {
+      await saveBasicDetails({
+        dateOfBirth: buildDateOfBirth(),
+        motherTongue: formData.motherTongue.toUpperCase(),
+        gender: formData.gender.toUpperCase(),
+        profileCreatedBy: formData.profileCreatedFor.toUpperCase(),
+      });
+      router.push("/onboarding/personal-religious-details");
+    } catch (ex: any) {
+      const msg =
+        ex?.response?.data?.message ||
+        ex?.message ||
+        "Could not save basic details. Please try again.";
+      setErr({ submit: msg });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -104,9 +138,15 @@ export default function BasicDetailsPage() {
         />
       </FieldGroup>
 
-     
+      {err.submit && (
+        <p className="text-sm text-red-500 -mt-2">{err.submit}</p>
+      )}
 
-      <ActionBtn onClick={handleContinue} label="Continue →" />
+      <ActionBtn
+        onClick={handleContinue}
+        label={submitting ? "Saving..." : "Continue →"}
+        disabled={submitting}
+      />
     </div>
   );
 }

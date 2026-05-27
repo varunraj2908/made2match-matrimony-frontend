@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { mapNakshatra, mapRaasi, saveStarDetails } from "@/services/profileService";
 
 const ArrowIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16">
@@ -150,6 +151,8 @@ export default function AddStarDetails() {
    const router = useRouter();
   const [nakshatra, setNakshatra] = useState("Ardra / Thiruvathira");
   const [raasi, setRaasi] = useState("Mithunam (Gemini)");
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   // Auto-suggest raasi when nakshatra changes
   const handleNakshatraChange = (val: string) => {
@@ -158,8 +161,24 @@ export default function AddStarDetails() {
     if (info) setRaasi(info.raasi);
   };
 
-  const handleSubmit = () => {
-    console.log("Star details submitted:", { nakshatra, raasi });
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    setErrorMsg("");
+    try {
+      await saveStarDetails({
+        nakshatra: mapNakshatra(nakshatra),
+        raasi: mapRaasi(raasi),
+      });
+      router.push("/eating-habit");
+    } catch (ex: any) {
+      setErrorMsg(
+        ex?.response?.data?.message ||
+          ex?.message ||
+          "Could not save star details. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const info = NAKSHATRA_INFO[nakshatra];
@@ -258,11 +277,15 @@ export default function AddStarDetails() {
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          className="w-full py-3.5 rounded-2xl text-white text-base font-medium tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:opacity-90 active:scale-95"
+          disabled={submitting}
+          className="w-full py-3.5 rounded-2xl text-white text-base font-medium tracking-wide transition-all duration-200 hover:-translate-y-0.5 hover:opacity-90 active:scale-95 disabled:opacity-60"
           style={{ background: "linear-gradient(135deg, #c0174c 0%, #c0174c 100%)" }}
         >
-          Continue
+          {submitting ? "Saving..." : "Continue"}
         </button>
+        {errorMsg && (
+          <p className="mt-3 text-xs text-red-500 text-center">{errorMsg}</p>
+        )}
       </div>
     </div>
   );
