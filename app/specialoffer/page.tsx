@@ -140,9 +140,9 @@ function Header({ onUpgrade }) {
         background: "linear-gradient(135deg, #c0174c 0%, #a01040 100%)",
       }}
     >
-      <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
             <svg
               viewBox="0 0 24 24"
               fill="currentColor"
@@ -151,25 +151,14 @@ function Header({ onUpgrade }) {
               <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           </div>
-          <span className="font-bold text-lg tracking-wide">MatriMatch</span>
+          <span className="font-bold text-base sm:text-lg tracking-wide truncate">MatriMatch</span>
         </div>
 
         <button
-          className="px-5 py-1 border rounded-full cursor-pointer hover:bg-white hover:text-[#c0174c] font-extrabold"
-          onClick={() => router.push("/specialoffer")}
+          className="px-3 sm:px-5 py-1 border rounded-full cursor-pointer hover:bg-white hover:text-[#c0174c] font-extrabold text-xs sm:text-sm whitespace-nowrap"
+          onClick={onUpgrade}
         >
           Upgrade Now
-        </button>
-        <button className="md:hidden p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="w-5 h-5"
-          >
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
         </button>
       </div>
     </header>
@@ -242,22 +231,41 @@ function SpecialOfferPage({ onViewAll, onUpgrade }) {
     >
       <Header onUpgrade={onUpgrade} />
       <main
-        className="flex-1 py-12 px-4"
+        className="flex-1 py-6 sm:py-12 px-3 sm:px-4"
         style={{
           background:
             "linear-gradient(160deg, #fff8f0 0%, #fff0f5 40%, #fdf4ff 100%)",
         }}
       >
+        {/* Back nav */}
+        <div className="max-w-5xl mx-auto w-full mb-4">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800 transition cursor-pointer"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              className="w-4 h-4"
+            >
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            Back
+          </button>
+        </div>
+
         {/* Title */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-5">
-            <svg viewBox="0 0 20 20" fill="#bbb" className="w-5 h-5 opacity-40">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5">
+            <svg viewBox="0 0 20 20" fill="#bbb" className="w-4 h-4 sm:w-5 sm:h-5 opacity-40">
               <path d="M10 0l1.5 6.5L18 10l-6.5 1.5L10 18l-1.5-6.5L2 10l6.5-1.5z" />
             </svg>
-            <h1 className="text-4xl font-black tracking-tight text-gray-900">
+            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-gray-900">
               Special{" "}
               <span
-                className="text-white px-4 py-1 rounded-xl inline-block"
+                className="text-white px-3 sm:px-4 py-1 rounded-xl inline-block"
                 style={{
                   background: "linear-gradient(135deg,#7c1d6f,#c0174c)",
                 }}
@@ -265,22 +273,22 @@ function SpecialOfferPage({ onViewAll, onUpgrade }) {
                 Offer
               </span>
             </h1>
-            <svg viewBox="0 0 20 20" fill="#bbb" className="w-5 h-5 opacity-40">
+            <svg viewBox="0 0 20 20" fill="#bbb" className="w-4 h-4 sm:w-5 sm:h-5 opacity-40">
               <path d="M10 0l1.5 6.5L18 10l-6.5 1.5L10 18l-1.5-6.5L2 10l6.5-1.5z" />
             </svg>
           </div>
-          <div className="flex items-center justify-center gap-3 mb-1">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-1 flex-wrap text-sm sm:text-base">
             <span className="text-gray-800 font-semibold">Save upto 58%</span>
             <span className="text-gray-400 text-lg">+</span>
             <span className="font-bold" style={{ color: "#c0174c" }}>
               21 Days Money Back Guarantee!
             </span>
           </div>
-          <p className="text-gray-400 text-sm">Offer ends today</p>
+          <p className="text-gray-400 text-xs sm:text-sm">Offer ends today</p>
         </div>
 
         {/* Cards */}
-        <div className="max-w-5xl mx-auto grid grid-cols-3 gap-6 mb-8">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
           {specialPlans.map((plan) => (
             <div
               key={plan.id}
@@ -418,11 +426,11 @@ function SpecialOfferPage({ onViewAll, onUpgrade }) {
         </div>
 
         {/* Help */}
-        <div className="text-center">
-          <p className="text-gray-800 font-semibold text-base mb-4">
+        <div className="text-center px-2">
+          <p className="text-gray-800 font-semibold text-sm sm:text-base mb-4">
             Need any help in making payment?
           </p>
-          <div className="flex items-center justify-center gap-4 mb-4">
+          <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4 flex-wrap">
             <button
               className="flex items-center gap-2 px-5 py-2.5 rounded-full border text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
               style={{ borderColor: "#d1d5db" }}
@@ -509,7 +517,7 @@ function AllPackagesPage({ onBack, onUpgrade }) {
         </button>
       </div>
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6">
         {/* Top Banner */}
         <div className="text-center mb-4">
           <p className="text-sm font-semibold" style={{ color: "#c0174c" }}>
@@ -551,7 +559,7 @@ function AllPackagesPage({ onBack, onUpgrade }) {
             <button
               key={key}
               onClick={() => setTab(key)}
-              className="px-6 py-3 font-semibold text-sm transition-all relative"
+              className="px-4 sm:px-6 py-3 font-semibold text-xs sm:text-sm transition-all relative"
               style={{
                 color:
                   tab === key
@@ -584,13 +592,13 @@ function AllPackagesPage({ onBack, onUpgrade }) {
         </div>
 
         {/* Duration Pills */}
-        <div className="flex items-center gap-3 mb-8 justify-center flex-wrap">
-          <div className="w-12 h-px bg-gray-200" />
+        <div className="flex items-center gap-2 sm:gap-3 mb-10 sm:mb-8 justify-center flex-wrap">
+          <div className="hidden sm:block w-12 h-px bg-gray-200" />
           {durations.map((d) => (
             <button
               key={d.key}
               onClick={() => setDuration(d.key)}
-              className="relative flex items-center gap-1.5 px-5 py-2 rounded-full border text-sm font-semibold transition-all hover:scale-105"
+              className="relative flex items-center gap-1.5 px-3 sm:px-5 py-2 rounded-full border text-xs sm:text-sm font-semibold transition-all hover:scale-105"
               style={{
                 background:
                   duration === d.key
@@ -624,14 +632,14 @@ function AllPackagesPage({ onBack, onUpgrade }) {
               )}
             </button>
           ))}
-          <div className="w-12 h-px bg-gray-200" />
+          <div className="hidden sm:block w-12 h-px bg-gray-200" />
         </div>
 
         {/* Plan Cards */}
-        <div className="grid grid-cols-2 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-12">
           {/* Gold */}
           <div
-            className="rounded-2xl border border-gray-200 p-6"
+            className="rounded-2xl border border-gray-200 p-4 sm:p-6"
             style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
           >
             <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
@@ -699,7 +707,7 @@ function AllPackagesPage({ onBack, onUpgrade }) {
 
           {/* Assisted Gold */}
           <div
-            className="rounded-2xl border-2 p-6"
+            className="rounded-2xl border-2 p-4 sm:p-6"
             style={{
               borderColor: "#c0174c",
               boxShadow: "0 4px 20px rgba(34,197,94,0.15)",
@@ -779,11 +787,11 @@ function AllPackagesPage({ onBack, onUpgrade }) {
           <h2 className="text-xl font-bold text-gray-900 mb-6">
             Why paid membership?
           </h2>
-          <div className="flex justify-center gap-8 mb-8">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-8 mb-8">
             {whyBenefits.map((b, i) => (
-              <div key={i} className="flex flex-col items-center gap-3">
+              <div key={i} className="flex flex-col items-center gap-3 w-20 sm:w-auto">
                 <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-2xl shadow-md"
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl shadow-md"
                   style={{
                     background: "linear-gradient(135deg,#c0174c,#c0174c)",
                   }}
@@ -797,7 +805,7 @@ function AllPackagesPage({ onBack, onUpgrade }) {
             ))}
           </div>
           <button
-            className="px-8 py-3 rounded-lg text-white font-bold text-sm tracking-widest transition hover:opacity-90 hover:scale-105"
+            className="px-4 sm:px-8 py-3 rounded-lg text-white font-bold text-xs sm:text-sm tracking-widest transition hover:opacity-90 hover:scale-105"
             style={{
               background: "linear-gradient(135deg,#c0174c,#c0174c)",
               boxShadow: "0 4px 14px rgba(249,115,22,0.4)",
@@ -846,14 +854,14 @@ function AllPackagesPage({ onBack, onUpgrade }) {
             <p className="font-semibold text-gray-800 mb-4 text-sm">
               Select an Assisted Package
             </p>
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-2 sm:gap-3 flex-wrap">
               {["3 Months", "6 Months", "12 Months"].map((d, i) => {
                 const key = ["3months", "6months", "12months"][i];
                 return (
                   <button
                     key={key}
                     onClick={() => setAssistedDuration(key)}
-                    className="px-6 py-2.5 rounded-lg border text-sm font-semibold transition-all hover:scale-105"
+                    className="px-4 sm:px-6 py-2.5 rounded-lg border text-xs sm:text-sm font-semibold transition-all hover:scale-105"
                     style={{
                       borderColor:
                         assistedDuration === key ? "#c0174c" : "#d1d5db",
@@ -871,15 +879,15 @@ function AllPackagesPage({ onBack, onUpgrade }) {
         </div>
 
         {/* Success Stories */}
-        <div className="rounded-2xl p-8 mb-6" style={{ background: "#f9fafb" }}>
-          <h2 className="text-lg font-bold text-gray-900 mb-1">
+        <div className="rounded-2xl p-4 sm:p-8 mb-6" style={{ background: "#f9fafb" }}>
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-1">
             Featured in Limca Book of World Records for highest number of
             documented marriages online
           </h2>
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="text-xs sm:text-sm text-gray-500 mb-6">
             Some of our recent success stories
           </p>
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
             {successStories.map((s, i) => (
               <div
                 key={i}
@@ -896,7 +904,7 @@ function AllPackagesPage({ onBack, onUpgrade }) {
           </div>
           <div className="text-center">
             <button
-              className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-white font-bold text-sm transition hover:opacity-90 hover:scale-105"
+              className="inline-flex items-center gap-2 px-5 sm:px-8 py-3 rounded-full text-white font-bold text-xs sm:text-sm transition hover:opacity-90 hover:scale-105"
               style={{ background: "linear-gradient(135deg,#c0174c,#c0174c)" }}
             >
               <span>👑</span> BECOME A PAID MEMBER

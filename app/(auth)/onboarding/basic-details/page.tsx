@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOnboarding } from "../OnboardingContext";
-import { ActionBtn, days, FieldGroup, months, motherTongues, PlainInput, SectionHeading, StyledSelect, years } from "../shared-components";
+import { ActionBtn, days, FieldGroup, genders, months, motherTongues, profileCreatedForOptions, SectionHeading, StyledSelect, years } from "../shared-components";
 
 
 export default function BasicDetailsPage() {
@@ -17,6 +17,8 @@ export default function BasicDetailsPage() {
 
   const validate = () => {
     const e: Record<string, string> = {};
+    if (!formData.profileCreatedFor) e.profileCreatedFor = "Required";
+    if (!formData.gender) e.gender = "Required";
     if (!formData.day || !formData.month || !formData.year)
       e.dob = "Please select your date of birth";
     if (!formData.motherTongue) e.motherTongue = "Required";
@@ -41,6 +43,28 @@ export default function BasicDetailsPage() {
         title="Basic Details"
         subtitle="Let's start with some basic information about you."
       />
+
+      {/* Profile created for */}
+      <FieldGroup label="Profile created for" error={err.profileCreatedFor} isHeight='h-22'>
+        <StyledSelect
+          label="Profile created for"
+          value={formData.profileCreatedFor}
+          onChange={set("profileCreatedFor")}
+          options={profileCreatedForOptions}
+          placeholder="Select"
+        />
+      </FieldGroup>
+
+      {/* Gender */}
+      <FieldGroup label="Gender" error={err.gender} isHeight='h-22'>
+        <StyledSelect
+          label="Gender"
+          value={formData.gender}
+          onChange={set("gender")}
+          options={genders}
+          placeholder="Select gender"
+        />
+      </FieldGroup>
 
       {/* Date of birth */}
       <FieldGroup label="Date of birth" error={err.dob}>

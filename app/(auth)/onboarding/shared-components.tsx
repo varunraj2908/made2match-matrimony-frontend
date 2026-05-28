@@ -5,6 +5,8 @@ export const days         = Array.from({ length: 31 }, (_, i) => String(i + 1));
 export const months       = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 export const years        = Array.from({ length: 50 }, (_, i) => String(2006 - i));
 export const motherTongues = ["Malayalam","Tamil","Telugu","Kannada","Hindi","Bengali","Marathi","Gujarati","Punjabi","Other"];
+export const profileCreatedForOptions = ["Self","Son","Daughter","Brother","Sister","Relative","Friend"];
+export const genders = ["Male","Female"];
 export const heights      = ["4'0\"","4'1\"","4'2\"","4'3\"","4'4\"","4'5\"","4'6\"","4'7\"","4'8\"","4'9\"","4'10\"","4'11\"","5'0\"","5'1\"","5'2\"","5'3\"","5'4\"","5'5\"","5'6\"","5'7\"","5'8\"","5'9\"","5'10\"","5'11\"","6'0\"","6'1\"","6'2\"","6'3\""];
 export const religions    = ["Hindu","Muslim","Christian","Sikh","Buddhist","Jain","Other"];
 export const castesByReligion: Record<string, string[]> = {
