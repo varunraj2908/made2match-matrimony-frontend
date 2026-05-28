@@ -91,7 +91,7 @@ export default function Home() {
 
       <MarriageQuoteBanner onClick={openFromPage} />
 
-      <div ref={successStoriesRef}>
+      <div id="success-stories" ref={successStoriesRef}>
         <SuccessStories />
       </div>
 
