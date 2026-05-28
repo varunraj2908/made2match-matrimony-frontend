@@ -3,6 +3,7 @@
 
 import { useRef, useState, type ChangeEvent, type JSX } from "react";
 import { useRouter } from "next/navigation";
+import { uploadProfilePhoto } from "@/services/profileService";
 
 export default function AddPhotoPage(): JSX.Element {
   const router = useRouter();
@@ -10,6 +11,9 @@ export default function AddPhotoPage(): JSX.Element {
 
   const [preview, setPreview] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [pickedFile, setPickedFile] = useState<File | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string>("");
+  const [uploading, setUploading] = useState<boolean>(false);
 
   const openPicker = (): void => {
     inputRef.current?.click();
@@ -19,19 +23,43 @@ export default function AddPhotoPage(): JSX.Element {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) return;
-    if (file.size > 5 * 1024 * 1024) return;
+    if (!file.type.startsWith("image/")) {
+      setErrorMsg("Please choose an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg("Image must be smaller than 5 MB.");
+      return;
+    }
 
+    setErrorMsg("");
+    setPickedFile(file);
     setLoading(true);
 
     const reader = new FileReader();
-
     reader.onload = () => {
       setPreview(reader.result as string);
       setLoading(false);
     };
-
     reader.readAsDataURL(file);
+  };
+
+  const handleContinue = async (): Promise<void> => {
+    if (!pickedFile) return;
+    setUploading(true);
+    setErrorMsg("");
+    try {
+      await uploadProfilePhoto(pickedFile);
+      router.push("/hobbies-interests");
+    } catch (ex: any) {
+      setErrorMsg(
+        ex?.response?.data?.message ||
+          ex?.message ||
+          "Could not upload photo. Please try again.",
+      );
+    } finally {
+      setUploading(false);
+    }
   };
 
   const benefits = [
@@ -156,15 +184,20 @@ export default function AddPhotoPage(): JSX.Element {
 
             {preview && (
               <button
-                onClick={() => router.push("/onboarding/success")}
-                className="w-full mt-4 py-3.5 rounded-2xl text-white text-base font-black shadow-lg"
+                onClick={handleContinue}
+                disabled={uploading}
+                className="w-full mt-4 py-3.5 rounded-2xl text-white text-base font-black shadow-lg disabled:opacity-60"
                 style={{
                   background:
                     "linear-gradient(135deg,#d4145a 0%, #b10846 45%, #8c0036 100%)",
                 }}
               >
-                Continue →
+                {uploading ? "Uploading..." : "Continue →"}
               </button>
+            )}
+
+            {errorMsg && (
+              <p className="mt-3 text-xs text-red-500 text-center">{errorMsg}</p>
             )}
           </div>
 

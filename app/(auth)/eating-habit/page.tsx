@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { mapDiet, saveEatingHabit } from "@/services/profileService";
 
 const ArrowIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16">
@@ -85,11 +86,30 @@ const habits: {
 export default function EatingHabitForm() {
   const router = useRouter();
   const [selected, setSelected] = useState<Habit | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selected) return;
-    console.log("Eating habit submitted:", selected);
-    // Replace with your API call / router.push
+    const diet = mapDiet(selected);
+    if (!diet) {
+      setErrorMsg("Invalid selection.");
+      return;
+    }
+    setSubmitting(true);
+    setErrorMsg("");
+    try {
+      await saveEatingHabit(diet);
+      router.push("/education-details");
+    } catch (ex: any) {
+      setErrorMsg(
+        ex?.response?.data?.message ||
+          ex?.message ||
+          "Could not save eating habit. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -212,7 +232,7 @@ export default function EatingHabitForm() {
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          disabled={!selected}
+          disabled={!selected || submitting}
           className={`
             w-full py-3.5 rounded-2xl z-50 text-base font-medium tracking-wide
             transition-all duration-200
@@ -221,6 +241,7 @@ export default function EatingHabitForm() {
                 ? "text-white hover:-translate-y-0.5 hover:opacity-90 active:scale-95"
                 : "text-slate-400 bg-slate-100 cursor-not-allowed"
             }
+            ${submitting ? "opacity-60" : ""}
           `}
           style={
             selected
@@ -231,8 +252,15 @@ export default function EatingHabitForm() {
               : {}
           }
         >
-          {selected ? `Continue with ${selected}` : "Select an option"}
+          {submitting
+            ? "Saving..."
+            : selected
+              ? `Continue with ${selected}`
+              : "Select an option"}
         </button>
+        {errorMsg && (
+          <p className="mt-3 text-xs text-red-500 text-center">{errorMsg}</p>
+        )}
       </div>
     </div>
   );

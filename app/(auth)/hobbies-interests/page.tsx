@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { mapInterestCategory, saveAllInterests } from "@/services/profileService";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const TABS = [
@@ -124,6 +125,32 @@ export default function HobbiesPage() {
   const [expanded, setExpanded] = useState<Record<TabKey, boolean>>(
     () => Object.fromEntries(TABS.map(t => [t.key, false])) as Record<TabKey, boolean>
   );
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSaveContinue = async () => {
+    setSubmitting(true);
+    setErrorMsg("");
+    try {
+      const payload: Record<string, string[]> = {};
+      TABS.forEach(({ key }) => {
+        const items = Array.from(selected[key]);
+        if (items.length === 0) return;
+        const backendCategory = mapInterestCategory(key);
+        if (backendCategory) payload[backendCategory] = items;
+      });
+      await saveAllInterests(payload);
+      router.push("/horoscope");
+    } catch (ex: any) {
+      setErrorMsg(
+        ex?.response?.data?.message ||
+          ex?.message ||
+          "Could not save interests. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const toggle = (tab: TabKey, item: string) => {
     setSelected(prev => {
@@ -319,22 +346,26 @@ export default function HobbiesPage() {
               interests
             </p>
             <button
-              onClick={() => router.push("/onboarding/add-photo")}
-              disabled={totalSelected === 0}
+              onClick={handleSaveContinue}
+              disabled={totalSelected === 0 || submitting}
               className="px-6 py-2.5 rounded-xl text-md font-black transition-all active:scale-95"
               style={{
                 background: totalSelected > 0
                   ? "linear-gradient(135deg,#c0174c,#8b0f38)"
                   : "#e5e7eb",
                 color:  totalSelected > 0 ? "white" : "#9ca3af",
-                cursor: totalSelected > 0 ? "pointer" : "default",
+                cursor: totalSelected > 0 && !submitting ? "pointer" : "default",
                 boxShadow: totalSelected > 0 ? "0 3px 10px rgba(192,23,76,0.25)" : "none",
                 border: "none",
+                opacity: submitting ? 0.7 : 1,
               }}
             >
-              Save &amp; Continue →
+              {submitting ? "Saving..." : "Save & Continue →"}
             </button>
           </div>
+          {errorMsg && (
+            <p className="px-5 pb-3 text-xs text-red-500">{errorMsg}</p>
+          )}
 
         </div>
       </div>

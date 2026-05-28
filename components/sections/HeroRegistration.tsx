@@ -53,7 +53,14 @@ export default function HeroRegistration() {
     }
 
     mutate(formData, {
-      onSuccess: () => {
+      onSuccess: (res: any) => {
+        const tokens = res?.data;
+        if (tokens?.accessToken) {
+          localStorage.setItem("token", tokens.accessToken);
+          if (tokens.refreshToken) {
+            localStorage.setItem("refreshToken", tokens.refreshToken);
+          }
+        }
         router.push("/onboarding/basic-details");
       },
     });

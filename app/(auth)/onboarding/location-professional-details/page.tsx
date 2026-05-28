@@ -5,6 +5,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOnboarding } from "../OnboardingContext";
 import { ActionBtn, BackBtn, Divider, educationList, FieldGroup, incomeList, PlainInput, professionList, SectionHeading, StyledSelect } from "../shared-components";
+import {
+  incomeLabelToAnnual,
+  saveProfessionalDetails,
+} from "@/services/profileService";
 
 
 const countries = ["India","UAE","USA","UK","Canada","Australia","Singapore","Other"];
@@ -20,6 +24,7 @@ export default function LocationProfessionalPage() {
   const router = useRouter();
   const { formData, setFormData } = useOnboarding();
   const [err, setErr] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const set = (k: string) => (v: any) =>
     setFormData(d => ({ ...d, [k]: v }));
@@ -35,10 +40,32 @@ export default function LocationProfessionalPage() {
     return e;
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErr(e); return; }
-    router.push("/onboarding/additional-details");
+    setErr({});
+    setSubmitting(true);
+    try {
+      await saveProfessionalDetails({
+        country: formData.country,
+        state: formData.state,
+        city: formData.city || undefined,
+        highestQualification: formData.education,
+        occupation: formData.profession,
+        annualIncome: formData.income
+          ? incomeLabelToAnnual(formData.income)
+          : undefined,
+      });
+      router.push("/onboarding/additional-details");
+    } catch (ex: any) {
+      const msg =
+        ex?.response?.data?.message ||
+        ex?.message ||
+        "Could not save professional details. Please try again.";
+      setErr({ submit: msg });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -92,11 +119,19 @@ export default function LocationProfessionalPage() {
         />
       </FieldGroup>
 
+      {err.submit && (
+        <p className="text-sm text-red-500">{err.submit}</p>
+      )}
+
       {/* Nav */}
       <div className="flex gap-3 pt-2">
         <BackBtn onClick={() => router.push("/onboarding/personal-religious-details")} />
         <div className="flex-2">
-          <ActionBtn onClick={handleContinue} label="Continue →" />
+          <ActionBtn
+            onClick={handleContinue}
+            label={submitting ? "Saving..." : "Continue →"}
+            disabled={submitting}
+          />
         </div>
       </div>
     </div>

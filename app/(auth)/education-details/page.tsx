@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { saveCollegeOrg } from "@/services/profileService";
 
 const ArrowIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16">
@@ -126,6 +127,8 @@ export default function EducationDetails() {
 const router = useRouter();
   const [institution, setInstitution] = useState("");
   const [organization, setOrganization] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   // These would typically come from props or a global state/context
   const educationField = "Aeronautical Engineering";
@@ -133,10 +136,25 @@ const router = useRouter();
 
   const isValid = institution.trim().length > 0 || organization.trim().length > 0;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isValid) return;
-    console.log("Education details submitted:", { institution, organization });
-    // Replace with your API call / router.push
+    setSubmitting(true);
+    setErrorMsg("");
+    try {
+      await saveCollegeOrg({
+        collegeUniversity: institution.trim() || undefined,
+        companyName: organization.trim() || undefined,
+      });
+      router.push("/specialoffer");
+    } catch (ex: any) {
+      setErrorMsg(
+        ex?.response?.data?.message ||
+          ex?.message ||
+          "Could not save details. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -233,20 +251,28 @@ const router = useRouter();
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          disabled={!isValid}
+          disabled={!isValid || submitting}
           className={`w-full py-3.5 rounded-2xl text-base font-medium tracking-wide transition-all duration-200
             ${isValid
               ? "text-white hover:-translate-y-0.5 hover:opacity-90 active:scale-95"
               : "text-slate-400 bg-slate-100 cursor-not-allowed"
-            }`}
+            }
+            ${submitting ? "opacity-60" : ""}`}
           style={
             isValid
               ? { background: "linear-gradient(135deg, #c0174c 0%, #c0174c 100%)" }
               : {}
           }
         >
-          {isValid ? "Continue" : "Enter at least one detail"}
+          {submitting
+            ? "Saving..."
+            : isValid
+              ? "Continue"
+              : "Enter at least one detail"}
         </button>
+        {errorMsg && (
+          <p className="mt-3 text-xs text-red-500 text-center">{errorMsg}</p>
+        )}
       </div>
     </div>
   );
