@@ -1,7 +1,25 @@
 
 
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+function BackBar() {
+  const router = useRouter();
+  return (
+    <div className="max-w-5xl mx-auto w-full px-4 pt-4">
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-[#c0174c] transition-colors cursor-pointer"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        Back
+      </button>
+    </div>
+  );
+}
 
 const tabs = ["Contact Us", "Business Enquiries", "Feedback", "Our Retail Stores"];
 
@@ -296,8 +314,9 @@ export default function HelpPage() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center bg-white" style={{ fontFamily: "'Segoe UI', sans-serif" }}>
-      <div className="w-full max-w-5xl shadow sm:my-10 sm:rounded-md self-start overflow-hidden border-0 sm:border border-gray-200">
+    <div className="min-h-screen flex flex-col items-center bg-white" style={{ fontFamily: "'Segoe UI', sans-serif" }}>
+      <BackBar />
+      <div className="w-full max-w-5xl shadow sm:my-10 sm:rounded-md overflow-hidden border-0 sm:border border-gray-200">
 
         {/* Hero Banner */}
         <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #c81a52 0%, #c81a52 50%, #fdf4ff 100%)", minHeight: 130 }}>

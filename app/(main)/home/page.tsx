@@ -1,10 +1,29 @@
 "use client";
 
-import { useRef, useState } from "react";
-// import CoastHeaderBar from "@/components/layout/CoastHeaderBar";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import {
+  formatActivityDate,
+  getActivityCounts,
+  getAllMatches,
+  getDailyRecommendations,
+  getHoroscopeRequests,
+  getMatchCount,
+  getMyProfile,
+  getNewMatches,
+  getShortlistedByMe,
+  getViewedByMe,
+  getWhoShortlistedMe,
+  getWhoViewedMe,
+  type ActivityCounts,
+  type MatchProfile,
+  type MyProfile,
+  type ProfileActivity,
+} from "@/services/homeService";
+import { uploadProfilePhoto } from "@/services/profileService";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Profile {
+// ─── UI display type (kept narrow — what cards actually render) ───
+interface CardProfile {
   id: string;
   name: string;
   age: number;
@@ -16,74 +35,32 @@ interface Profile {
   shortlistedOn?: string;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const DAILY_RECOMMENDATIONS: Profile[] = [
-  { id: "d1", name: "Sudipa Howlader",   age: 28, height: "4'11\"", location: "West Bengal", photo: "https://randomuser.me/api/portraits/women/55.jpg", isPrime: true },
-  { id: "d2", name: "Rageshree Sengupta",age: 25, height: "5'5\"",  location: "Kolkata",     photo: "https://randomuser.me/api/portraits/women/68.jpg", isPrime: true },
-  { id: "d3", name: "Arpita Bose",       age: 33, height: "5'4\"",  location: "Mumbai",      photo: "https://randomuser.me/api/portraits/women/44.jpg", isPrime: true },
-  { id: "d4", name: "Dimple B",          age: 33, height: "5'4\"",  location: "Delhi",       photo: "https://randomuser.me/api/portraits/women/50.jpg", isPrime: true },
-  { id: "d5", name: "Akhila Vairan",     age: 24, height: "5'1\"",  location: "Kerala",      photo: "https://randomuser.me/api/portraits/women/52.jpg" },
-  { id: "d6", name: "Akhila Vairan",     age: 24, height: "5'1\"",  location: "Kerala",      photo: "https://randomuser.me/api/portraits/women/77.jpg" },
-  { id: "d7", name: "Akhila Vairan",     age: 24, height: "5'1\"",  location: "Kerala",      photo: "https://randomuser.me/api/portraits/women/75.jpg" },
-  { id: "d8", name: "Akhila Vairan",     age: 24, height: "5'1\"",  location: "Kerala",      photo: "https://randomuser.me/api/portraits/women/70.jpg" },
-];
+const FALLBACK_PHOTO = (name?: string) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "?")}&background=ea580c&color=fff&size=120`;
 
-const ALL_MATCHES: Profile[] = [
-  { id: "a1",  name: "Nandini S",           age: 23, height: "5'6\"", location: "Chennai",    photo: "https://randomuser.me/api/portraits/women/24.jpg" },
-  { id: "a2",  name: "Dhanusha Sivarajan",  age: 25, height: "5'2\"", location: "Coimbatore", photo: "https://randomuser.me/api/portraits/women/23.jpg" },
-  { id: "a3",  name: "Anusha",              age: 30, height: "5'2\"", location: "Bangalore",  photo: "https://randomuser.me/api/portraits/women/22.jpg" },
-  { id: "a4",  name: "Megha Radhakrishnan", age: 27, height: "5'4\"", location: "Kochi",      photo: "https://randomuser.me/api/portraits/women/30.jpg" },
-  { id: "a5",  name: "Dr. Keerthi",         age: 31, height: "5'4\"", location: "Trivandrum", photo: "https://randomuser.me/api/portraits/women/31.jpg" },
-  { id: "a6",  name: "Dr. Keerthi",         age: 31, height: "5'4\"", location: "Trivandrum", photo: "https://randomuser.me/api/portraits/women/41.jpg" },
-  { id: "a7",  name: "Dr. Keerthi",         age: 31, height: "5'4\"", location: "Trivandrum", photo: "https://randomuser.me/api/portraits/women/40.jpg" },
-  { id: "a8",  name: "Dr. Keerthi",         age: 31, height: "5'4\"", location: "Trivandrum", photo: "https://randomuser.me/api/portraits/women/39.jpg" },
-  { id: "a9",  name: "Dr. Keerthi",         age: 31, height: "5'4\"", location: "Trivandrum", photo: "https://randomuser.me/api/portraits/women/38.jpg" },
-  { id: "a10", name: "Dr. Keerthi",         age: 31, height: "5'4\"", location: "Trivandrum", photo: "https://randomuser.me/api/portraits/women/37.jpg" },
-  { id: "a11", name: "Dr. Keerthi",         age: 31, height: "5'4\"", location: "Trivandrum", photo: "https://randomuser.me/api/portraits/women/36.jpg" },
-  { id: "a12", name: "Dr. Keerthi",         age: 31, height: "5'4\"", location: "Trivandrum", photo: "https://randomuser.me/api/portraits/women/35.jpg" },
-  { id: "a13", name: "Dr. Keerthi",         age: 31, height: "5'4\"", location: "Trivandrum", photo: "https://randomuser.me/api/portraits/women/34.jpg" },
-  { id: "a14", name: "Dr. Keerthi",         age: 31, height: "5'4\"", location: "Trivandrum", photo: "https://randomuser.me/api/portraits/women/33.jpg" },
-];
+const toCardFromMatch = (m: MatchProfile): CardProfile => ({
+  id: String(m.profileId),
+  name: m.fullName || [m.firstName, m.lastName].filter(Boolean).join(" ") || "—",
+  age: m.age ?? 0,
+  height: m.heightDisplay || "—",
+  location: [m.city, m.state].filter(Boolean).join(", ") || "—",
+  photo: m.profilePhotoUrl || FALLBACK_PHOTO(m.fullName),
+  isPrime: m.isPremium,
+});
 
-const NEW_MATCHES: Profile[] = [
-  { id: "n1", name: "Kaveri",       age: 26, height: "5'3\"",  location: "Mysore",       photo: "https://picsum.photos/seed/kaveri/120/140" },
-  { id: "n2", name: "Shiuli Halder",age: 26, height: "4'11\"", location: "Kolkata",      photo: "https://picsum.photos/seed/shiuli/120/140" },
-  { id: "n3", name: "Jasmin Jena",  age: 28, height: "5'1\"",  location: "Bhubaneswar",  photo: "https://picsum.photos/seed/jasmin/120/140" },
-  { id: "n4", name: "Subi S",       age: 24, height: "4'11\"", location: "Kerala",       photo: "https://picsum.photos/seed/subi/120/140" },
-  { id: "n5", name: "Paromita B",   age: 23, height: "5'5\"",  location: "West Bengal",  photo: "https://picsum.photos/seed/paromita/120/140" },
-];
+const toCardFromActivity = (a: ProfileActivity): CardProfile => ({
+  id: String(a.profileId),
+  name: a.fullName || "—",
+  age: a.age ?? 0,
+  height: a.heightDisplay || "—",
+  location: [a.city, a.state].filter(Boolean).join(", ") || "—",
+  photo: a.profilePhotoUrl || FALLBACK_PHOTO(a.fullName),
+  isPrime: a.isPremium,
+  viewedOn: formatActivityDate(a.activityDate),
+  shortlistedOn: formatActivityDate(a.activityDate),
+});
 
-const WHO_VIEWED_YOU: Profile[] = [
-  { id: "v1", name: "Ganga Raj", age: 26, height: "5'5\"", location: "Kerala",    photo: "https://picsum.photos/seed/ganga/120/140",    isPrime: true, viewedOn: "27 Mar 2026" },
-  { id: "v2", name: "Anu A",     age: 22, height: "5'0\"", location: "Kochi",     photo: "https://picsum.photos/seed/anu/120/140",      isPrime: true, viewedOn: "25 Mar 2026" },
-  { id: "v3", name: "Chippy A S",age: 30, height: "5'2\"", location: "Thrissur",  photo: "https://picsum.photos/seed/chippy/120/140",   isPrime: true, viewedOn: "21 Mar 2026" },
-  { id: "v4", name: "Poornima",  age: 23, height: "5'0\"", location: "Palakkad",  photo: "https://picsum.photos/seed/poornima/120/140", isPrime: true, viewedOn: "20 Mar 2026" },
-  { id: "v5", name: "Anakha O",  age: 27, height: "5'3\"", location: "Kozhikode", photo: "https://picsum.photos/seed/anakha/120/140",   isPrime: true, viewedOn: "20 Mar 2026" },
-];
-
-const WHO_SHORTLISTED: Profile[] = [
-  { id: "s1", name: "Arathi Viswambharan", age: 28, height: "5'3\"", location: "Kerala",    photo: "https://picsum.photos/seed/arathi/120/140",   shortlistedOn: "10 Mar 2026" },
-  { id: "s2", name: "Silpamol T R",        age: 31, height: "5'2\"", location: "Thrissur",  photo: "https://picsum.photos/seed/silpamol/120/140", isPrime: true, shortlistedOn: "17 Sep 2025" },
-  { id: "s3", name: "Anusha Suresh",       age: 32, height: "5'2\"", location: "Kochi",     photo: "https://picsum.photos/seed/anushas/120/140",  shortlistedOn: "09 Aug 2025" },
-  { id: "s4", name: "Anu Anirudhan",       age: 22, height: "5'4\"", location: "Trivandrum",photo: "https://picsum.photos/seed/anuani/120/140",   shortlistedOn: "11 Jun 2025" },
-  { id: "s5", name: "Arya Sabu",           age: 28, height: "5'0\"", location: "Ernakulam", photo: "https://picsum.photos/seed/arya/120/140",     shortlistedOn: "01 Jun 2025" },
-];
-
-const PROFILES_VIEWED: Profile[] = [
-  { id: "pv1", name: "Dimple B",               age: 22, height: "5'4\"", location: "Delhi",     photo: "https://picsum.photos/seed/dimpleb/120/140",   viewedOn: "28 Mar 2026" },
-  { id: "pv2", name: "Anaswara Devarajan",      age: 27, height: "5'3\"", location: "Kerala",    photo: "https://picsum.photos/seed/anaswara/120/140",  viewedOn: "28 Mar 2026" },
-  { id: "pv3", name: "Chethanasahadevan",        age: 25, height: "5'4\"", location: "Thrissur",  photo: "https://picsum.photos/seed/chethana/120/140",  viewedOn: "28 Mar 2026" },
-  { id: "pv4", name: "Vismaya Prasanth Bose",    age: 27, height: "5'5\"", location: "Kochi",     photo: "https://picsum.photos/seed/vismaya/120/140",   viewedOn: "28 Mar 2026" },
-  { id: "pv5", name: "Athira",                   age: 27, height: "5'5\"", location: "Kozhikode", photo: "https://picsum.photos/seed/athira/120/140",    viewedOn: "28 Mar 2026" },
-];
-
-const SUCCESS_STORIES = [
-  { id: "ss1", names: "Avinash Purushan & Uma Rohini", date: "27 Mar 2026", text: "Kerala Matrimony helped us find a matching partner very quickly. Than...", photo1: "https://picsum.photos/seed/couple1/160/140" },
-  { id: "ss2", names: "Abhijith. S. K & Aparna. B",   date: "27 Mar 2026", text: "Met my soulmate through Kerala Matrimony. I got in touch with Abhiji...", photo1: "https://picsum.photos/seed/couple2/160/140" },
-  { id: "ss3", names: "Atul Ap & Arsha N",             date: "27 Mar 2026", text: "Thank you Kerala Matrimony! We connected on Kerala Matrimony...",          photo1: "https://picsum.photos/seed/couple3/160/140" },
-];
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
+// ─── Icons ────────────────────────────────────────────────────────
 const ChevronRight = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="9 18 15 12 9 6" />
@@ -159,8 +136,8 @@ const ChatIconSvg = () => (
   </svg>
 );
 
-// ─── Profile Card ─────────────────────────────────────────────────────────────
-const ProfileCard = ({ profile, subText }: { profile: Profile; subText?: string }) => (
+// ─── Profile Card ─────────────────────────────────────────────────
+const ProfileCard = ({ profile, subText }: { profile: CardProfile; subText?: string }) => (
   <div className="shrink-0 w-24 sm:w-28 lg:w-32 cursor-pointer group">
     <div className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-lg overflow-hidden mb-1.5 border border-gray-200 group-hover:border-[#ea580c] transition-colors">
       <img
@@ -168,7 +145,7 @@ const ProfileCard = ({ profile, subText }: { profile: Profile; subText?: string 
         alt={profile.name}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         onError={(e) => {
-          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${profile.name}&background=ea580c&color=fff&size=120`;
+          (e.target as HTMLImageElement).src = FALLBACK_PHOTO(profile.name);
         }}
       />
       {profile.isPrime && (
@@ -183,16 +160,40 @@ const ProfileCard = ({ profile, subText }: { profile: Profile; subText?: string 
   </div>
 );
 
-// ─── Section Row ──────────────────────────────────────────────────────────────
-const SectionRow = ({ title, subtitle, count, profiles, subTextKey }: {
+// ─── Empty / loading helpers ─────────────────────────────────────
+const SectionScrollerSkeleton = () => (
+  <div className="flex gap-2 sm:gap-3 overflow-hidden p-3 sm:p-4">
+    {Array.from({ length: 6 }).map((_, i) => (
+      <div key={i} className="shrink-0 w-24 sm:w-28 lg:w-32">
+        <div className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-lg bg-gray-100 animate-pulse mb-1.5" />
+        <div className="h-3 bg-gray-100 animate-pulse rounded mb-1" />
+        <div className="h-2 bg-gray-100 animate-pulse rounded w-16" />
+      </div>
+    ))}
+  </div>
+);
+
+const EmptyRow = ({ message }: { message: string }) => (
+  <div className="p-6 text-center text-xs text-gray-400">{message}</div>
+);
+
+// ─── Section Row ──────────────────────────────────────────────────
+const SectionRow = ({
+  title,
+  subtitle,
+  count,
+  profiles,
+  subTextKey,
+  loading,
+}: {
   title: string;
   subtitle: string;
   count?: number;
-  profiles: Profile[];
+  profiles: CardProfile[];
   subTextKey?: "viewedOn" | "shortlistedOn";
+  loading?: boolean;
 }) => (
   <div>
-    {/* Header */}
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#b22234] p-3 sm:p-4">
       <div>
         <h2 className="text-sm sm:text-base font-bold text-white">
@@ -207,31 +208,35 @@ const SectionRow = ({ title, subtitle, count, profiles, subTextKey }: {
         View all <ChevronRight />
       </button>
     </div>
-    {/* Scroll area */}
-    <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide p-3 sm:p-4">
-      {profiles.map((p) => (
-        <ProfileCard
-          key={p.id}
-          profile={p}
-          subText={
-            subTextKey
-              ? subTextKey === "viewedOn"
-                ? `Viewed: ${p.viewedOn}`
-                : `Shortlisted: ${p.shortlistedOn}`
-              : undefined
-          }
-        />
-      ))}
-      <div className="shrink-0 w-8 flex items-center justify-center">
-        <button className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#ea580c] hover:text-[#ea580c] transition-colors bg-white shadow-sm">
-          <ChevronRight />
-        </button>
+    {loading ? (
+      <SectionScrollerSkeleton />
+    ) : profiles.length === 0 ? (
+      <EmptyRow message="Nothing here yet." />
+    ) : (
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide p-3 sm:p-4">
+        {profiles.map((p) => (
+          <ProfileCard
+            key={p.id}
+            profile={p}
+            subText={
+              subTextKey
+                ? subTextKey === "viewedOn"
+                  ? `Viewed: ${p.viewedOn}`
+                  : `Shortlisted: ${p.shortlistedOn}`
+                : undefined
+            }
+          />
+        ))}
+        <div className="shrink-0 w-8 flex items-center justify-center">
+          <button className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#ea580c] hover:text-[#ea580c] transition-colors bg-white shadow-sm">
+            <ChevronRight />
+          </button>
+        </div>
       </div>
-    </div>
+    )}
   </div>
 );
 
-// ─── Timer Component ──────────────────────────────────────────────────────────
 const Timer = () => (
   <div className="hidden sm:flex items-center gap-1 bg-gray-800 text-white text-[10px] px-2.5 py-1.5 rounded-full font-mono">
     <ClockIcon />
@@ -239,47 +244,339 @@ const Timer = () => (
   </div>
 );
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<"Regular" | "Prime">("Regular");
-  const [profilePhoto, setProfilePhoto] = useState<string>("https://i.pravatar.cc/300?img=33");
-  const [isUploading, setIsUploading] = useState(false);
+// ─── Hero Carousel (large screens only) ──────────────────────────
+interface CarouselSlide {
+  image: string;
+  eyebrow: string;
+  heading: string;
+  subtitle: string;
+  cta: string;
+}
 
-  const scrollRef    = useRef<HTMLDivElement>(null);
+const CAROUSEL_SLIDES: CarouselSlide[] = [
+  {
+    image: "/Newlywed South Asian couple in traditional attire.png",
+    eyebrow: "Made for Matrimony",
+    heading: "Find your perfect life partner",
+    subtitle:
+      "Curated matches based on your preferences, traditions, and values.",
+    cta: "Explore matches",
+  },
+  {
+    image: "/Traditional Kerala wedding portrait.png",
+    eyebrow: "Verified profiles",
+    heading: "Trusted by lakhs of families",
+    subtitle:
+      "Every profile is verified — connect with confidence and start meaningful conversations.",
+    cta: "Browse profiles",
+  },
+  {
+    image: "/romantic-couple.png",
+    eyebrow: "Featured in Limca Book of Records",
+    heading: "Lakhs of happy marriages, and counting",
+    subtitle:
+      "Join the matrimony service that has helped millions find love and lasting commitment.",
+    cta: "Read success stories",
+  },
+];
+
+const HeroCarousel = ({ onCta }: { onCta?: () => void }) => {
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const total = CAROUSEL_SLIDES.length;
+
+  useEffect(() => {
+    if (paused) return;
+    const t = window.setInterval(
+      () => setIdx((i) => (i + 1) % total),
+      5000,
+    );
+    return () => window.clearInterval(t);
+  }, [paused, total]);
+
+  const goPrev = () => setIdx((i) => (i - 1 + total) % total);
+  const goNext = () => setIdx((i) => (i + 1) % total);
+
+  const slide = CAROUSEL_SLIDES[idx];
+
+  return (
+    <div
+      className="hidden lg:block relative rounded-2xl overflow-hidden border border-gray-200 shadow-sm h-72"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      {/* Slides — stack and crossfade */}
+      {CAROUSEL_SLIDES.map((s, i) => (
+        <div
+          key={s.image}
+          className="absolute inset-0 transition-opacity duration-700 ease-out"
+          style={{ opacity: i === idx ? 1 : 0 }}
+        >
+          <img
+            src={s.image}
+            alt={s.heading}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.0) 100%)",
+            }}
+          />
+        </div>
+      ))}
+
+      {/* Content */}
+      <div className="relative h-full flex flex-col justify-center px-10 max-w-2xl">
+        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/85 mb-2">
+          {slide.eyebrow}
+        </span>
+        <h2 className="text-3xl font-black text-white leading-tight mb-2">
+          {slide.heading}
+        </h2>
+        <p className="text-sm text-white/90 mb-5 max-w-md">
+          {slide.subtitle}
+        </p>
+        <div>
+          <button
+            onClick={onCta}
+            className="bg-white text-[#b22234] text-xs font-bold px-5 py-2.5 rounded-full hover:bg-orange-50 transition-colors"
+          >
+            {slide.cta} →
+          </button>
+        </div>
+      </div>
+
+      {/* Prev / Next arrows */}
+      <button
+        onClick={goPrev}
+        aria-label="Previous slide"
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/30 hover:bg-white/55 text-white flex items-center justify-center backdrop-blur-sm transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+      <button
+        onClick={goNext}
+        aria-label="Next slide"
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/30 hover:bg-white/55 text-white flex items-center justify-center backdrop-blur-sm transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+
+      {/* Dots */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+        {CAROUSEL_SLIDES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setIdx(i)}
+            aria-label={`Go to slide ${i + 1}`}
+            className="h-1.5 rounded-full transition-all"
+            style={{
+              width: i === idx ? 24 : 8,
+              background: i === idx ? "white" : "rgba(255,255,255,0.55)",
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Page ────────────────────────────────────────────────────
+export default function HomePage() {
+  const router = useRouter();
+  const [me, setMe] = useState<MyProfile | null>(null);
+  const [counts, setCounts] = useState<ActivityCounts>({});
+
+  const [daily, setDaily] = useState<CardProfile[]>([]);
+  const [allMatches, setAllMatches] = useState<CardProfile[]>([]);
+  const [allMatchesCount, setAllMatchesCount] = useState<number>(0);
+  const [newMatches, setNewMatches] = useState<CardProfile[]>([]);
+  const [whoViewed, setWhoViewed] = useState<CardProfile[]>([]);
+  const [whoShortlisted, setWhoShortlisted] = useState<CardProfile[]>([]);
+  const [shortlistedByMe, setShortlistedByMe] = useState<CardProfile[]>([]);
+  const [viewedByMe, setViewedByMe] = useState<CardProfile[]>([]);
+  const [horoscopeRequests, setHoroscopeRequests] = useState<ProfileActivity[]>([]);
+
+  const [loading, setLoading] = useState({
+    daily: true,
+    allMatches: true,
+    newMatches: true,
+    whoViewed: true,
+    whoShortlisted: true,
+    shortlistedByMe: true,
+    viewedByMe: true,
+  });
+
+  const [profilePhoto, setProfilePhoto] = useState<string>(
+    "https://i.pravatar.cc/300?img=33",
+  );
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string>("");
+  const [profileWarning, setProfileWarning] = useState<string>("");
+
+  const scrollRef = useRef<HTMLDivElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
-  const scrollLeft  = () => scrollRef.current?.scrollBy({ left: -300, behavior: "smooth" });
-  const scrollRight = () => scrollRef.current?.scrollBy({ left: 300,  behavior: "smooth" });
+  const scrollLeft = () => scrollRef.current?.scrollBy({ left: -300, behavior: "smooth" });
+  const scrollRight = () => scrollRef.current?.scrollBy({ left: 300, behavior: "smooth" });
 
   const handlePhotoClick = () => photoInputRef.current?.click();
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── Initial data load ──
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = <T,>(
+      promise: Promise<T>,
+      onData: (data: T) => void,
+      onDone?: () => void,
+    ) => {
+      promise
+        .then((data) => {
+          if (!cancelled) onData(data);
+        })
+        .catch((err) => {
+          console.error("Home load failed:", err);
+          const msg = err?.response?.data?.message as string | undefined;
+          if (
+            !cancelled &&
+            msg &&
+            /complete your profile/i.test(msg)
+          ) {
+            setProfileWarning(msg);
+          }
+        })
+        .finally(() => {
+          if (!cancelled && onDone) onDone();
+        });
+    };
+
+    load(getMyProfile(), (data) => {
+      setMe(data);
+      if (data.profilePhotoUrl) setProfilePhoto(data.profilePhotoUrl);
+    });
+
+    load(getActivityCounts(), setCounts);
+    load(getMatchCount(), setAllMatchesCount);
+
+    load(
+      getDailyRecommendations(0, 10),
+      (page) => setDaily(page.content.map(toCardFromMatch)),
+      () => setLoading((l) => ({ ...l, daily: false })),
+    );
+
+    load(
+      getAllMatches(0, 14),
+      (page) => {
+        setAllMatches(page.content.map(toCardFromMatch));
+        if (page.totalElements != null) setAllMatchesCount(page.totalElements);
+      },
+      () => setLoading((l) => ({ ...l, allMatches: false })),
+    );
+
+    load(
+      getNewMatches(0, 10),
+      (page) => setNewMatches(page.content.map(toCardFromMatch)),
+      () => setLoading((l) => ({ ...l, newMatches: false })),
+    );
+
+    load(
+      getWhoViewedMe(0, 10),
+      (page) => setWhoViewed(page.content.map(toCardFromActivity)),
+      () => setLoading((l) => ({ ...l, whoViewed: false })),
+    );
+
+    load(
+      getWhoShortlistedMe(0, 10),
+      (page) => setWhoShortlisted(page.content.map(toCardFromActivity)),
+      () => setLoading((l) => ({ ...l, whoShortlisted: false })),
+    );
+
+    load(
+      getShortlistedByMe(0, 10),
+      (page) => setShortlistedByMe(page.content.map(toCardFromActivity)),
+      () => setLoading((l) => ({ ...l, shortlistedByMe: false })),
+    );
+
+    load(
+      getViewedByMe(0, 10),
+      (page) => setViewedByMe(page.content.map(toCardFromActivity)),
+      () => setLoading((l) => ({ ...l, viewedByMe: false })),
+    );
+
+    load(getHoroscopeRequests(0, 10), (page) =>
+      setHoroscopeRequests(page.content),
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ── Photo upload (hits real API) ──
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) { alert("Please select a valid image file."); return; }
-    if (file.size > 5 * 1024 * 1024)    { alert("Image size must be less than 5MB."); return; }
-    setIsUploading(true);
-    const reader = new FileReader();
-    reader.onload  = (ev) => { setProfilePhoto(ev.target?.result as string); setIsUploading(false); };
-    reader.onerror = ()   => { alert("Failed to read image. Please try again."); setIsUploading(false); };
-    reader.readAsDataURL(file);
     e.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Please select a valid image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Image must be smaller than 5MB.");
+      return;
+    }
+
+    setUploadError("");
+
+    // Optimistic preview
+    const reader = new FileReader();
+    reader.onload = (ev) => setProfilePhoto(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    setIsUploading(true);
+    try {
+      const res = await uploadProfilePhoto(file);
+      const photoUrl = (res?.data as { photoUrl?: string } | undefined)?.photoUrl;
+      if (photoUrl) setProfilePhoto(photoUrl);
+    } catch (ex: any) {
+      setUploadError(
+        ex?.response?.data?.message ||
+          ex?.message ||
+          "Photo upload failed.",
+      );
+    } finally {
+      setIsUploading(false);
+    }
   };
+
+  const displayName =
+    [me?.firstName, me?.lastName].filter(Boolean).join(" ") || me?.firstName || "—";
+  const completionPct =
+    me?.profileCompletionPct ?? me?.completionPercentage ?? 0;
+  const isPremium = !!me?.isPremium;
+  const userIdLabel = me ? `E${String(me.userId).padStart(7, "0")}` : "—";
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* <CoastHeaderBar activeTab={activeTab} setActiveTab={setActiveTab} /> */}
-
-      {/* ── Mobile Profile Banner (hidden on lg) ── */}
+      {/* ── Mobile Profile Banner ── */}
       <div className="lg:hidden bg-white border border-gray-200 px-4 py-3 mx-3 mt-3 lg:mt-0 rounded-xl lg:rounded-none">
         <div className="flex items-center gap-3">
-          {/* Avatar */}
           <div className="relative shrink-0">
             <img
               src={profilePhoto}
-              alt="Varun"
+              alt={displayName}
               className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md"
-              onError={(e) => { (e.target as HTMLImageElement).src = "https://ui-avatars.com/api/?name=Varun&background=ea580c&color=fff&size=56"; }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = FALLBACK_PHOTO(displayName);
+              }}
             />
             <button
               onClick={handlePhotoClick}
@@ -291,16 +588,25 @@ export default function HomePage() {
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" className="animate-spin">
                     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                   </svg>
-                ) : <CameraIcon />}
+                ) : (
+                  <CameraIcon />
+                )}
               </span>
             </button>
-            <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handlePhotoChange} />
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handlePhotoChange}
+            />
           </div>
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-gray-800 text-sm">Varun</h3>
-            <p className="text-[10px] text-gray-400 font-mono">E7086341 • Free member</p>
+            <h3 className="font-bold text-gray-800 text-sm">{displayName}</h3>
+            <p className="text-[10px] text-gray-400 font-mono">
+              {userIdLabel} • {isPremium ? "Prime member" : "Free member"}
+            </p>
             <div className="flex items-center gap-1 text-[10px] text-[#b22234] font-medium mt-0.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#b22234" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
@@ -309,40 +615,50 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Upgrade button */}
-          <button className="shrink-0 bg-[#b22234] text-white text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-red-700 transition-colors">
-            Upgrade
-          </button>
+          {!isPremium && (
+            <button
+              onClick={() => router.push("/specialoffer")}
+              className="shrink-0 bg-[#b22234] text-white text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-red-700 transition-colors"
+            >
+              Upgrade
+            </button>
+          )}
         </div>
 
-        {/* Profile progress — mobile */}
         <div className="mt-3">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] text-gray-500">Profile completeness</span>
-            <span className="text-[10px] font-bold text-[#ea580c]">90%</span>
+            <span className="text-[10px] font-bold text-[#ea580c]">{completionPct}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1.5">
-            <div className="bg-[#ea580c] h-1.5 rounded-full" style={{ width: "90%" }} />
+            <div className="bg-[#ea580c] h-1.5 rounded-full" style={{ width: `${completionPct}%` }} />
           </div>
         </div>
+        {uploadError && (
+          <p className="text-[10px] text-red-500 mt-2">{uploadError}</p>
+        )}
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-6 flex gap-4 lg:gap-6">
-
-        {/* ── Left Sidebar (desktop only) ── */}
+        {/* ── Left Sidebar (desktop) ── */}
         <aside className="w-52 shrink-0 space-y-4 hidden lg:block">
-          {/* Profile Card */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
             <div className="relative w-20 h-20 mx-auto mb-3">
               <img
                 src={profilePhoto}
-                alt="Varun"
+                alt={displayName}
                 className="w-20 h-20 rounded-full object-cover border-3 border-white shadow-md"
-                onError={(e) => { (e.target as HTMLImageElement).src = "https://ui-avatars.com/api/?name=Varun&background=ea580c&color=fff&size=80"; }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = FALLBACK_PHOTO(displayName);
+                }}
               />
-              <div onClick={handlePhotoClick} className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full cursor-pointer border-2 border-white flex items-center justify-center">
+              <div
+                onClick={handlePhotoClick}
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full cursor-pointer border-2 border-white flex items-center justify-center"
+              >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="none">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
                 </svg>
               </div>
               <button
@@ -355,65 +671,93 @@ export default function HomePage() {
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" className="animate-spin">
                       <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                     </svg>
-                  ) : <CameraIcon />}
+                  ) : (
+                    <CameraIcon />
+                  )}
                 </span>
               </button>
-              <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handlePhotoChange} />
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
             </div>
-            <h3 className="font-bold text-gray-800 text-sm">Varun</h3>
+            <h3 className="font-bold text-gray-800 text-sm">{displayName}</h3>
             <div className="flex items-center justify-center gap-1 text-[10px] text-[#b22234] font-medium mb-1">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#b22234" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
               </svg>
               Made2Match Matrimony
             </div>
-            <p className="text-[11px] text-gray-500 font-mono mb-1">E7086341</p>
-            <span className="inline-block text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Free member</span>
-            <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-center">
-              <p className="text-[10px] text-gray-600 mb-1.5 leading-snug">Upgrade membership to call or message with matches</p>
-              <button className="bg-[#b22234] text-white text-[10px] font-bold px-4 py-1.5 rounded-full w-full hover:bg-red-700 transition-colors">
-                Upgrade now
-              </button>
-            </div>
-            <div className="mt-3 flex items-center justify-between text-xs text-gray-600 border-t pt-3">
-              <span>Switch account</span>
-              <div className="flex items-center gap-1">
-                <span className="w-5 h-5 bg-[#ea580c] text-white text-[9px] rounded-full flex items-center justify-center font-bold">6</span>
-                <ChevronRight />
+            <p className="text-[11px] text-gray-500 font-mono mb-1">{userIdLabel}</p>
+            <span className="inline-block text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+              {isPremium ? "Prime member" : "Free member"}
+            </span>
+            {!isPremium && (
+              <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-center">
+                <p className="text-[10px] text-gray-600 mb-1.5 leading-snug">
+                  Upgrade membership to call or message with matches
+                </p>
+                <button
+                  onClick={() => router.push("/specialoffer")}
+                  className="bg-[#b22234] text-white text-[10px] font-bold px-4 py-1.5 rounded-full w-full hover:bg-red-700 transition-colors"
+                >
+                  Upgrade now
+                </button>
               </div>
-            </div>
+            )}
+            {uploadError && (
+              <p className="text-[10px] text-red-500 mt-2">{uploadError}</p>
+            )}
           </div>
 
-          {/* Menu */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            {[{ icon: <EditIcon />, label: "Edit profile" }, { icon: <SettingsIcon />, label: "Edit preferences" }].map((item) => (
-              <button key={item.label} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#ea580c] transition-colors border-b border-gray-50 last:border-0">
-                <span className="text-gray-400">{item.icon}</span>{item.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Support */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <p className="text-[11px] text-gray-400 font-semibold px-4 pt-3 pb-1 uppercase tracking-wider">Support & feedback</p>
             {[
-              { icon: <SettingsIcon />, label: "Settings" },
-              { icon: <HelpIcon />,     label: "Help" },
-              { icon: <HeartIcon />,    label: "Success stories" },
-              { icon: <MoreIcon />,     label: "More" },
+              { icon: <EditIcon />, label: "Edit profile", href: "/edit-profile" },
+              { icon: <SettingsIcon />, label: "Edit preferences", href: "/partnerpreferences" },
             ].map((item) => (
-              <button key={item.label} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#ea580c] transition-colors border-b border-gray-50 last:border-0">
-                <span className="text-gray-400">{item.icon}</span>{item.label}
+              <button
+                key={item.label}
+                onClick={() => router.push(item.href)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#ea580c] transition-colors border-b border-gray-50 last:border-0 cursor-pointer"
+              >
+                <span className="text-gray-400">{item.icon}</span>
+                {item.label}
               </button>
             ))}
           </div>
 
-          {/* Other Services */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <p className="text-[11px] text-gray-400 font-semibold px-4 pt-3 pb-1 uppercase tracking-wider">
+              Support & feedback
+            </p>
+            {[
+              { icon: <SettingsIcon />, label: "Settings", href: "/settings" },
+              { icon: <HelpIcon />, label: "Help", href: "/help" },
+              { icon: <HeartIcon />, label: "Success stories", href: "/help" },
+              { icon: <MoreIcon />, label: "More", href: "/search" },
+            ].map((item) => (
+              <button
+                key={item.label}
+                onClick={() => router.push(item.href)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#ea580c] transition-colors border-b border-gray-50 last:border-0 cursor-pointer"
+              >
+                <span className="text-gray-400">{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+          </div>
+
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <p className="text-[11px] text-gray-400 font-semibold mb-2 uppercase tracking-wider">Matrimony.com - Other Services</p>
+            <p className="text-[11px] text-gray-400 font-semibold mb-2 uppercase tracking-wider">
+              Matrimony.com - Other Services
+            </p>
             {["AstroFreeChat.com", "WeddingBazaar.com", "Mandap.com"].map((s) => (
               <a key={s} href="#" className="flex items-center gap-2 text-xs text-[#ea580c] hover:underline py-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c]" />{s}
+                <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c]" />
+                {s}
               </a>
             ))}
           </div>
@@ -421,28 +765,54 @@ export default function HomePage() {
 
         {/* ── Main Content ── */}
         <div className="flex-1 min-w-0 space-y-3 sm:space-y-5">
+          {/* Hero carousel — large screens only */}
+          <HeroCarousel onCta={() => router.push("/search")} />
 
-          {/* Profile completion (desktop only) */}
+          {profileWarning && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 sm:p-4 flex items-start gap-3">
+              <div className="w-7 h-7 rounded-full bg-amber-400 text-white flex items-center justify-center shrink-0 font-bold">
+                !
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-amber-900">
+                  {profileWarning}
+                </p>
+                <p className="text-xs text-amber-800 mt-0.5">
+                  Matches and recommendations appear once your gender, date of birth, and basic details are saved.
+                </p>
+              </div>
+              <button
+                onClick={() => router.push("/onboarding/basic-details")}
+                className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-full"
+              >
+                Complete profile
+              </button>
+            </div>
+          )}
+
+          {/* Profile completion (desktop) */}
           <div className="hidden lg:block bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-bold text-gray-800">Complete Your Profile</h3>
             </div>
             <div className="flex items-center gap-3 mb-3">
               <span className="text-xs text-gray-500">Profile completeness score</span>
-              <span className="text-xs font-bold text-[#ea580c]">90%</span>
+              <span className="text-xs font-bold text-[#ea580c]">{completionPct}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-              <div className="bg-[#ea580c] h-2 rounded-full" style={{ width: "90%" }} />
+              <div className="bg-[#ea580c] h-2 rounded-full" style={{ width: `${completionPct}%` }} />
             </div>
             <button className="flex items-center gap-2 border border-[#ea580c] text-[#ea580c] text-xs font-semibold px-4 py-2 rounded-lg hover:bg-orange-50 transition-colors">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="16" />
+                <line x1="8" y1="12" x2="16" y2="12" />
               </svg>
               Add Horoscope
             </button>
           </div>
 
-          {/* ── Daily Recommendations ── */}
+          {/* Daily Recommendations */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#b22234] p-3 sm:p-4">
               <div>
@@ -462,31 +832,51 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
-            <div className="p-3 sm:p-4">
-              <div ref={scrollRef} className="flex gap-2 sm:gap-3 overflow-hidden scroll-smooth">
-                {DAILY_RECOMMENDATIONS.map((p) => <ProfileCard key={p.id} profile={p} />)}
+            {loading.daily ? (
+              <SectionScrollerSkeleton />
+            ) : daily.length === 0 ? (
+              <EmptyRow message="No recommendations yet — complete your profile to get matches." />
+            ) : (
+              <div className="p-3 sm:p-4">
+                <div ref={scrollRef} className="flex gap-2 sm:gap-3 overflow-hidden scroll-smooth">
+                  {daily.map((p) => <ProfileCard key={p.id} profile={p} />)}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* ── All Matches ── */}
+          {/* All Matches */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <SectionRow title="All Matches" subtitle="Members who match your partner preferences" count={41429} profiles={ALL_MATCHES} />
+            <SectionRow
+              title="All Matches"
+              subtitle="Members who match your partner preferences"
+              count={allMatchesCount}
+              profiles={allMatches}
+              loading={loading.allMatches}
+            />
           </div>
 
-          {/* ── New Matches ── */}
+          {/* New Matches */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <SectionRow title="New Matches" subtitle="Members who match your preferences and joined in last 30 days" count={4737} profiles={NEW_MATCHES} />
+            <SectionRow
+              title="New Matches"
+              subtitle="Members who match your preferences and joined in last 30 days"
+              count={counts.newMatchesCount}
+              profiles={newMatches}
+              loading={loading.newMatches}
+            />
           </div>
 
-          {/* ── Assisted Service Banner ── */}
+          {/* Assisted Service Banner (static promo) */}
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 sm:p-5 flex items-start sm:items-center justify-between gap-3">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-7 h-7 bg-[#ea580c] rounded-full flex items-center justify-center shrink-0">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                 </div>
                 <span className="text-xs text-[#ea580c] font-semibold">Assisted service</span>
@@ -495,7 +885,9 @@ export default function HomePage() {
               <h3 className="text-sm sm:text-base font-bold text-gray-800 mb-1 sm:mb-2">
                 Find your match <span className="text-[#ea580c]">10x faster</span>
               </h3>
-              <p className="text-xs text-gray-600 mb-2 sm:mb-3">Personalized matchmaking service through expert Relationship Manager</p>
+              <p className="text-xs text-gray-600 mb-2 sm:mb-3">
+                Personalized matchmaking service through expert Relationship Manager
+              </p>
               <div className="space-y-1 mb-3 sm:mb-4">
                 {["Guaranteed matches", "Better response", "Save time & effort"].map((f) => (
                   <div key={f} className="flex items-center gap-2 text-xs text-gray-700">
@@ -508,86 +900,112 @@ export default function HomePage() {
               </button>
             </div>
             <div className="w-20 sm:w-28 shrink-0">
-              <img src="https://picsum.photos/seed/assisted/112/140" alt="Assisted Service" className="w-full h-28 sm:h-36 object-cover rounded-lg"
-                onError={(e) => { (e.target as HTMLImageElement).src = "https://ui-avatars.com/api/?name=A&background=ea580c&color=fff&size=112"; }} />
+              <img
+                src="https://picsum.photos/seed/assisted/112/140"
+                alt="Assisted Service"
+                className="w-full h-28 sm:h-36 object-cover rounded-lg"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = FALLBACK_PHOTO("A");
+                }}
+              />
             </div>
           </div>
 
-          {/* ── Who Viewed You ── */}
+          {/* Who Viewed You */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <SectionRow title="Who Viewed You" subtitle="Members who have viewed your profile" count={1193} profiles={WHO_VIEWED_YOU} subTextKey="viewedOn" />
+            <SectionRow
+              title="Who Viewed You"
+              subtitle="Members who have viewed your profile"
+              count={counts.whoViewedMeCount}
+              profiles={whoViewed}
+              subTextKey="viewedOn"
+              loading={loading.whoViewed}
+            />
           </div>
 
-          {/* ── Who Shortlisted You ── */}
+          {/* Who Shortlisted You */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <SectionRow title="Who Shortlisted You" subtitle="Members who have shortlisted your profile" count={6} profiles={WHO_SHORTLISTED} subTextKey="shortlistedOn" />
+            <SectionRow
+              title="Who Shortlisted You"
+              subtitle="Members who have shortlisted your profile"
+              count={counts.whoShortlistedMeCount}
+              profiles={whoShortlisted}
+              subTextKey="shortlistedOn"
+              loading={loading.whoShortlisted}
+            />
           </div>
 
-          {/* ── Photo/Horoscope Requests ── */}
+          {/* Photo/Horoscope Requests */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-4">
             <h2 className="text-sm sm:text-base font-bold text-gray-800 mb-1">Photo/Horoscope Requests</h2>
             <div className="flex gap-4 border-b border-gray-200 mb-3 sm:mb-4">
               <button className="text-xs font-semibold text-[#ea580c] border-b-2 border-[#ea580c] pb-2 px-1">
-                Requests received (3)
+                Requests received ({counts.horoscopeRequestsCount ?? horoscopeRequests.length})
               </button>
             </div>
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex -space-x-2">
-                  {["hr1", "hr2", "hr3"].map((seed) => (
-                    <img key={seed} src={`https://picsum.photos/seed/${seed}/32/32`} alt="" className="w-8 h-8 rounded-full border-2 border-white object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).src = "https://ui-avatars.com/api/?name=?&background=ea580c&color=fff&size=32"; }} />
-                  ))}
+            {(counts.horoscopeRequestsCount ?? horoscopeRequests.length) === 0 ? (
+              <p className="text-xs text-gray-400 py-3">No pending requests.</p>
+            ) : (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex -space-x-2">
+                    {horoscopeRequests.slice(0, 3).map((r) => (
+                      <img
+                        key={r.profileId}
+                        src={r.profilePhotoUrl || FALLBACK_PHOTO(r.fullName)}
+                        alt={r.fullName || ""}
+                        className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = FALLBACK_PHOTO(r.fullName);
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-700 font-medium">Horoscope requests received</p>
                 </div>
-                <p className="text-xs text-gray-700 font-medium">Horoscope requests received</p>
+                <div className="sm:text-right">
+                  <p className="text-[10px] text-gray-500 mb-2">
+                    {counts.horoscopeRequestsCount ?? horoscopeRequests.length} members have requested you to add Horoscope
+                  </p>
+                  <button className="bg-[#ea580c] text-white text-xs font-bold px-4 py-1.5 rounded-full hover:bg-orange-600 transition-colors">
+                    Add Horoscope
+                  </button>
+                </div>
               </div>
-              <div className="sm:text-right">
-                <p className="text-[10px] text-gray-500 mb-2">3 members have requested you to add Horoscope</p>
-                <button className="bg-[#ea580c] text-white text-xs font-bold px-4 py-1.5 rounded-full hover:bg-orange-600 transition-colors">
-                  Add Horoscope
-                </button>
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* ── Profiles You Shortlisted ── */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-4">
-            <div className="flex items-start sm:items-center justify-between mb-3 gap-2">
-              <div>
-                <h2 className="text-sm sm:text-base font-bold text-gray-800">
-                  Profiles You Shortlisted <span className="text-gray-500 font-normal">(1)</span>
-                </h2>
-                <p className="text-[10px] sm:text-xs text-gray-500">Members that you have shortlisted</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="shrink-0 w-28 sm:w-36 cursor-pointer group">
-                <div className="relative w-28 h-36 sm:w-36 sm:h-44 rounded-lg overflow-hidden mb-1.5 border border-gray-200 group-hover:border-[#ea580c] transition-colors">
-                  <img src="https://picsum.photos/seed/pallavi/144/176" alt="Pallavi Madanan" className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = "https://ui-avatars.com/api/?name=Pallavi&background=ea580c&color=fff&size=144"; }} />
-                </div>
-                <p className="text-[10px] sm:text-xs font-semibold text-gray-800">Pallavi Madanan</p>
-                <p className="text-[9px] sm:text-[10px] text-gray-500">30 Yrs, 5 ft 6 in, M.S.(Engg.)</p>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Profiles You Viewed ── */}
+          {/* Profiles You Shortlisted */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <SectionRow title="Profiles You Viewed" subtitle="Members that you have viewed" count={1173} profiles={PROFILES_VIEWED} subTextKey="viewedOn" />
+            <SectionRow
+              title="Profiles You Shortlisted"
+              subtitle="Members that you have shortlisted"
+              count={counts.shortlistedByMeCount}
+              profiles={shortlistedByMe}
+              subTextKey="shortlistedOn"
+              loading={loading.shortlistedByMe}
+            />
           </div>
 
-          {/* ── Profiles Marked Don't Show ── */}
+          {/* Profiles You Viewed */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <SectionRow
+              title="Profiles You Viewed"
+              subtitle="Members that you have viewed"
+              count={counts.viewedByMeCount}
+              profiles={viewedByMe}
+              subTextKey="viewedOn"
+              loading={loading.viewedByMe}
+            />
+          </div>
+
+          {/* Don't Show summary */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex -space-x-2">
-                  {["ds1", "ds2", "ds3"].map((seed) => (
-                    <img key={seed} src={`https://picsum.photos/seed/${seed}/32/32`} alt="" className="w-8 h-8 rounded-full border-2 border-white object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).src = "https://ui-avatars.com/api/?name=?&background=gray&color=fff&size=32"; }} />
-                  ))}
-                </div>
-                <p className="text-xs sm:text-sm font-semibold text-gray-700">Profiles Marked As "Don't show" (3)</p>
+                <p className="text-xs sm:text-sm font-semibold text-gray-700">
+                  Profiles Marked As "Don't show" ({counts.dontShowCount ?? 0})
+                </p>
               </div>
               <button className="self-start sm:self-auto flex items-center gap-1 text-xs text-[#ea580c] font-semibold border border-[#ea580c] px-3 py-1.5 rounded-full hover:bg-orange-50 transition-colors">
                 View all <ChevronRight />
@@ -595,63 +1013,38 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ── Success Stories ── */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-4">
-            <div className="flex items-start sm:items-center justify-between mb-1 gap-2">
-              <h2 className="text-sm sm:text-base font-bold text-[#ea580c]">Lakhs of Happy Marriages!</h2>
-              <img src="https://picsum.photos/seed/limca/60/40" alt="Limca Book of Records" className="h-8 sm:h-10 w-14 sm:w-16 object-cover rounded shrink-0" />
-            </div>
-            <p className="text-[10px] sm:text-xs text-gray-500 mb-3 sm:mb-4">
-              Featured in the Limca Book of Records for highest number of documented marriages online
-            </p>
-            <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 mb-3 sm:mb-4">
-              {SUCCESS_STORIES.map((story) => (
-                <div key={story.id} className="shrink-0 w-36 sm:w-44 border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
-                  <img src={story.photo1} alt={story.names} className="w-full h-24 sm:h-32 object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${story.names}&background=ea580c&color=fff&size=160`; }} />
-                  <div className="p-2">
-                    <p className="text-[10px] sm:text-[11px] font-semibold text-gray-800 leading-tight mb-0.5">{story.names}</p>
-                    <p className="text-[9px] text-gray-400 mb-1">Posted on: {story.date}</p>
-                    <p className="text-[9px] sm:text-[10px] text-gray-600 leading-snug line-clamp-2">{story.text}</p>
-                    <button className="text-[9px] sm:text-[10px] text-[#ea580c] font-semibold mt-1 hover:underline">Read more...</button>
-                  </div>
-                </div>
-              ))}
-              <div className="shrink-0 w-8 flex items-center justify-center">
-                <button className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#ea580c] hover:text-[#ea580c] transition-colors bg-white shadow-sm">
-                  <ChevronRight />
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <button className="flex items-center gap-2 border border-[#ea580c] text-[#ea580c] text-xs font-semibold px-5 sm:px-6 py-2 rounded-full hover:bg-orange-50 transition-colors">
-                View success stories <ChevronRight />
-              </button>
-            </div>
-          </div>
-
-          {/* ── Other Services ── */}
+          {/* Other Services (static) */}
           <div className="pb-2">
             <h2 className="text-sm sm:text-base font-bold text-gray-800 mb-3">Matrimony.com - Other Services</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {[
                 {
-                  name: "AstroFreeChat", sub: "From Matrimony.com Group",
+                  name: "AstroFreeChat",
+                  sub: "From Matrimony.com Group",
                   desc: "Looking for astrology guidance in love, relationships, career, or health?",
                   features: ["Instant Astrology Insights", "Chat Anytime, Anywhere", "First 5 Minutes FREE"],
-                  cta: "Download AstroFreeChat", color: "bg-orange-50 border-orange-200",
+                  cta: "Download AstroFreeChat",
+                  color: "bg-orange-50 border-orange-200",
                 },
                 {
-                  name: "weddingbazaar", sub: "from Matrimony.com group",
+                  name: "weddingbazaar",
+                  sub: "from Matrimony.com group",
                   desc: "India's Largest Wedding Planning Platform",
-                  features: ["Photographers, Makeup artists, Caterers and more", "Trusted wedding marketplace from matrimony.com group", "2.8 Lakh+ trusted vendors across 40+ cities"],
-                  cta: "Know more", color: "bg-purple-50 border-purple-200",
+                  features: [
+                    "Photographers, Makeup artists, Caterers and more",
+                    "Trusted wedding marketplace from matrimony.com group",
+                    "2.8 Lakh+ trusted vendors across 40+ cities",
+                  ],
+                  cta: "Know more",
+                  color: "bg-purple-50 border-purple-200",
                 },
                 {
-                  name: "mandap", sub: "from Matrimony.com group",
+                  name: "mandap",
+                  sub: "from Matrimony.com group",
                   desc: "India's Largest Mandap Platform",
                   features: ["Free listings", "100% verified", "40,000+ mandaps", "Services across India"],
-                  cta: "Know more", color: "bg-blue-50 border-blue-200",
+                  cta: "Know more",
+                  color: "bg-blue-50 border-blue-200",
                 },
               ].map((svc) => (
                 <div key={svc.name} className={`border rounded-xl p-4 ${svc.color}`}>
@@ -682,7 +1075,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── Bottom Help Bar ── */}
+      {/* Bottom Help Bar */}
       <div className="bg-white border-t border-gray-200 py-3 sm:py-4 px-4">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>

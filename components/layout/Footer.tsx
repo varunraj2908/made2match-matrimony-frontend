@@ -1,3 +1,22 @@
+import Link from "next/link";
+
+const PRIMARY_LINKS: { label: string; href: string }[] = [
+  { label: "Home", href: "/" },
+  { label: "Registration", href: "/" },
+  { label: "Member Login", href: "/login" },
+  { label: "Partner Search", href: "/search" },
+  { label: "Membership", href: "/specialoffer" },
+  { label: "Astrology Guide", href: "/horoscope" },
+];
+
+const SECONDARY_LINKS: { label: string; href: string }[] = [
+  { label: "Privacy Policy", href: "/privacy-policy" },
+  { label: "Contact Us", href: "/help" },
+  { label: "About Us", href: "/about-us" },
+  { label: "Terms & Conditions", href: "/terms-and-conditions" },
+  { label: "Success Story", href: "/#success-stories" },
+];
+
 export default function Footer() {
   return (
     <footer
@@ -6,7 +25,7 @@ export default function Footer() {
     >
       {/* TOP SECTION */}
       <div className="flex flex-col md:flex-row gap-10 md:gap-8">
-        
+
         {/* QUICK LINKS */}
         <div className="flex-1">
           <h4 className="text-white font-bold text-base mb-4">
@@ -15,39 +34,26 @@ export default function Footer() {
 
           <div className="flex flex-col sm:flex-row gap-6 md:gap-8">
             <div className="flex flex-col gap-2">
-              {[
-                "Home",
-                "Registration",
-                "Member Login",
-                "Partner Search",
-                "Membership",
-                "Astrology Guide",
-              ].map((link) => (
-                <a
-                  key={link}
-                  href="#"
+              {PRIMARY_LINKS.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
                   className="text-white/80 hover:text-white text-xs transition border-b border-white/20 pb-1"
                 >
-                  {link}
-                </a>
+                  {link.label}
+                </Link>
               ))}
             </div>
 
             <div className="flex flex-col gap-2">
-              {[
-                "Privacy Policy",
-                "Contact Us",
-                "About Us",
-                "Terms & Conditions",
-                "Success Story",
-              ].map((link) => (
-                <a
-                  key={link}
-                  href="#"
+              {SECONDARY_LINKS.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
                   className="text-white/80 hover:text-white text-xs transition border-b border-white/20 pb-1"
                 >
-                  {link}
-                </a>
+                  {link.label}
+                </Link>
               ))}
             </div>
           </div>

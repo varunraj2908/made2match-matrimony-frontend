@@ -135,7 +135,16 @@ export default function PartnerPreferences() {
     <div className=" bg-gray-50" style={{ fontFamily: "'Segoe UI', sans-serif" }}>
       <header className="text-white shadow-lg" style={{ background: "linear-gradient(135deg, #c0174c 0%, #a01040 100%)" }}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Back"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
             <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
                 <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />

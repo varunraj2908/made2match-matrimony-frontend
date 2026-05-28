@@ -155,7 +155,7 @@ export default function OnboardingSuccessPage() {
 
           {/* Primary CTA */}
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/home")}
             className="w-full py-3.5 rounded-2xl text-white text-sm font-black tracking-wide transition-all hover:opacity-90 active:scale-95"
             style={{
               background: "linear-gradient(135deg, #c0174c, #8b0f38)",
