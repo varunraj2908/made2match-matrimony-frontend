@@ -3,6 +3,9 @@ import { useState } from "react";
 
 interface NavbarProps {
   onScrollTo?: (section: string) => void;
+  /** When true, navbar slides up to top:0; otherwise sits at top:72 below Header. */
+  scrolled?: boolean;
+  /** @deprecated The navbar now uses a fixed offset (72px) below the page header. */
   navTop?: string;
 }
 type NavItem = {
@@ -74,7 +77,7 @@ const navItems: NavItem[] = [
   },
 ];
 
-export default function SectionNavbar({ onScrollTo, navTop = "top-[72px]" }: NavbarProps) {
+export default function SectionNavbar({ onScrollTo }: NavbarProps) {
   const [active, setActive] = useState("home");
 
   const handleNav = (key: string) => {
@@ -83,9 +86,7 @@ export default function SectionNavbar({ onScrollTo, navTop = "top-[72px]" }: Nav
   };
 
   return (
-    <header
-      className={`sticky ${navTop} z-998 bg-gray-100 border-b border-gray-100 shadow-sm transition-all duration-300`}
-    >
+    <header className="relative bg-gray-100 border-b border-gray-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-center h-16">
         <nav className="flex items-center gap-1">
           {navItems.map((item) => {

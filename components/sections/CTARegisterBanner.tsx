@@ -9,7 +9,7 @@ export default function CTARegisterBanner({
         flex flex-col md:flex-row
         items-center
         gap-4 md:gap-6
-        px-4 md:px-8
+        px-4 md:px-64
         py-5
         text-center md:text-left
       "
@@ -26,7 +26,7 @@ export default function CTARegisterBanner({
       {/* TEXT */}
       <div className="flex-1">
         <p className="text-white font-bold text-sm tracking-widest uppercase">
-          GETMARRY.COM
+          MADE2MATCH.COM
         </p>
 
         <p className="text-white/80 text-xs mt-1">
@@ -45,7 +45,7 @@ export default function CTARegisterBanner({
           text-[#c0174c]
           font-bold
           px-8 py-3
-          rounded-full
+          rounded-lg
           text-sm
           transition
           tracking-wide

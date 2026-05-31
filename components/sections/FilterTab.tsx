@@ -199,9 +199,52 @@ function ArrowBtn({
 /* ─────────────────────────────────────────────
    FILTER BAR
 ───────────────────────────────────────────── */
-export default function FilterBar() {
-  const [toggles,   setToggles]   = useState<Record<string, boolean>>({});
-  const [dropdowns, setDropdowns] = useState<Record<string, string | null>>({});
+export interface FilterState {
+  toggles: Record<string, boolean>;
+  dropdowns: Record<string, string | null>;
+}
+
+interface FilterBarProps {
+  value?: FilterState;
+  onChange?: (next: FilterState) => void;
+}
+
+export default function FilterBar({ value, onChange }: FilterBarProps = {}) {
+  const [internalToggles,   setInternalToggles]   = useState<Record<string, boolean>>({});
+  const [internalDropdowns, setInternalDropdowns] = useState<Record<string, string | null>>({});
+
+  const isControlled = value !== undefined;
+  const toggles   = isControlled ? value.toggles   : internalToggles;
+  const dropdowns = isControlled ? value.dropdowns : internalDropdowns;
+
+  // Combined setter — writes both halves of the filter state atomically so
+  // single-select updates don't see stale neighbours.
+  const setFilterState = (
+    nextToggles: Record<string, boolean>,
+    nextDropdowns: Record<string, string | null>,
+  ) => {
+    if (isControlled) onChange?.({ toggles: nextToggles, dropdowns: nextDropdowns });
+    else {
+      setInternalToggles(nextToggles);
+      setInternalDropdowns(nextDropdowns);
+    }
+  };
+
+  // Picking a dropdown option: clear every other filter, keep only this one.
+  const onSelectDropdown = (key: string, val: string | null) => {
+    if (val === null) {
+      // Clearing this dropdown clears all filters.
+      setFilterState({}, {});
+      return;
+    }
+    setFilterState({}, { [key]: val });
+  };
+
+  // Clicking a toggle: clear every other filter; toggle this one on/off.
+  const onToggleToggle = (key: string) => {
+    const wasActive = !!toggles[key];
+    setFilterState(wasActive ? {} : { [key]: true }, {});
+  };
   const [canLeft,   setCanLeft]   = useState(false);
   const [canRight,  setCanRight]  = useState(true);
 
@@ -256,21 +299,21 @@ export default function FilterBar() {
                 key={item.key}
                 item={item}
                 selected={dropdowns[item.key] ?? null}
-                onSelect={(val) => setDropdowns((p) => ({ ...p, [item.key]: val }))}
+                onSelect={(val) => onSelectDropdown(item.key, val)}
               />
             ) : (
               <TogglePill
                 key={item.key}
                 item={item}
                 active={!!toggles[item.key]}
-                onToggle={() => setToggles((p) => ({ ...p, [item.key]: !p[item.key] }))}
+                onToggle={() => onToggleToggle(item.key)}
               />
             )
           )}
 
           {hasAnyActive && (
             <button
-              onClick={() => { setToggles({}); setDropdowns({}); }}
+              onClick={() => setFilterState({}, {})}
               className="flex-shrink-0 px-3 py-2 text-sm text-red-500 hover:text-red-600 font-medium transition-colors"
             >
               Clear all

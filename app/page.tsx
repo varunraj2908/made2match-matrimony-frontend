@@ -5,36 +5,47 @@ import SectionNavbar from "@/components/layout/SectionNavbar";
 import Header from "@/components/layout/Header";
 import StatusBar from "@/components/sections/StatsBar";
 import BannerQuote from "@/components/sections/BannerQuote";
-import SearchSection from "@/components/sections/SearchSection";
 import SuccessStories from "@/components/sections/SuccessStories";
 import BeginLoveStory from "@/components/sections/BeginLoveStory";
 import BrowseBySection from "@/components/sections/BrowseBySection";
 import MembershipPlans from "@/components/sections/MembershipPlans";
 import FeaturedProfiles from "@/components/sections/FeaturedProfiles";
-import HeroRegistration from "@/components/sections/HeroRegistration";
-import CTARegisterBanner from "@/components/sections/CTARegisterBanner";
+import HeroRegistration, { SearchBar } from "@/components/sections/HeroRegistration";
 import MarriageQuoteBanner from "@/components/sections/MarriageQuoteBanner";
 import RegisterNowButton from "@/components/ui/RegisterNowButton";
 import RegisterModal from "@/components/modals/RegisterModal";
 import HowItWorks from "@/components/sections/HowItWorks";
 import FAQSection from "@/components/sections/FAQSection";
 import Footer from "@/components/layout/Footer";
+import Testimonials from "@/components/sections/Testimonials";
 
 export default function Home() {
   const [open, setOpen] = useState(false);
   const [fromHeader, setFromHeader] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
-  const [showTopBtn, setShowTopBtn] = useState(false); 
+  const [showTopBtn, setShowTopBtn] = useState(false);
+  const [fixedNavH, setFixedNavH] = useState(144);
+
+  const fixedNavRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      const heroHeight = homeRef.current?.offsetHeight || 600;
-      setShowHeader(window.scrollY < heroHeight - 80);
       setShowTopBtn(window.scrollY > 300);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Measure the actual height of the fixed Header + SectionNavbar block.
+  // It's taller on mobile (Header stacks vertically) than on desktop.
+  useEffect(() => {
+    const el = fixedNavRef.current;
+    if (!el) return;
+    const measure = () => setFixedNavH(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   const scrollToTop = () => {
@@ -64,51 +75,80 @@ export default function Home() {
   const scrollTo = (key: string) => {
     if (key === "home") {
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      refs[key]?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
     }
+    const el = refs[key]?.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - fixedNavH;
+    window.scrollTo({ top, behavior: "smooth" });
   };
 
-  const navTop = showHeader ? "top-[72px]" : "top-0";
-
   return (
-    <div className="min-h-screen bg-white font-sans text-sm">
+    <div className="min-h-screen bg-[#fdf5f5] font-sans text-sm"  >
 
-      {showHeader && <Header onClick={openFromHeader} />}
+      {/* Header + Navbar stick together at top:0 as a single block.
+          Position fixed guarantees this regardless of any ancestor overflow. */}
+      <div
+        ref={fixedNavRef}
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+        }}
+      >
+        <Header onClick={openFromHeader} />
+        <SectionNavbar onScrollTo={scrollTo} />
+      </div>
 
-      <SectionNavbar onScrollTo={scrollTo} navTop={navTop} />
+      {/* Spacer matches the measured height of the fixed nav so content
+          below isn't covered (mobile Header is taller than desktop). */}
+      <div style={{ height: fixedNavH }} aria-hidden />
 
       <div ref={homeRef}>
         <HeroRegistration />
       </div>
 
-      <SearchSection />
+      {/* On mobile: StatusBar first, then 'Find Your Match' search bar.
+          On desktop (lg+): search bar first, then StatusBar — original order. */}
+      <div className="flex flex-col">
+        <div className="order-2 lg:order-1">
+          <SearchBar />
+        </div>
+        <div className="order-1 lg:order-2">
+          <StatusBar />
+        </div>
+      </div>
       <BannerQuote onClick={openFromPage} />
 
-      <div ref={featuredRef}>
+      <div ref={featuredRef} style={{ scrollMarginTop: fixedNavH }}>
         <FeaturedProfiles />
       </div>
 
+      {/* <EasyToGetStarted /> */}
+
       <MarriageQuoteBanner onClick={openFromPage} />
 
-      <div id="success-stories" ref={successStoriesRef}>
+      <div id="success-stories" ref={successStoriesRef} style={{ scrollMarginTop: fixedNavH }}>
         <SuccessStories />
       </div>
 
-      <StatusBar />
-      <CTARegisterBanner onClick={openFromPage} />
+      {/* <CTARegisterBanner onClick={openFromPage} /> */}
+      <Testimonials />
 
-      <div ref={plansRef}>
+
+      <div ref={plansRef} style={{ scrollMarginTop: fixedNavH }}>
         <MembershipPlans />
       </div>
 
       <BeginLoveStory onClick={openFromPage} />
 
-      <div ref={workingFlowRef}>
+      <div ref={workingFlowRef} style={{ scrollMarginTop: fixedNavH }}>
         <HowItWorks />
       </div>
 
-      <div ref={faqsRef}>
+      <div ref={faqsRef} style={{ scrollMarginTop: fixedNavH }}>
         <FAQSection />
       </div>
 

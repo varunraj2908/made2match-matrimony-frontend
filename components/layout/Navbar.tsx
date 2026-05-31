@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getMyProfile, type MyProfile } from "@/services/homeService";
 
 // ─── Nav Items (notification removed) ────────────────────────────────────────
 const NAV_ITEMS = [
@@ -200,10 +201,28 @@ export default function Navbar() {
   const [notifications, setNotifications] = useState(NOTIFICATIONS);
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [me, setMe] = useState<MyProfile | null>(null);
 
   const menuRef        = useRef<HTMLDivElement | null>(null);
   const mobileMenuRef  = useRef<HTMLDivElement | null>(null);
   const notifRef       = useRef<HTMLDivElement | null>(null);
+
+  // Load /profiles/me once and also when anyone fires the "profile:updated"
+  // custom event (e.g. home page after a photo upload).
+  useEffect(() => {
+    let cancelled = false;
+    const load = () =>
+      getMyProfile()
+        .then((p) => { if (!cancelled) setMe(p); })
+        .catch(() => undefined);
+    load();
+    const onUpdated = () => load();
+    window.addEventListener("profile:updated", onUpdated);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("profile:updated", onUpdated);
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -226,6 +245,16 @@ export default function Navbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Derived display values
+  const displayName =
+    [me?.firstName, me?.lastName].filter(Boolean).join(" ") || me?.firstName || "—";
+  const userCode = me ? `E${String(me.userId).padStart(7, "0")}` : "—";
+  const locationLine = [me?.city, me?.state].filter(Boolean).join(", ");
+  const subtitle = locationLine ? `${userCode} • ${locationLine}` : userCode;
+  const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=b22234&color=fff&size=120`;
+  const avatarUrl = me?.profilePhotoUrl || fallbackAvatar;
+  const planLabel = me?.isPremium ? "Prime" : "Free";
 
   const unreadCount = notifications.filter((n) => n.unread).length;
   const displayed =
@@ -550,11 +579,11 @@ export default function Navbar() {
                   >
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#f5d0d7] hover:border-[#b22234] transition-colors">
                       <img
-                        src="https://i.pravatar.cc/300?img=33"
-                        alt="Profile"
+                        src={avatarUrl}
+                        alt={displayName}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
+                          (e.target as HTMLImageElement).src = fallbackAvatar;
                         }}
                       />
                     </div>
@@ -581,15 +610,15 @@ export default function Navbar() {
                       {/* User info */}
                       <div className="px-4 py-3 border-b border-gray-100">
                         <div className="flex items-center justify-between mb-0.5">
-                          <p className="text-sm font-bold text-gray-800">Rahul Sharma</p>
+                          <p className="text-sm font-bold text-gray-800">{displayName}</p>
                           <span
                             className="text-xs font-semibold px-2 py-0.5 rounded-full"
                             style={{ background: "#fff0f4", color: "#c0174c", border: "1px solid #f9c8d6" }}
                           >
-                            Free
+                            {planLabel}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-400">GM002341 • Kerala</p>
+                        <p className="text-xs text-gray-400">{subtitle}</p>
                       </div>
 
                       {/* Upgrade Banner */}

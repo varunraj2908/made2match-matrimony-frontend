@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4"
+      className="h-full min-h-full flex items-center justify-center px-4 py-6 overflow-y-auto"
       style={{ background: "#f5e0e5" }}
     >
       <div

@@ -546,6 +546,8 @@ export default function HomePage() {
       const res = await uploadProfilePhoto(file);
       const photoUrl = (res?.data as { photoUrl?: string } | undefined)?.photoUrl;
       if (photoUrl) setProfilePhoto(photoUrl);
+      // Tell the rest of the UI (Navbar, etc.) to re-fetch /profiles/me
+      window.dispatchEvent(new CustomEvent("profile:updated"));
     } catch (ex: any) {
       setUploadError(
         ex?.response?.data?.message ||

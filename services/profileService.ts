@@ -130,6 +130,80 @@ export const saveAdditionalDetails = async (data: AdditionalDetailsPayload) => {
   return response.data;
 };
 
+// ── Full profile detail ────────────────────────────────────────
+export interface PartnerPreferenceDto {
+  id?: number;
+  minAge?: number;
+  maxAge?: number;
+  minHeightCm?: number;
+  maxHeightCm?: number;
+  preferredCountry?: string;
+  preferredState?: string;
+  preferredReligion?: string;
+  preferredCaste?: string;
+  casteNoBar?: boolean;
+  preferredMaritalStatus?: string;
+  preferredEducation?: string;
+  minAnnualIncome?: number;
+  preferredDiet?: string;
+  smokingAcceptable?: string;
+  drinkingAcceptable?: string;
+  partnerDescription?: string;
+}
+
+export interface FullProfile {
+  id: number;
+  userId: number;
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
+  age?: number;
+  gender?: string;
+  profilePhotoUrl?: string;
+  bio?: string;
+  profileCreatedBy?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
+  religion?: string;
+  caste?: string;
+  subcaste?: string;
+  motherTongue?: string;
+  maritalStatus?: string;
+  willingToMarryAnyCaste?: boolean;
+  shudhajathakam?: string;
+  heightCm?: number;
+  weightKg?: number;
+  bodyType?: string;
+  complexion?: string;
+  physicalStatus?: string;
+  highestQualification?: string;
+  collegeUniversity?: string;
+  occupation?: string;
+  annualIncome?: number;
+  employedIn?: string;
+  familyType?: string;
+  familyStatus?: string;
+  fatherOccupation?: string;
+  motherOccupation?: string;
+  noOfBrothers?: number;
+  noOfSisters?: number;
+  diet?: string;
+  smoking?: string;
+  drinking?: string;
+  photoUrls?: string[];
+  profileCompletionPct?: number;
+  isPremium?: boolean;
+  createdAt?: string;
+  partnerPreference?: PartnerPreferenceDto;
+}
+
+export const getProfileById = async (id: number | string) => {
+  const res = await axiosInstance.get<ApiEnvelope<FullProfile>>(`/profiles/${id}`);
+  return res.data.data;
+};
+
 // ── Profile photo upload (multipart) ───────────────────────────
 export const uploadProfilePhoto = async (file: File) => {
   const fd = new FormData();

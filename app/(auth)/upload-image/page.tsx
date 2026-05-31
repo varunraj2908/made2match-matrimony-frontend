@@ -50,6 +50,9 @@ export default function AddPhotoPage(): JSX.Element {
     setErrorMsg("");
     try {
       await uploadProfilePhoto(pickedFile);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("profile:updated"));
+      }
       router.push("/hobbies-interests");
     } catch (ex: any) {
       setErrorMsg(

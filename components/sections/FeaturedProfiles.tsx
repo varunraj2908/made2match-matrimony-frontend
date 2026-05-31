@@ -1,62 +1,115 @@
+"use client";
+
 import { profiles } from "@/constants/profiles";
 import Image from "next/image";
+import { useState } from "react";
+
+type Tab = "bride" | "groom";
 
 export default function FeaturedProfiles() {
-    const allProfiles = [...profiles, ...profiles];
+  const [tab, setTab] = useState<Tab>("bride");
 
-    return(
-        <section className="bg-[#fdf5f7] px-8 py-10">
-      <style>{`
-        @keyframes scrollX {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .profiles-track {
-          display: flex;
-          gap: 20px;
-          width: max-content;
-          animation: scrollX 30s linear infinite;
-        }
-        .profiles-track:hover { animation-play-state: paused; }
-      `}</style>
+  const brides = profiles.slice(0, 5);
+  const grooms = profiles.slice(5, 10);
+  const list = tab === "bride" ? brides : grooms;
+  const [activeIdx, setActiveIdx] = useState(2); // center one is highlighted
 
-      <p className="text-[#c0174c] text-xs font-bold tracking-widest uppercase mb-1">✦ Curated For You</p>
-      <h2 className="text-3xl font-extrabold text-gray-900 mb-1">Featured Profiles</h2>
-      <p className="text-gray-500 text-sm mb-8">Handpicked, verified profiles that match your preferences.</p>
-      <div className="overflow-hidden -mx-8">
-        <div className="profiles-track px-8">
-          {allProfiles.map((p, i) => (
-            <div key={i} className="bg-white rounded-2xl overflow-hidden border border-pink-100 flex flex-col" style={{ width: 250, minWidth: 200 }}>
-              <div className="relative h-40" style={{ background: p.bg }}>
-                <Image src={p.image} alt={p.name} fill className="object-cover object-top" />
-                <span className="absolute top-2 right-2 text-white text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: p.badgeColor }}>
-                  {p.badge}
-                </span>
-              </div>
-              <div className="p-3 flex flex-col gap-1.5 flex-1">
-                <p className="font-bold text-gray-900 text-xs">{p.name}</p>
-                <p className="text-gray-400 text-[10px]">{p.age} yrs • {p.height} • {p.job}</p>
-                <div className="flex flex-wrap gap-1 mt-0.5">
-                  {[p.religion, p.lang, p.city].map(tag => (
-                    <span key={tag} className="bg-pink-50 text-[#c0174c] text-[10px] px-1.5 py-0.5 rounded-full border border-pink-100">{tag}</span>
-                  ))}
+  return (
+    <section className="bg-white px-4 sm:px-8 py-12">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-6">
+          <h2
+            className="text-3xl sm:text-4xl font-extrabold text-gray-800"
+            style={{ fontFamily: "Georgia, serif" }}
+          >
+            Featured Profiles
+          </h2>
+          <p className="text-gray-500 text-xs sm:text-sm mt-2 max-w-sm mx-auto">
+            Find Thousands of Personal Members Looking for Partner
+          </p>
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <span className="h-px w-6 bg-gray-300" />
+            <span className="text-[#c0174c]">♥</span>
+            <span className="h-px w-6 bg-gray-300" />
+          </div>
+        </div>
+
+        {/* Bride / Groom toggle */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          {([
+            { key: "bride", label: "Bride" },
+            { key: "groom", label: "Groom" },
+          ] as { key: Tab; label: string }[]).map((t) => {
+            const active = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => {
+                  setTab(t.key);
+                  setActiveIdx(2);
+                }}
+                className="px-7 py-2 rounded-full text-sm font-bold transition-colors cursor-pointer"
+                style={{
+                  background: active ? "#c0174c" : "white",
+                  color: active ? "white" : "#c0174c",
+                  border: active ? "2px solid #c0174c" : "2px solid #c0174c",
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Profiles row */}
+        <div className="flex items-end justify-center gap-3 sm:gap-6 overflow-x-auto pb-2">
+          {list.map((p, i) => {
+            const isActive = i === activeIdx;
+            const size = isActive ? "w-36 h-36 sm:w-44 sm:h-44" : "w-24 h-24 sm:w-32 sm:h-32";
+            return (
+              <button
+                key={`${tab}-${i}`}
+                onClick={() => setActiveIdx(i)}
+                className="flex flex-col items-center shrink-0 cursor-pointer group"
+              >
+                <div
+                  className={`relative rounded-full overflow-hidden ${size} transition-all duration-300 mb-3`}
+                  style={{
+                    border: isActive ? "4px solid #c0174c" : "3px solid #f5d0d7",
+                    boxShadow: isActive ? "0 10px 30px rgba(192,23,76,0.30)" : "none",
+                  }}
+                >
+                  <Image
+                    src={p.image}
+                    alt={p.name}
+                    fill
+                    className="object-cover object-top group-hover:scale-105 transition-transform"
+                  />
                 </div>
-                <div className="flex items-center gap-1.5 mt-auto pt-2">
-                  <button className="flex-1 bg-[#c0174c] hover:bg-[#a01040] text-white font-bold py-1.5 rounded-lg text-[10px] transition">Connect</button>
-                  <button className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center text-[#c0174c] hover:bg-pink-50 transition text-xs">♡</button>
+                <div className="bg-white rounded-md border border-gray-200 px-3 py-2 text-center min-w-[110px] shadow-sm">
+                  <p className="text-[11px] font-bold text-gray-800 truncate">
+                    {p.name}
+                  </p>
+                  <p className="text-[9px] text-gray-500 mt-0.5">
+                    {p.age} yrs • {p.height}
+                  </p>
+                  <p className="text-[9px] text-[#c0174c] font-semibold mt-0.5 truncate">
+                    {p.city}
+                  </p>
                 </div>
-              </div>
-            </div>
-          ))}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* CTA */}
+        <div className="flex justify-center mt-10">
+          <button className="bg-[#c0174c] hover:bg-[#a01040] text-white font-bold px-10 py-3 rounded-md text-sm transition-all shadow-md cursor-pointer">
+            LEARN MORE ABOUT US
+          </button>
         </div>
       </div>
-
-      <div className="flex justify-center mt-8">
-        <button className="border-2 border-[#c0174c] text-[#c0174c] font-bold px-8 py-2.5 rounded-full text-sm hover:bg-[#c0174c] hover:text-white transition">
-          View All Profiles →
-        </button>
-      </div>
     </section>
-
-
-    )}
+  );
+}
