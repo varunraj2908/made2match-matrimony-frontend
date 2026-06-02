@@ -374,20 +374,12 @@ const PulseCircle = ({
   icon: React.ReactNode;
   visible: boolean;
 }) => (
-  <div
-    className="relative flex items-center justify-center"
-    style={{
-      width: window.innerWidth < 768 ? 160 : 220,
-      height: window.innerWidth < 768 ? 160 : 220,
-    }}
-  >
+  <div className="relative flex items-center justify-center w-[160px] h-[160px] md:w-[220px] md:h-[220px]">
     {ringColors.map((rc, i) => (
       <div
         key={i}
-        className="absolute rounded-full"
+        className="absolute rounded-full w-[160px] h-[160px] md:w-[220px] md:h-[220px]"
         style={{
-          width: window.innerWidth < 768 ? 160 : 220,
-          height: window.innerWidth < 768 ? 160 : 220,
           background: rc,
           opacity: visible ? 1 : 0,
           transform: visible ? "scale(1)" : "scale(0.6)",
@@ -404,30 +396,18 @@ const PulseCircle = ({
     ))}
 
     <div
-      className="absolute rounded-full"
-      style={{
-        width: window.innerWidth < 768 ? 120 : 160,
-        height: window.innerWidth < 768 ? 120 : 160,
-        background: ringColors[1],
-      }}
+      className="absolute rounded-full w-[120px] h-[120px] md:w-[160px] md:h-[160px]"
+      style={{ background: ringColors[1] }}
     />
 
     <div
-      className="absolute rounded-full"
-      style={{
-        width: window.innerWidth < 768 ? 80 : 110,
-        height: window.innerWidth < 768 ? 80 : 110,
-        background: ringColors[0],
-      }}
+      className="absolute rounded-full w-[80px] h-[80px] md:w-[110px] md:h-[110px]"
+      style={{ background: ringColors[0] }}
     />
 
     <div
-      className="absolute rounded-full bg-white shadow-lg flex items-center justify-center z-10"
-      style={{
-        width: window.innerWidth < 768 ? 60 : 80,
-        height: window.innerWidth < 768 ? 60 : 80,
-        boxShadow: `0 4px 24px ${color}55`,
-      }}
+      className="absolute rounded-full bg-white shadow-lg flex items-center justify-center z-10 w-[60px] h-[60px] md:w-[80px] md:h-[80px]"
+      style={{ boxShadow: `0 4px 24px ${color}55` }}
     >
       {icon}
     </div>

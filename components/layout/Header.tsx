@@ -20,28 +20,22 @@ export default function Header({
               alt="golden-hearts"
               width={120}
               height={60}
-              className="object-cover w-30 sm:w-25 lg:w-30 ml-[-20]"
+              className="object-cover w-28 -ml-2 sm:-ml-3 lg:-ml-4"
             />
 
             <div className="w-auto lg:w-75">
               <span
-                className="text-[25px] sm:text-3xl lg:text-3xl font-extrabold tracking-tight"
+                className="text-[26px] font-extrabold tracking-tight"
                 style={{
                   color: "#e63975",
                   fontFamily: "Georgia, serif",
                 }}
               >
-                <span className="text-[#c0174c] text-[34px] sm:text-[34px] lg:text-[40px]">
-                  M
-                </span>
+                <span className="text-[#c0174c] text-[36px]">M</span>
                 ade
                 <span style={{ color: "#e63975" }}>
-                  <span className="text-[#FFD700] text-[34px] sm:text-[34px] lg:text-[40px]">
-                    2
-                  </span>
-                  <span className="text-[#c0174c] text-[34px] sm:text-[34px] lg:text-[40px]">
-                    M
-                  </span>
+                  <span className="text-[#FFD700] text-[36px]">2</span>
+                  <span className="text-[#c0174c] text-[36px]">M</span>
                   atch
                 </span>
               </span>
@@ -49,7 +43,7 @@ export default function Header({
           </div>
 
           {/* MOBILE LOGO */}
-          <div className="w-13 h-13 lg:hidden rounded-full bg-white border-2 border-[#c0174c] flex items-center justify-center font-bold text-[#c0174c] text-[16px]">
+          <div className="w-14 h-14 lg:hidden rounded-full bg-white border-2 border-[#c0174c] flex items-center justify-center font-bold text-[#c0174c] text-[16px]">
             M<span className="text-[#FFD700]">2</span>M
           </div>
         </div>
@@ -57,7 +51,7 @@ export default function Header({
         {/* MARQUEE */}
         <div className="overflow-hidden w-full lg:w-auto">
           <div className="whitespace-nowrap animate-marquee text-[#c0174c] font-semibold text-xs sm:text-sm text-center">
-            🇮🇳 India’s No.1 Matrimony App • Find Your Perfect Match •
+            🇮🇳 India’s No.1 Made2Match App • Find Your Perfect Match •
             Made2Match 💍
           </div>
         </div>
@@ -83,7 +77,7 @@ export default function Header({
           </button>
 
           {/* DESKTOP LOGO */}
-          <div className="hidden lg:flex w-15 h-15 rounded-full bg-white border-2 border-[#c0174c] items-center justify-center font-bold text-[#c0174c] text-lg">
+          <div className="hidden lg:flex w-8 h-10 lg:w-14 lg:h-14 rounded-full bg-white border-2 border-[#c0174c] items-center justify-center font-bold text-[#c0174c] text-[16px]">
             M<span className="text-[#FFD700]">2</span>M
           </div>
         </div>

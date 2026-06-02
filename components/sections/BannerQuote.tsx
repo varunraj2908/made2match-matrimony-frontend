@@ -86,23 +86,14 @@ export default function BannerQuote({ onClick }: { onClick: () => void }) {
         🎺
       </div>
 
-      {/* RIGHT IMAGE */}
-      <div
-        className="
-    hidden md:block
-    relative
-    md:h-92.5 md:w-92.5
-    md:-right-35
-    overflow-hidden
-    shrink-0
-  "
-      >
+      {/* RIGHT IMAGE — lg+ only, kept inside the section so it doesn't overflow on md */}
+      <div className="hidden lg:block relative h-[370px] w-[370px] -right-16 overflow-hidden shrink-0">
         <Image
           src="/wedding-bg.webp"
           alt="wedding-bg"
           width={370}
           height={370}
-          className="object-cover object-top rotate-320"
+          className="object-cover object-top rotate-[320deg]"
         />
       </div>
     </section>

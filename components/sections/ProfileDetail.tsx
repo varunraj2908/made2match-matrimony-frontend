@@ -3,6 +3,69 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { getProfileById, type FullProfile } from "@/services/profileService";
+import {
+  fetchSentInterestStatusByProfileId,
+  recordProfileView,
+  sendInterest,
+  type InterestStatus,
+} from "@/services/matchesService";
+
+// ── Display helpers ─────────────────────────────────────────────
+const FALLBACK_AVATAR = (name?: string) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "?")}&background=b22234&color=fff&size=400`;
+
+const formatHeight = (cm?: number): string => {
+  if (!cm) return "—";
+  const totalInches = Math.round(cm / 2.54);
+  const feet = Math.floor(totalInches / 12);
+  const inches = totalInches % 12;
+  return `${feet}' ${inches}\"`;
+};
+
+const formatWeight = (kg?: number): string => {
+  if (!kg) return "—";
+  const lbs = Math.round(kg * 2.205);
+  return `${kg} Kgs / ${lbs} lbs`;
+};
+
+const formatIncome = (annual?: number): string => {
+  if (annual == null) return "—";
+  if (annual === 0) return "No income";
+  const lakhs = annual / 100000;
+  return lakhs >= 1
+    ? `Rs. ${Number.isInteger(lakhs) ? lakhs : lakhs.toFixed(1)} Lakhs`
+    : `Rs. ${annual.toLocaleString()}`;
+};
+
+const formatIncomeRange = (min?: number, max?: number): string => {
+  if (min == null && max == null) return "Any";
+  if (min != null && max != null) return `${formatIncome(min)} – ${formatIncome(max)}`;
+  return formatIncome(min ?? max);
+};
+
+const friendly = (enumValue?: string): string => {
+  if (!enumValue) return "—";
+  return enumValue
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+};
+
+const formatLocation = (p: FullProfile): string =>
+  [p.country, p.state, p.city].filter(Boolean).join(" / ") || "—";
+
+const formatReligion = (p: FullProfile): string =>
+  [p.religion, p.caste].filter(Boolean).join(" – ") || "—";
+
+const formatDate = (iso?: string): string => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ProfileData {
@@ -446,12 +509,200 @@ const Sidebar = () => (
 );
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function ProfileDetail() {
-  const p = PROFILE;
-  const pp = p.partnerPreferences;
+interface ProfileDetailProps {
+  id?: string;
+}
+
+export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
+  const router = useRouter();
+  const [profile, setProfile] = useState<FullProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(!!id);
+  const [error, setError] = useState<string>("");
+  // null = never sent · "PENDING"/"ACCEPTED"/"REJECTED"/"WITHDRAWN" if one exists
+  const [interestStatus, setInterestStatus] = useState<InterestStatus | null>(null);
+  const [actionMsg, setActionMsg] = useState<string>("");
+  const [actionBusy, setActionBusy] = useState(false);
+
+  const showToast = (msg: string) => {
+    setActionMsg(msg);
+    window.setTimeout(() => setActionMsg(""), 2500);
+  };
+
+  const handleSendInterest = async () => {
+    if (!profile || interestStatus !== null || actionBusy) return;
+    setActionBusy(true);
+    try {
+      await sendInterest(profile.id);
+      setInterestStatus("PENDING");
+      showToast(`Interest sent to ${profile.firstName ?? "this profile"}`);
+    } catch (ex: any) {
+      const msg =
+        ex?.response?.data?.message ||
+        ex?.message ||
+        "Could not send interest. Please try again.";
+      showToast(msg);
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleChatNow = () => {
+    if (!profile) return;
+    router.push(`/chat/${profile.userId}`);
+  };
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    // Reset per-profile interaction state so visiting a new profile
+    // doesn't inherit the "Interest sent" badge from the previous one.
+    setProfile(null);
+    setInterestStatus(null);
+    setActionMsg("");
+    setActionBusy(false);
+
+    getProfileById(id)
+      .then((data) => { if (!cancelled) setProfile(data); })
+      .catch((ex: any) => {
+        if (cancelled) return;
+        setError(
+          ex?.response?.data?.message ||
+            ex?.message ||
+            "Could not load this profile.",
+        );
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    // Pre-fill the interaction status if this user has any prior interest
+    // (pending / accepted / rejected / withdrawn) toward this profile.
+    fetchSentInterestStatusByProfileId()
+      .then((map) => {
+        if (cancelled) return;
+        const status = map.get(Number(id));
+        if (status) setInterestStatus(status);
+      })
+      .catch(() => undefined);
+
+    // Fire-and-forget: record that the logged-in user viewed this profile
+    recordProfileView(Number(id)).catch(() => undefined);
+
+    return () => { cancelled = true; };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6">
+          <div className="bg-white rounded-lg p-4 sm:p-5 animate-pulse">
+            <div className="flex flex-col sm:flex-row gap-5">
+              <div className="w-full sm:w-48 h-48 bg-gray-200 rounded" />
+              <div className="flex-1 space-y-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="h-3 bg-gray-200 rounded w-3/4" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white border border-red-200 rounded-xl p-6 max-w-md text-center">
+          <p className="text-red-500 text-sm font-semibold mb-1">Couldn't load profile</p>
+          <p className="text-xs text-gray-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Build a ProfileData-shape view from the fetched FullProfile, falling
+  // back to the mock when the field isn't supplied by the backend.
+  const fullName = profile
+    ? [profile.firstName, profile.lastName].filter(Boolean).join(" ") || "—"
+    : PROFILE.name;
+  const photoList = profile?.photoUrls && profile.photoUrls.length > 0
+    ? profile.photoUrls
+    : profile?.profilePhotoUrl
+      ? [profile.profilePhotoUrl]
+      : [FALLBACK_AVATAR(fullName)];
+  const heroPhoto = photoList[0];
+
+  const p: typeof PROFILE = profile
+    ? {
+        ...PROFILE,
+        id: String(profile.id),
+        name: fullName,
+        age: profile.age ?? PROFILE.age,
+        height: formatHeight(profile.heightCm),
+        weight: formatWeight(profile.weightKg),
+        religion: formatReligion(profile),
+        caste: profile.caste || "—",
+        subCaste: profile.subcaste || "—",
+        location: formatLocation(profile),
+        education: profile.highestQualification || "—",
+        profession: profile.occupation || "—",
+        annualIncome: formatIncome(profile.annualIncome),
+        photo: heroPhoto,
+        photos: photoList,
+        about: profile.bio || PROFILE.about,
+        bodyType: friendly(profile.bodyType),
+        complexion: friendly(profile.complexion),
+        physicalStatus: friendly(profile.physicalStatus),
+        eatingHabits: friendly(profile.diet),
+        drinkingHabits: friendly(profile.drinking),
+        smokingHabits: friendly(profile.smoking),
+        motherTongue: friendly(profile.motherTongue),
+        maritalStatus: friendly(profile.maritalStatus),
+        country: profile.country || "—",
+        state: profile.state || "—",
+        city: profile.city || "—",
+        educationDetail: profile.collegeUniversity || profile.highestQualification || "—",
+        employedIn: profile.employedIn || "—",
+        occupationType: profile.occupation || "—",
+        occupationDetail: profile.occupation || "—",
+        dob: formatDate(profile.dateOfBirth),
+        lastLogin: formatDate(profile.createdAt),
+      }
+    : PROFILE;
+
+  const pref = profile?.partnerPreference;
+  const pp: typeof PROFILE.partnerPreferences = pref
+    ? {
+        ...PROFILE.partnerPreferences,
+        ageFrom: pref.minAge ?? PROFILE.partnerPreferences.ageFrom,
+        ageTo: pref.maxAge ?? PROFILE.partnerPreferences.ageTo,
+        heightFrom: formatHeight(pref.minHeightCm),
+        heightTo: formatHeight(pref.maxHeightCm),
+        maritalStatus: friendly(pref.preferredMaritalStatus),
+        education: pref.preferredEducation || "Any",
+        annualIncome: formatIncomeRange(pref.minAnnualIncome, undefined),
+        country: pref.preferredCountry || "Any",
+        state: pref.preferredState || "Any",
+        city: PROFILE.partnerPreferences.city,
+        religion: pref.preferredReligion || "Any",
+        caste: pref.preferredCaste || (pref.casteNoBar ? "Any (no bar)" : "Any"),
+        eatingHabits: friendly(pref.preferredDiet),
+        drinkingHabits: friendly(pref.drinkingAcceptable) || "Any",
+        smokingHabits: friendly(pref.smokingAcceptable) || "Any",
+        aboutPartner: pref.partnerDescription || PROFILE.partnerPreferences.aboutPartner,
+      }
+    : PROFILE.partnerPreferences;
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Toast for interest / chat actions */}
+      {actionMsg && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#b22234] text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg">
+          {actionMsg}
+        </div>
+      )}
+
       {/* Top Banner */}
       <div className="bg-[#b22234] text-white text-center py-2 text-xs font-medium tracking-wider">
         💕 Find Your Perfect Match — Browse Thousands of Verified Profiles 💕
@@ -493,7 +744,11 @@ export default function ProfileDetail() {
                     <p><span className="font-semibold text-gray-500 w-24 inline-block">Profession:</span> {p.profession}</p>
                     <p><span className="font-semibold text-gray-500 w-24 inline-block">Annual Income:</span> {p.annualIncome}</p>
                   </div>
-                  <button className="mt-4 flex items-center gap-2 bg-[#b22234] hover:bg-[#9a1d2b] text-white text-xs font-bold px-5 py-2 rounded transition-colors shadow-sm">
+                  <button
+                    onClick={handleChatNow}
+                    disabled={!profile}
+                    className="mt-4 flex items-center gap-2 bg-[#b22234] hover:bg-[#9a1d2b] text-white text-xs font-bold px-5 py-2 rounded transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
                     💬 CHAT NOW
                   </button>
                 </div>
@@ -517,9 +772,46 @@ export default function ProfileDetail() {
                       </button>
                     ))}
                   </div>
-                  <button className="w-full flex items-center justify-center gap-2 border-2 border-[#b22234] text-[#b22234] hover:bg-[#b22234] hover:text-white text-xs font-bold px-4 py-2 rounded transition-colors">
-                    💌 SEND INTEREST
-                  </button>
+                  {(() => {
+                    const STATUS_UI: Record<
+                      InterestStatus,
+                      { label: string; styles: string }
+                    > = {
+                      PENDING: {
+                        label: "✓ INTEREST SENT",
+                        styles: "border-green-600 bg-green-50 text-green-700",
+                      },
+                      ACCEPTED: {
+                        label: "💚 INTEREST ACCEPTED",
+                        styles: "border-emerald-600 bg-emerald-600 text-white",
+                      },
+                      REJECTED: {
+                        label: "✗ INTEREST DECLINED",
+                        styles: "border-gray-400 bg-gray-100 text-gray-500",
+                      },
+                      WITHDRAWN: {
+                        label: "✗ INTEREST WITHDRAWN",
+                        styles: "border-gray-400 bg-gray-100 text-gray-500",
+                      },
+                    };
+                    const ui = interestStatus ? STATUS_UI[interestStatus] : null;
+                    const baseStyles = ui
+                      ? ui.styles
+                      : "border-[#b22234] text-[#b22234] hover:bg-[#b22234] hover:text-white";
+                    return (
+                      <button
+                        onClick={handleSendInterest}
+                        disabled={!profile || interestStatus !== null || actionBusy}
+                        className={`w-full flex items-center justify-center gap-2 border-2 text-xs font-bold px-4 py-2 rounded transition-colors cursor-pointer disabled:cursor-not-allowed ${baseStyles} ${actionBusy ? "opacity-60" : ""}`}
+                      >
+                        {ui
+                          ? ui.label
+                          : actionBusy
+                            ? "SENDING..."
+                            : "💌 SEND INTEREST"}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

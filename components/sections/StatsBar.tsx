@@ -1,7 +1,7 @@
 export default function StatusBar() {
   return (
-    <section className="bg-white border-t border-b border-gray-100 py-8 px-4 lg:px-8">
-      <div className="grid grid-cols-2 lg:flex lg:justify-around gap-6 lg:gap-0 items-center">
+    <section className="bg-white border-t border-b border-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto grid grid-cols-2 lg:flex lg:justify-around gap-6 lg:gap-0 items-center">
         {[
           {
             icon: "👤",

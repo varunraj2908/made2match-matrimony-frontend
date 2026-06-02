@@ -289,12 +289,12 @@ function LayoutShell({ children }: { children: ReactNode }) {
           </span>
         </div>
 
-        <p className="hidden md:block text-xs text-gray-500">
+        <p className="hidden md:block text-xs text-white">
           Already registered?{" "}
           <a
             href="/login"
             className="font-bold"
-            style={{ color: "#c0174c" }}
+            style={{ color: "#ffffff" }}
           >
             Sign in
           </a>

@@ -1,14 +1,33 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useRegister } from "@/hooks/useRegister";
-
 import { registerSchema, RegisterRequest } from "@/schemas/authSchema";
 
-import { useRouter } from "next/navigation";
+/* ============================================================
+   SEARCH-BAR DATA
+============================================================ */
+type LookingFor = "bride" | "groom";
 
+const AGE_OPTIONS = [
+  "18 - 22", "22 - 26", "26 - 30",
+  "30 - 35", "35 - 40", "40 - 45", "45+",
+];
+const LOCATION_OPTIONS = [
+  "Mumbai", "Delhi", "Bangalore", "Hyderabad",
+  "Chennai", "Kochi", "Kolkata", "Pune",
+];
+const RELIGION_OPTIONS = [
+  "Hindu", "Muslim", "Christian", "Sikh",
+  "Buddhist", "Jain", "Other",
+];
+
+/* ============================================================
+   HERO CAROUSEL DATA
+============================================================ */
 interface Slide {
   image: string;
   eyebrow: string;
@@ -20,7 +39,7 @@ interface Slide {
 const SLIDES: Slide[] = [
   {
     image: "/matrimony1.webp",
-    eyebrow: "Made2Match Matrimony",
+    eyebrow: "Made2Match",
     headline: (
       <>
         Find your perfect <span className="block">life partner</span>
@@ -68,9 +87,143 @@ const SLIDES: Slide[] = [
   },
 ];
 
+/* ============================================================
+   COMPONENT
+============================================================ */
 export default function HeroRegistration() {
-  const router = useRouter();
+  return <HeroForm />;
+}
 
+/* ─── Search bar ────────────────────────────────────────────── */
+export function SearchBar() {
+  const router = useRouter();
+  const [lookingFor, setLookingFor] = useState<LookingFor>("bride");
+  const [age, setAge] = useState("");
+  const [location, setLocation] = useState("");
+  const [religion, setReligion] = useState("");
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (lookingFor) params.set("for", lookingFor);
+    if (age) params.set("age", age);
+    if (location) params.set("location", location);
+    if (religion) params.set("religion", religion);
+    router.push(`/profiles?${params.toString()}`);
+  };
+
+  return (
+    <section
+      className="relative py-3 w-full justify-between"
+      style={{
+        background: "linear-gradient(135deg, #fc8bab 0%, #c0174c 60%, #d4185a 100%)",
+      }}
+    >
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-15 pointer-events-none"
+        style={{
+          backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+          backgroundSize: "22px 22px",
+        }}
+      />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 lg:py-2">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:gap-6 gap-3">
+          {/* Brand */}
+          <div className="flex flex-col leading-tight shrink-0">
+            <span
+              className="text-white text-[27px] tracking-wide font-bold"
+              style={{ fontFamily: "Georgia, serif", fontStyle: "italic" }}
+            >
+              Find Your Match
+            </span>
+            <span className="text-white/75 text-[10px] tracking-wide">
+              Your perfect match is just a click away
+            </span>
+          </div>
+
+          {/* Filters */}
+          <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
+            <div className="flex  items-center rounded-md px-3 py-1.5 gap-2">
+              <span className="text-white/80 text-xs font-semibold">Looking</span>
+              <div className="flex items-center gap-1 ">
+                <button
+                  onClick={() => setLookingFor("bride")}
+                  aria-label="Looking for bride"
+                  className="w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer"
+                  style={{
+                    background: lookingFor === "bride" ? "white" : "transparent",
+                    border: lookingFor === "bride" ? "none" : "1px solid rgba(255,255,255,0.4)",
+                  }}
+                >
+                  <span className="text-base" style={{ color: lookingFor === "bride" ? "#c0174c" : "white" }}>👰</span>
+                </button>
+                <button
+                  onClick={() => setLookingFor("groom")}
+                  aria-label="Looking for groom"
+                  className="w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer"
+                  style={{
+                    background: lookingFor === "groom" ? "white" : "transparent",
+                    border: lookingFor === "groom" ? "none" : "1px solid rgba(255,255,255,0.4)",
+                  }}
+                >
+                  <span className="text-base" style={{ color: lookingFor === "groom" ? "#c0174c" : "white" }}>🤵</span>
+                </button>
+              </div>
+            </div>
+
+            <FilterSelect value={age}      onChange={setAge}      placeholder="Age"             options={AGE_OPTIONS} />
+            <FilterSelect value={location} onChange={setLocation} placeholder="Select Location" options={LOCATION_OPTIONS} />
+            <FilterSelect value={religion} onChange={setReligion} placeholder="Select Religion" options={RELIGION_OPTIONS} />
+
+            <button
+              onClick={handleSearch}
+              className="bg-white text-[#c0174c]  font-extrabold text-xs tracking-widest px-6 py-3 rounded-md hover:bg-white/95 transition-colors cursor-pointer shrink-0"
+            >
+              SEARCH
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Compact filter select ─────────────────────────────────── */
+function FilterSelect({
+  value, onChange, placeholder, options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  options: string[];
+}) {
+  return (
+    <div className="relative flex-1 sm:flex-initial w-full sm:w-50">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="block w-full appearance-none bg-[white] text-black text-xs font-semibold pl-3 pr-8 py-3 rounded-md outline-none  cursor-pointer transition-colors"
+      >
+        <option value="" className="text-gray-800">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o} value={o} className="text-gray-800">{o}</option>
+        ))}
+      </select>
+      <svg
+        viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2}
+        strokeLinecap="round" strokeLinejoin="round"
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
+      >
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
+    </div>
+  );
+}
+
+/* ─── Full hero registration form with background carousel ─── */
+function HeroForm() {
+  const router = useRouter();
   const { mutate, isPending, isError, error, isSuccess } = useRegister();
 
   const [bgIdx, setBgIdx] = useState(0);
@@ -89,37 +242,23 @@ export default function HeroRegistration() {
     mobileNumber: "",
   });
 
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-
-    setValidationErrors({
-      ...validationErrors,
-      [e.target.name]: "",
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setValidationErrors({ ...validationErrors, [e.target.name]: "" });
   };
 
   const handleSubmit = () => {
     const result = registerSchema.safeParse(formData);
-
     if (!result.success) {
       const errors: Record<string, string> = {};
-
       result.error.issues.forEach((issue) => {
-        const fieldName = issue.path[0] as string;
-        errors[fieldName] = issue.message;
+        errors[issue.path[0] as string] = issue.message;
       });
-
       setValidationErrors(errors);
       return;
     }
-
     mutate(formData, {
       onSuccess: (res: any) => {
         const tokens = res?.data;
@@ -135,17 +274,11 @@ export default function HeroRegistration() {
   };
 
   return (
-    <section
-      className="
-        relative
-        bg-white
-        lg:bg-transparent
-      "
-    >
-      {/* MOBILE WHITE BACKGROUND */}
-      <div className="absolute inset-0 bg-white lg:hidden"></div>
+    <section className="relative bg-white lg:bg-transparent ">
+      {/* Mobile white background */}
+      <div className="absolute inset-0 bg-white lg:hidden" />
 
-      {/* DESKTOP BACKGROUND CAROUSEL — large screens only */}
+      {/* Desktop background carousel */}
       <div className="hidden lg:block absolute inset-0 overflow-hidden pointer-events-none">
         {SLIDES.map((s, i) => (
           <img
@@ -159,335 +292,219 @@ export default function HeroRegistration() {
         ))}
         <div
           className="absolute inset-0"
-          // style={{
-          //   background:
-          //     "linear-gradient(135deg, rgba(139,26,58,0.78) 0%, rgba(192,23,76,0.65) 60%, rgba(212,24,90,0.55) 100%)",
-          // }}
+          style={{
+            background:
+              "linear-gradient(90deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 55%, rgba(0,0,0,0) 100%)",
+          }}
         />
       </div>
 
-      {/* 80%-max content wrapper (centered with left/right gutters on lg+) */}
+      {/* 80%-max content wrapper */}
       <div className="relative z-10 w-full lg:max-w-[80%] mx-auto flex flex-col lg:flex-row items-stretch">
 
-      {/* MOBILE COUPLE IMAGE — small screens only */}
-      <div className="lg:hidden relative w-full overflow-hidden flex justify-center items-end pt-6">
-        <Image
-          src="/Newlywed South Asian couple in traditional attire.png"
-          alt="Couple"
-          width={500}
-          height={500}
-          className="object-contain w-65 sm:w-85"
-        />
-        <div
-          className="absolute bottom-0 left-0 w-full h-20 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to bottom, rgba(255,255,255,0) 0%, #ffffff 100%)",
-          }}
-        />
-      </div>
-
-      {/* LEFT CONTENT — large screens only (rotates with the carousel) */}
-      <div className="hidden lg:flex relative z-10 lg:w-1/2 flex-col justify-center px-12 py-16 text-white">
-        {SLIDES.map((s, i) => (
+        {/* MOBILE COUPLE IMAGE */}
+        <div className="lg:hidden relative w-full overflow-hidden flex justify-center items-end pt-6">
+          <Image
+            src="/Newlywed South Asian couple in traditional attire.png"
+            alt="Couple"
+            width={500}
+            height={500}
+            className="object-contain w-65 sm:w-85"
+          />
           <div
-            key={s.image}
-            className="absolute inset-0 px-12 py-16 flex flex-col justify-center transition-opacity duration-700 ease-out"
+            className="absolute bottom-0 left-0 w-full h-20 pointer-events-none"
             style={{
-              opacity: i === bgIdx ? 1 : 0,
-              pointerEvents: i === bgIdx ? "auto" : "none",
-              textShadow: "0 2px 12px rgba(0,0,0,0.45)",
+              background:
+                "linear-gradient(to bottom, rgba(255,255,255,0) 0%, #ffffff 100%)",
             }}
-          >
-            <span className="text-xs font-bold uppercase tracking-[0.22em] text-white/90 mb-3">
-              {s.eyebrow}
-            </span>
-            <h1 className="text-5xl font-black leading-[1.05] mb-4">
-              {s.headline}
-            </h1>
-            <p className="text-base text-white/90 max-w-md mb-7 leading-relaxed">
-              {s.subtitle}
-            </p>
-            <ul className="space-y-2.5">
-              {s.bullets.map((item) => (
-                <li key={item} className="flex items-center gap-3 text-sm text-white/95">
-                  <span className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center shrink-0">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+          />
+        </div>
 
-        {/* Slide indicator dots */}
-        <div className="absolute bottom-6 left-12 flex items-center gap-2">
-          {SLIDES.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setBgIdx(i)}
-              aria-label={`Show slide ${i + 1}`}
-              className="h-1.5 rounded-full transition-all"
+        {/* LEFT — rotating content (lg+) */}
+        <div className="hidden lg:flex relative z-10 lg:w-1/2 flex-col justify-center px-12 py-16 text-white">
+          {SLIDES.map((s, i) => (
+            <div
+              key={s.image}
+              className="absolute inset-0 px-12 py-16 flex flex-col justify-center transition-opacity duration-700 ease-out"
               style={{
-                width: i === bgIdx ? 28 : 8,
-                background: i === bgIdx ? "white" : "rgba(255,255,255,0.5)",
+                opacity: i === bgIdx ? 1 : 0,
+                pointerEvents: i === bgIdx ? "auto" : "none",
+                textShadow: "0 2px 12px rgba(0,0,0,0.45)",
               }}
-            />
+            >
+              <span className="text-xs font-bold uppercase tracking-[0.22em] text-white/90 mb-3">
+                {s.eyebrow}
+              </span>
+              <h1 className="text-5xl font-black leading-[1.05] mb-4">
+                {s.headline}
+              </h1>
+              <p className="text-base text-white/90 max-w-md mb-7 leading-relaxed">
+                {s.subtitle}
+              </p>
+              <ul className="space-y-2.5">
+                {s.bullets.map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-white/95">
+                    <span className="w-5 h-5 rounded-full bg-white/25 flex items-center justify-center shrink-0">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 13l4 4L19 7" />
+                      </svg>
+                    </span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
+
+          {/* Slide indicator dots */}
+          <div className="absolute bottom-6 left-12 flex items-center gap-2">
+            {SLIDES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setBgIdx(i)}
+                aria-label={`Show slide ${i + 1}`}
+                className="h-1.5 rounded-full transition-all"
+                style={{
+                  width: i === bgIdx ? 28 : 8,
+                  background: i === bgIdx ? "white" : "rgba(255,255,255,0.5)",
+                }}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* RIGHT FORM */}
-      <div className="relative z-10 flex-1 lg:w-1/2 flex flex-col justify-center items-center px-4 py-8 lg:px-10 lg:py-8">
-        {/* TITLE — mobile only (desktop shows left column instead) */}
-        <div className="text-center mb-6 lg:hidden">
-          <h2 className="text-[#c0174c] text-2xl font-bold tracking-wide">
-            Find Your Perfect Match
-          </h2>
+        {/* RIGHT — registration form */}
+        <div className="relative z-10 flex-1 lg:w-1/2 flex flex-col justify-center items-center px-4 py-8 lg:px-10 lg:py-8">
+          <div className="text-center mb-6 lg:hidden">
+            <h2 className="text-[#c0174c] text-2xl font-bold tracking-wide">
+              Find Your Perfect Match
+            </h2>
+            <p className="text-gray-500 text-xs mt-1">
+              Create your free profile in seconds
+            </p>
+          </div>
 
-          <p className="text-gray-500 text-xs mt-1">
-            Create your free profile in seconds
-          </p>
-        </div>
-
-        {/* CARD */}
-        <div
-          className="
-            w-full
-            max-w-sm
-            lg:max-w-md
-            rounded-2xl
-            p-6
-            lg:p-7
-            flex
-            flex-col
-            gap-4
-          "
-          style={{
-            background:
-              typeof window !== "undefined" && window.innerWidth < 1024
-                ? "#a01040"
-                : "rgba(15, 8, 18, 0.55)",
-
-            backdropFilter:
-              typeof window !== "undefined" && window.innerWidth >= 1024
-                ? "blur(22px) saturate(140%)"
-                : "none",
-            WebkitBackdropFilter:
-              typeof window !== "undefined" && window.innerWidth >= 1024
-                ? "blur(22px) saturate(140%)"
-                : "none",
-
-            border:
-              typeof window !== "undefined" && window.innerWidth >= 1024
-                ? "1px solid rgba(255,255,255,0.28)"
-                : "1px solid rgba(255,255,255,0.12)",
-
-            boxShadow:
-              typeof window !== "undefined" && window.innerWidth >= 1024
-                ? "0 20px 50px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12)"
-                : "0 4px 18px rgba(0,0,0,0.15)",
-          }}
-        >
-          {/* FULL NAME */}
-          <div>
-            <input
-              type="text"
+          <div
+            className="
+              w-full max-w-sm lg:max-w-md rounded-2xl p-6 lg:p-7 flex flex-col gap-4
+              bg-linear-to-br from-[#ff6b9d] via-[#c0174c] to-[#8b1a3a]
+              border border-white/25
+              shadow-[0_10px_30px_rgba(192,23,76,0.35)]
+              lg:bg-none lg:bg-[rgba(15,8,18,0.55)] lg:border-white/30
+              lg:backdrop-blur-xl lg:backdrop-saturate-150
+              lg:shadow-[0_20px_50px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]
+            "
+          >
+            {/* FULL NAME */}
+            <FormField
               name="fullName"
+              type="text"
+              placeholder="Full Name"
               value={formData.fullName}
               onChange={handleChange}
-              placeholder="Full Name"
-              className="
-                w-full 
-                px-4 
-                py-3 
-                rounded-xl 
-                text-sm 
-                outline-none
-                text-gray-800
-                lg:text-white
-                placeholder-gray-400
-                lg:placeholder-white/50
-              "
-              style={{
-                background:
-                  typeof window !== "undefined" && window.innerWidth >= 1024
-                    ? "rgba(255,255,255,0.12)"
-                    : "#f9fafb",
-                border:
-                  typeof window !== "undefined" && window.innerWidth >= 1024
-                    ? "1px solid rgba(255,255,255,0.2)"
-                    : "1px solid #e5e7eb",
-              }}
+              error={validationErrors.fullName}
             />
 
-            {validationErrors.fullName && (
-              <p className="text-red-400 text-xs mt-1">
-                {validationErrors.fullName}
-              </p>
-            )}
-          </div>
-
-          {/* EMAIL */}
-          <div>
-            <input
-              type="email"
+            {/* EMAIL */}
+            <FormField
               name="email"
+              type="email"
+              placeholder="Email Address"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Email Address"
-              className="
-                w-full 
-                px-4 
-                py-3 
-                rounded-xl 
-                text-sm 
-                outline-none
-                text-gray-800
-                lg:text-white
-                placeholder-gray-400
-                lg:placeholder-white/50
-              "
-              style={{
-                background:
-                  typeof window !== "undefined" && window.innerWidth >= 1024
-                    ? "rgba(255,255,255,0.12)"
-                    : "#f9fafb",
-                border:
-                  typeof window !== "undefined" && window.innerWidth >= 1024
-                    ? "1px solid rgba(255,255,255,0.2)"
-                    : "1px solid #e5e7eb",
-              }}
+              error={validationErrors.email}
             />
 
-            {validationErrors.email && (
-              <p className="text-red-400 text-xs mt-1">
-                {validationErrors.email}
-              </p>
-            )}
-          </div>
-
-          {/* MOBILE NUMBER */}
-          <div>
-            <input
-              type="tel"
+            {/* MOBILE NUMBER */}
+            <FormField
               name="mobileNumber"
+              type="tel"
+              placeholder="Mobile Number"
               value={formData.mobileNumber}
               onChange={handleChange}
-              placeholder="Mobile Number"
-              className="
-                w-full 
-                px-4 
-                py-3 
-                rounded-xl 
-                text-sm 
-                outline-none
-                text-gray-800
-                lg:text-white
-                placeholder-gray-400
-                lg:placeholder-white/50
-              "
-              style={{
-                background:
-                  typeof window !== "undefined" && window.innerWidth >= 1024
-                    ? "rgba(255,255,255,0.12)"
-                    : "#f9fafb",
-                border:
-                  typeof window !== "undefined" && window.innerWidth >= 1024
-                    ? "1px solid rgba(255,255,255,0.2)"
-                    : "1px solid #e5e7eb",
-              }}
+              error={validationErrors.mobileNumber}
             />
 
-            {validationErrors.mobileNumber && (
-              <p className="text-red-400 text-xs mt-1">
-                {validationErrors.mobileNumber}
-              </p>
-            )}
-          </div>
-
-          {/* PASSWORD */}
-          <div>
-            <input
-              type="password"
+            {/* PASSWORD */}
+            <FormField
               name="password"
+              type="password"
+              placeholder="Password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Password"
-              className="
-                w-full 
-                px-4 
-                py-3 
-                rounded-xl 
-                text-sm 
-                outline-none
-                text-gray-800
-                lg:text-white
-                placeholder-gray-400
-                lg:placeholder-white/50
-              "
-              style={{
-                background:
-                  typeof window !== "undefined" && window.innerWidth >= 1024
-                    ? "rgba(255,255,255,0.12)"
-                    : "#f9fafb",
-                border:
-                  typeof window !== "undefined" && window.innerWidth >= 1024
-                    ? "1px solid rgba(255,255,255,0.2)"
-                    : "1px solid #e5e7eb",
-              }}
+              error={validationErrors.password}
             />
 
-            {validationErrors.password && (
-              <p className="text-red-400 text-xs mt-1">
-                {validationErrors.password}
+            <button
+              onClick={handleSubmit}
+              disabled={isPending}
+              className="w-full py-3 rounded-xl font-bold text-sm tracking-wide transition-all hover:scale-[1.02] active:scale-95 mt-1 disabled:opacity-60 text-[#8b1a3a] lg:text-white"
+              style={{
+                background: "linear-gradient(135deg, #ffd76b, #ffa726)",
+                boxShadow: "0 6px 20px rgba(255,167,38,0.55)",
+              }}
+            >
+              {isPending ? "Registering..." : "Join Now For Free 🎉"}
+            </button>
+
+            {isSuccess && (
+              <p className="text-green-500 text-sm text-center">
+                Registration successful!
               </p>
             )}
+            {isError && (
+              <p className="text-red-500 text-sm text-center">
+                {(error as any)?.response?.data?.message || "Registration failed"}
+              </p>
+            )}
+
+            <p className="text-center text-white lg:text-white/40 text-xs">
+              Already registered?{" "}
+              <a
+                href="/login"
+                className="text-[#ffa726] lg:text-white/80 underline font-medium hover:text-[#a01040] lg:hover:text-white transition"
+              >
+                Sign in
+              </a>
+            </p>
           </div>
-
-          {/* BUTTON */}
-          <button
-            onClick={handleSubmit}
-            disabled={isPending}
-            className="w-full py-3 rounded-xl font-bold text-sm tracking-wide text-white transition-all hover:scale-[1.02] active:scale-95 mt-1 disabled:opacity-50"
-            style={{
-              background: "linear-gradient(135deg, #e05a1a, #cebd05)",
-              boxShadow: "0 4px 18px rgba(224,90,26,0.5)",
-            }}
-          >
-            {isPending ? "Registering..." : "Join Now For Free 🎉"}
-          </button>
-
-          {/* SUCCESS */}
-          {isSuccess && (
-            <p className="text-green-500 text-sm text-center">
-              Registration successful!
-            </p>
-          )}
-
-          {/* API ERROR */}
-          {isError && (
-            <p className="text-red-500 text-sm text-center">
-              {(error as any)?.response?.data?.message || "Registration failed"}
-            </p>
-          )}
-
-          {/* LOGIN */}
-          <p className="text-center text-gray-500 lg:text-white/40 text-xs">
-            Already registered?{" "}
-            <a
-              href="/login"
-              className="text-[#c0174c] lg:text-white/80 underline font-medium hover:text-[#a01040] lg:hover:text-white transition"
-            >
-              Sign in
-            </a>
-          </p>
         </div>
       </div>
-      </div>
     </section>
+  );
+}
+
+/* ─── Form field ────────────────────────────────────────────── */
+function FormField({
+  name, type, placeholder, value, onChange, error,
+}: {
+  name: string;
+  type: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
+}) {
+  return (
+    <div>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="
+          w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors
+          bg-[#f9fafb] border border-gray-200 text-gray-800 placeholder-gray-400
+          lg:bg-white/15 lg:border-white/35 lg:text-white lg:placeholder-white/70
+          lg:backdrop-blur-md
+          focus:border-[#c0174c]
+          lg:focus:bg-white/25 lg:focus:border-white
+        "
+      />
+      {error && (
+        <p className="text-red-400 text-xs mt-1">{error}</p>
+      )}
+    </div>
   );
 }

@@ -1,262 +1,44 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import CoastHeaderBar from "../layout/CoastHeaderBar";
-import FilterBar from "./FilterTab";
+import FilterBar, { type FilterState } from "./FilterTab";
+import {
+  fetchForMenu,
+  recordProfileView,
+  shortlistProfile,
+  type CardProfile,
+  type MatchFilters,
+  type SidebarLabel,
+} from "@/services/matchesService";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Profile {
-  id: string;
-  name: string;
-  age: number;
-  height: string;
-  religion: string;
-  caste: string;
-  location: string;
-  education: string;
-  profession: string;
-  income: string;
-  about: string;
-  gender: "bride" | "groom";
-  photo: string;
-}
+const PAGE_SIZE = 12;
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const generateProfiles = (): Profile[] => {
-  const brides: Profile[] = [
-    {
-      id: "GM001247",
-      name: "Priya Sharma",
-      age: 26,
-      height: "5'4\"",
-      religion: "Hindu",
-      caste: "Brahmin",
-      location: "Kerala, India",
-      education: "B.Tech Software",
-      profession: "Software Engineer",
-      income: "6-8 LPA",
-      about:
-        "Smart, intelligent, well mannered and humble girl looking for a loving and caring life partner.",
-      gender: "bride",
-      photo: "https://randomuser.me/api/portraits/women/44.jpg",
-    },
-    {
-      id: "GM001248",
-      name: "Anjali Nair",
-      age: 24,
-      height: "5'3\"",
-      religion: "Hindu",
-      caste: "Nair",
-      location: "Kochi, Kerala",
-      education: "MBA Finance",
-      profession: "Financial Analyst",
-      income: "5-7 LPA",
-      about:
-        "Simple, educated and family-oriented girl seeking a compatible and understanding partner.",
-      gender: "bride",
-      photo: "https://randomuser.me/api/portraits/women/68.jpg",
-    },
-    {
-      id: "GM001248",
-      name: "Anjali Nair",
-      age: 54,
-      height: "5'3\"",
-      religion: "Hindu",
-      caste: "Nair",
-      location: "Kochi, Kerala",
-      education: "MBA Finance",
-      profession: "Financial Analyst",
-      income: "5-7 LPA",
-      about:
-        "Simple, educated and family-oriented girl seeking a compatible and understanding partner.",
-      gender: "bride",
-      photo: "https://randomuser.me/api/portraits/women/68.jpg",
-    },
-    {
-      id: "GM001249",
-      name: "Meera Pillai",
-      age: 27,
-      height: "5'5\"",
-      religion: "Hindu",
-      caste: "Pillai",
-      location: "Trivandrum, Kerala",
-      education: "MBBS",
-      profession: "Doctor",
-      income: "10-12 LPA",
-      about:
-        "Caring and well-educated girl who values family traditions and modern values equally.",
-      gender: "bride",
-      photo: "https://randomuser.me/api/portraits/women/32.jpg",
-    },
-    {
-      id: "GM001250",
-      name: "Deepa Thomas",
-      age: 25,
-      height: "5'4\"",
-      religion: "Christian",
-      caste: "Latin Catholic",
-      location: "Thrissur, Kerala",
-      education: "B.Com CA",
-      profession: "Chartered Accountant",
-      income: "7-9 LPA",
-      about:
-        "Ambitious, independent woman who loves cooking and travelling in free time.",
-      gender: "bride",
-      photo: "https://randomuser.me/api/portraits/women/55.jpg",
-    },
-    {
-      id: "GM001251",
-      name: "Lakshmi Menon",
-      age: 23,
-      height: "5'2\"",
-      religion: "Hindu",
-      caste: "Menon",
-      location: "Kozhikode, Kerala",
-      education: "B.Sc Nursing",
-      profession: "Staff Nurse",
-      income: "3-5 LPA",
-      about:
-        "Soft-spoken and dedicated nurse seeking a kind-hearted and responsible life partner.",
-      gender: "bride",
-      photo: "https://randomuser.me/api/portraits/women/17.jpg",
-    },
-    {
-      id: "GM001252",
-      name: "Nithya Krishnan",
-      age: 28,
-      height: "5'6\"",
-      religion: "Hindu",
-      caste: "Kshatriya",
-      location: "Kollam, Kerala",
-      education: "M.Tech CSE",
-      profession: "Data Scientist",
-      income: "12-15 LPA",
-      about:
-        "Tech-savvy and intelligent woman with strong family values and a passion for learning.",
-      gender: "bride",
-      photo: "https://randomuser.me/api/portraits/women/72.jpg",
-    },
-  ];
-  const grooms: Profile[] = [
-    {
-      id: "GM002341",
-      name: "Rahul Varma",
-      age: 29,
-      height: "5'10\"",
-      religion: "Hindu",
-      caste: "Brahmin",
-      location: "Bangalore, KA",
-      education: "B.Tech IT",
-      profession: "Software Engineer",
-      income: "10-12 LPA",
-      about:
-        "Smart, intelligent, well mannered and humble boy seeking a compatible life partner.",
-      gender: "groom",
-      photo: "https://randomuser.me/api/portraits/men/32.jpg",
-    },
-    {
-      id: "GM002342",
-      name: "Arjun Nambiar",
-      age: 31,
-      height: "5'11\"",
-      religion: "Hindu",
-      caste: "Nambiar",
-      location: "Kochi, Kerala",
-      education: "MBA",
-      profession: "Business Manager",
-      income: "15-18 LPA",
-      about:
-        "Successful entrepreneur who values family and seeks an educated, caring partner.",
-      gender: "groom",
-      photo: "https://randomuser.me/api/portraits/men/45.jpg",
-    },
-    {
-      id: "GM002343",
-      name: "Vishnu Pillai",
-      age: 27,
-      height: "5'9\"",
-      religion: "Hindu",
-      caste: "Pillai",
-      location: "Trivandrum, Kerala",
-      education: "MBBS MD",
-      profession: "Doctor",
-      income: "18-20 LPA",
-      about:
-        "Dedicated doctor with calm temperament looking for an educated life partner.",
-      gender: "groom",
-      photo: "https://randomuser.me/api/portraits/men/53.jpg",
-    },
-    {
-      id: "GM002344",
-      name: "Sanjay Thomas",
-      age: 30,
-      height: "5'8\"",
-      religion: "Christian",
-      caste: "Syrian Christian",
-      location: "Thrissur, Kerala",
-      education: "B.E Civil",
-      profession: "Civil Engineer",
-      income: "8-10 LPA",
-      about:
-        "Down-to-earth and hard-working professional seeking a simple, family-oriented partner.",
-      gender: "groom",
-      photo: "https://randomuser.me/api/portraits/men/61.jpg",
-    },
-    {
-      id: "GM002345",
-      name: "Arun Menon",
-      age: 26,
-      height: "5'9\"",
-      religion: "Hindu",
-      caste: "Menon",
-      location: "Kozhikode, Kerala",
-      education: "B.Com MBA",
-      profession: "Bank Manager",
-      income: "9-11 LPA",
-      about:
-        "Friendly and responsible banker who loves music and outdoor activities.",
-      gender: "groom",
-      photo: "https://randomuser.me/api/portraits/men/29.jpg",
-    },
-    {
-      id: "GM002346",
-      name: "Kiran Krishnan",
-      age: 32,
-      height: "6'0\"",
-      religion: "Hindu",
-      caste: "Kshatriya",
-      location: "Kollam, Kerala",
-      education: "M.Sc Physics",
-      profession: "Research Scientist",
-      income: "12-14 LPA",
-      about:
-        "Passionate researcher with a love for science and technology, seeking an intellectual partner.",
-      gender: "groom",
-      photo: "https://randomuser.me/api/portraits/men/74.jpg",
-    },
-    {
-      id: "GM002347",
-      name: "Kiran Krishnan",
-      age: 37,
-      height: "6'0\"",
-      religion: "Hindu",
-      caste: "Kshatriya",
-      location: "Kollam, Kerala",
-      education: "M.Sc Physics",
-      profession: "Research Scientist",
-      income: "12-14 LPA",
-      about:
-        "Passionate researcher with a love for science and technology, seeking an intellectual partner.",
-      gender: "groom",
-      photo: "https://randomuser.me/api/portraits/men/74.jpg",
-    },
-  ];
-  return [...brides, ...grooms];
+// Maps the UI-level FilterBar state to backend query params.
+const PROFILE_CREATED_BY_MAP: Record<string, string> = {
+  self: "SELF",
+  parents: "PARENT",
+  sibling: "SIBLING",
+  friends: "FRIEND",
 };
 
-const ALL_PROFILES = generateProfiles();
-const PROFILES_PER_PAGE = 6;
+const buildMatchFilters = (state: FilterState): MatchFilters => {
+  const sortFromToggle = state.toggles.newly_joined ? "newly_joined" : undefined;
+  const pcb = state.dropdowns.profile_created_by ?? undefined;
+  return {
+    sortBy: state.dropdowns.sort ?? sortFromToggle,
+    city: state.dropdowns.location ?? undefined,
+    withPhotos: state.toggles.profiles_with_photo || undefined,
+    withHoroscope: state.toggles.profiles_with_horoscope || undefined,
+    notSeen: state.toggles.not_seen || undefined,
+    profileCreatedBy: pcb ? (PROFILE_CREATED_BY_MAP[pcb] ?? pcb.toUpperCase()) : undefined,
+  };
+};
+
+const EMPTY_FILTERS: FilterState = { toggles: {}, dropdowns: {} };
+
 
 // ─── Sidebar data ─────────────────────────────────────────────────────────────
 const SIDEBAR_SECTIONS = [
@@ -863,18 +645,28 @@ const MobileMenuDropdown = ({
 };
 
 // ─── Profile Card — Desktop / Grid View ──────────────────────────────────────
-// Fixed: no overflow, all content constrained
-const ProfileCardGrid = ({ profile }: { profile: Profile }) => {
+const ProfileCardGrid = ({
+  profile,
+  onOpen,
+  onShortlist,
+}: {
+  profile: CardProfile;
+  onOpen: (p: CardProfile) => void;
+  onShortlist: (p: CardProfile) => void;
+}) => {
   const [imgError, setImgError] = useState(false);
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 group flex flex-col">
       <div className="flex flex-col md:flex-row gap-2 md:gap-2.5 p-2 md:p-2.5 flex-1">
-        {/* Photo — full width on mobile, fixed size on desktop */}
-        <div className="shrink-0">
+        <button
+          type="button"
+          onClick={() => onOpen(profile)}
+          className="shrink-0 text-left cursor-pointer"
+        >
           <div className="w-full h-36 md:w-24 md:h-28 rounded-md overflow-hidden border-2 border-[#f5d0d7]">
-            {imgError ? (
+            {imgError || !profile.photo ? (
               <div className="w-full h-full bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center text-2xl">
-                {profile.gender === "bride" ? "👰" : "🤵"}
+                👤
               </div>
             ) : (
               <img
@@ -885,53 +677,79 @@ const ProfileCardGrid = ({ profile }: { profile: Profile }) => {
               />
             )}
           </div>
-        </div>
+        </button>
 
-        {/* Info — min-w-0 prevents overflow */}
         <div className="flex-1 min-w-0 flex flex-col justify-between">
-          <div className="min-w-0">
+          <button
+            type="button"
+            onClick={() => onOpen(profile)}
+            className="min-w-0 text-left cursor-pointer"
+          >
             <p className="text-[9px] text-gray-400 font-mono truncate">
               ID: {profile.id}
             </p>
-            <h3 className="text-sm font-bold text-gray-800 truncate leading-tight">
+            <h3 className="text-sm font-bold text-gray-800 truncate leading-tight group-hover:text-[#b22234] transition-colors">
               {profile.name}
             </h3>
 
             <div className="text-[11px] md:text-[10px] text-gray-600 space-y-0.5 mt-1">
               <p className="truncate">
-                <span className="text-[#b22234] font-semibold">
-                  {profile.age}Y
-                </span>{" "}
-                • {profile.height} • {profile.religion}
+                {profile.age != null && (
+                  <span className="text-[#b22234] font-semibold">
+                    {profile.age}Y
+                  </span>
+                )}
+                {profile.height && <> • {profile.height}</>}
+                {profile.religion && <> • {profile.religion}</>}
               </p>
-              <p className="truncate">📍 {profile.location}</p>
-              <p className="truncate">🎓 {profile.education}</p>
-              <p className="truncate">💼 {profile.profession}</p>
-              <p className="hidden md:block truncate text-[9px] text-gray-400">
-                💰 {profile.income}
-              </p>
+              {profile.location && (
+                <p className="truncate">📍 {profile.location}</p>
+              )}
+              {profile.education && (
+                <p className="truncate">🎓 {profile.education}</p>
+              )}
+              {profile.profession && (
+                <p className="truncate">💼 {profile.profession}</p>
+              )}
+              {profile.income && (
+                <p className="hidden md:block truncate text-[9px] text-gray-400">
+                  💰 {profile.income}
+                </p>
+              )}
             </div>
 
-            <p className="hidden md:block text-[10px] text-gray-500 line-clamp-2 mt-1 leading-relaxed">
-              {profile.about}
-            </p>
-          </div>
+            {profile.about && (
+              <p className="hidden md:block text-[10px] text-gray-500 line-clamp-2 mt-1 leading-relaxed">
+                {profile.about}
+              </p>
+            )}
+          </button>
 
-          {/* Buttons — always at bottom, no overflow */}
           <div className="flex gap-1 mt-2">
-            <button className="flex-1 bg-[#b22234] hover:bg-[#9a1d2b] text-white text-[10px] font-bold py-1.5 rounded transition-colors truncate">
-              Login
+            <button
+              type="button"
+              onClick={() => onShortlist(profile)}
+              className="flex-1 bg-[#b22234] hover:bg-[#9a1d2b] text-white text-[10px] font-bold py-1.5 rounded transition-colors truncate"
+            >
+              ⭐ Shortlist
             </button>
-            <button className="flex-1 border border-[#b22234] text-[#b22234] hover:bg-[#b22234] hover:text-white text-[10px] font-bold py-1.5 rounded transition-colors truncate">
-              Register
+            <button
+              type="button"
+              onClick={() => onOpen(profile)}
+              className="flex-1 border border-[#b22234] text-[#b22234] hover:bg-[#b22234] hover:text-white text-[10px] font-bold py-1.5 rounded transition-colors truncate"
+            >
+              View profile
             </button>
           </div>
         </div>
       </div>
 
-      {/* Contact strip */}
       <div className="border-t border-gray-100 px-2.5 py-1.5 bg-gray-50 shrink-0">
-        <button className="text-[10px] text-[#b22234] font-bold hover:underline flex items-center gap-1 w-full justify-center">
+        <button
+          type="button"
+          onClick={() => onOpen(profile)}
+          className="text-[10px] text-[#b22234] font-bold hover:underline flex items-center gap-1 w-full justify-center"
+        >
           📞 CONTACT NOW!
         </button>
       </div>
@@ -940,17 +758,28 @@ const ProfileCardGrid = ({ profile }: { profile: Profile }) => {
 };
 
 // ─── Profile Card — Mobile List View ─────────────────────────────────────────
-const ProfileCardList = ({ profile }: { profile: Profile }) => {
+const ProfileCardList = ({
+  profile,
+  onOpen,
+  onShortlist,
+}: {
+  profile: CardProfile;
+  onOpen: (p: CardProfile) => void;
+  onShortlist: (p: CardProfile) => void;
+}) => {
   const [imgError, setImgError] = useState(false);
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
       <div className="flex gap-3 p-3">
-        {/* Photo */}
-        <div className="shrink-0">
+        <button
+          type="button"
+          onClick={() => onOpen(profile)}
+          className="shrink-0 cursor-pointer"
+        >
           <div className="w-16 h-20 rounded-md overflow-hidden border-2 border-[#f5d0d7]">
-            {imgError ? (
+            {imgError || !profile.photo ? (
               <div className="w-full h-full bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center text-xl">
-                {profile.gender === "bride" ? "👰" : "🤵"}
+                👤
               </div>
             ) : (
               <img
@@ -961,47 +790,73 @@ const ProfileCardList = ({ profile }: { profile: Profile }) => {
               />
             )}
           </div>
-        </div>
+        </button>
 
-        {/* Info */}
         <div className="flex-1 min-w-0 flex flex-col justify-between">
-          <div className="min-w-0">
+          <button
+            type="button"
+            onClick={() => onOpen(profile)}
+            className="min-w-0 text-left cursor-pointer"
+          >
             <h3 className="text-sm font-bold text-gray-800 truncate">
               {profile.name}
             </h3>
             <p className="text-[9px] text-gray-400 font-mono truncate">
               {profile.id}
             </p>
-            {/* Pills */}
             <div className="flex flex-wrap gap-1 mt-1">
-              <span className="text-[10px] bg-[#fdf2f3] text-[#b22234] font-semibold px-1.5 py-0.5 rounded-full">
-                {profile.age} Yrs
-              </span>
-              <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
-                {profile.height}
-              </span>
-              <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full truncate max-w-[80px]">
-                {profile.religion}
-              </span>
+              {profile.age != null && (
+                <span className="text-[10px] bg-[#fdf2f3] text-[#b22234] font-semibold px-1.5 py-0.5 rounded-full">
+                  {profile.age} Yrs
+                </span>
+              )}
+              {profile.height && (
+                <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                  {profile.height}
+                </span>
+              )}
+              {profile.religion && (
+                <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full truncate max-w-[80px]">
+                  {profile.religion}
+                </span>
+              )}
             </div>
-            <p className="text-[10px] text-gray-500 mt-1 truncate">
-              📍 {profile.location}
-            </p>
-            <p className="text-[10px] text-gray-500 truncate">
-              🎓 {profile.education}
-            </p>
-            <p className="text-[10px] text-gray-500 truncate">
-              💼 {profile.profession}
-            </p>
-          </div>
+            {profile.location && (
+              <p className="text-[10px] text-gray-500 mt-1 truncate">
+                📍 {profile.location}
+              </p>
+            )}
+            {profile.education && (
+              <p className="text-[10px] text-gray-500 truncate">
+                🎓 {profile.education}
+              </p>
+            )}
+            {profile.profession && (
+              <p className="text-[10px] text-gray-500 truncate">
+                💼 {profile.profession}
+              </p>
+            )}
+          </button>
           <div className="flex gap-1.5 mt-2">
-            <button className="flex-1 bg-[#b22234] text-white text-[10px] font-bold py-1.5 rounded transition-colors">
-              Login
+            <button
+              type="button"
+              onClick={() => onShortlist(profile)}
+              className="flex-1 bg-[#b22234] text-white text-[10px] font-bold py-1.5 rounded transition-colors"
+            >
+              ⭐ Shortlist
             </button>
-            <button className="flex-1 border border-[#b22234] text-[#b22234] text-[10px] font-bold py-1.5 rounded transition-colors">
-              Register
+            <button
+              type="button"
+              onClick={() => onOpen(profile)}
+              className="flex-1 border border-[#b22234] text-[#b22234] text-[10px] font-bold py-1.5 rounded transition-colors"
+            >
+              View
             </button>
-            <button className="px-2.5 text-[10px] text-[#b22234] font-bold border border-[#b22234] rounded transition-colors">
+            <button
+              type="button"
+              onClick={() => onOpen(profile)}
+              className="px-2.5 text-[10px] text-[#b22234] font-bold border border-[#b22234] rounded transition-colors"
+            >
               📞
             </button>
           </div>
@@ -1054,26 +909,91 @@ const Pagination = ({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ProfileCards() {
-  const [activeTab, setActiveTab] = useState<"bride" | "groom">("bride");
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeMenu, setActiveMenu] = useState("Your Matches");
+  const [activeMenu, setActiveMenu] = useState<string>("Your Matches");
   const [mobileViewMode, setMobileViewMode] = useState<"grid" | "list">("grid");
 
-  const filtered = ALL_PROFILES.filter((p) => p.gender === activeTab);
-  const totalPages = Math.ceil(filtered.length / PROFILES_PER_PAGE);
-  const paginated = filtered.slice(
-    (currentPage - 1) * PROFILES_PER_PAGE,
-    currentPage * PROFILES_PER_PAGE,
-  );
+  const [items, setItems] = useState<CardProfile[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
+  const [shortlistMsg, setShortlistMsg] = useState<string>("");
+  const [filterState, setFilterState] = useState<FilterState>(EMPTY_FILTERS);
 
-  const handleTabChange = (tab: "bride" | "groom") => {
-    setActiveTab(tab);
+  // Stable serialised key — reruns the fetch effect when any filter changes
+  // without forcing the consumer to do its own deep-equal.
+  const filterKey = JSON.stringify(filterState);
+
+  // Reset to page 1 when menu or filter changes
+  useEffect(() => {
     setCurrentPage(1);
+  }, [activeMenu, filterKey]);
+
+  // Fetch profiles whenever menu, page or filters change
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    const matchFilters = buildMatchFilters(filterState);
+
+    fetchForMenu(activeMenu as SidebarLabel, currentPage - 1, PAGE_SIZE, matchFilters)
+      .then((result) => {
+        if (cancelled) return;
+        setItems(result.items);
+        setTotalElements(result.totalElements);
+        setTotalPages(result.totalPages);
+      })
+      .catch((ex: any) => {
+        if (cancelled) return;
+        const msg =
+          ex?.response?.data?.message ||
+          ex?.message ||
+          "Could not load profiles.";
+        setError(msg);
+        setItems([]);
+        setTotalElements(0);
+        setTotalPages(0);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeMenu, currentPage, filterKey]);
+
+  const handleOpen = (p: CardProfile) => {
+    recordProfileView(p.numericId).catch(() => undefined);
+    router.push(`/profiles/${p.numericId}`);
+  };
+
+  const handleShortlist = async (p: CardProfile) => {
+    try {
+      await shortlistProfile(p.numericId);
+      setShortlistMsg(`${p.name} added to your shortlist`);
+      window.setTimeout(() => setShortlistMsg(""), 2500);
+    } catch (ex: any) {
+      setShortlistMsg(
+        ex?.response?.data?.message || "Could not shortlist this profile.",
+      );
+      window.setTimeout(() => setShortlistMsg(""), 2500);
+    }
   };
 
   return (
     <div className="min-h-screen bg-white">
       <CoastHeaderBar />
+
+      {shortlistMsg && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#b22234] text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg">
+          {shortlistMsg}
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex gap-4 sm:gap-6">
@@ -1083,15 +1003,12 @@ export default function ProfileCards() {
           {/* Main Content */}
           <div className="flex-1 min-w-0">
             <div className="flex gap-1 justify-center items-center">
-              {/* Mobile Dropdown (replaces sidebar scroll) */}
               <MobileMenuDropdown
                 activeMenu={activeMenu}
                 setActiveMenu={setActiveMenu}
               />
 
-              {/* FilterBar + View Toggle row */}
               <div className="flex items-center gap-2  ">
-                {/* View toggle — mobile only */}
                 <div className="flex lg:hidden items-center border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
                   <button
                     onClick={() => setMobileViewMode("grid")}
@@ -1120,41 +1037,82 @@ export default function ProfileCards() {
               </div>
             </div>
 
-            <div className="flex-1 min-w-0 pb-2 mt-2">
-              <FilterBar />
+            <div className="flex-1 min-w-0 pb-2 mt-2 flex items-center justify-between flex-wrap gap-2">
+              <FilterBar value={filterState} onChange={setFilterState} />
+              {!loading && !error && (
+                <span className="text-xs text-gray-500">
+                  Showing <span className="font-semibold text-gray-800">{items.length}</span> of{" "}
+                  <span className="font-semibold text-gray-800">{totalElements.toLocaleString()}</span>{" "}
+                  profiles
+                </span>
+              )}
             </div>
 
-            {/* ── Desktop: always 2-col grid ── */}
-            <div className="hidden md:grid grid-cols-2 gap-4">
-              {paginated.map((profile, i) => (
-                <ProfileCardGrid key={`${profile.id}-${i}`} profile={profile} />
-              ))}
-            </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
+                {error}
+              </div>
+            )}
 
-            {/* ── Mobile: grid toggle ── */}
-            <div className="md:hidden">
-              {mobileViewMode === "grid" ? (
-                // 2-column grid — cards have fixed photo, truncated text, no overflow
-                <div className="grid grid-cols-2 gap-2">
-                  {paginated.map((profile, i) => (
+            {loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-2 md:gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-gray-100 animate-pulse rounded-lg h-44 md:h-40"
+                  />
+                ))}
+              </div>
+            ) : items.length === 0 ? (
+              <div className="text-center py-16 text-gray-500">
+                <p className="text-4xl mb-3">🔍</p>
+                <p className="text-sm font-semibold">No profiles to show here</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Try a different category from the sidebar.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* ── Desktop: always 2-col grid ── */}
+                <div className="hidden md:grid grid-cols-2 gap-4">
+                  {items.map((profile, i) => (
                     <ProfileCardGrid
                       key={`${profile.id}-${i}`}
                       profile={profile}
+                      onOpen={handleOpen}
+                      onShortlist={handleShortlist}
                     />
                   ))}
                 </div>
-              ) : (
-                // Full-width list
-                <div className="flex flex-col gap-2">
-                  {paginated.map((profile, i) => (
-                    <ProfileCardList
-                      key={`${profile.id}-${i}`}
-                      profile={profile}
-                    />
-                  ))}
+
+                {/* ── Mobile: grid toggle ── */}
+                <div className="md:hidden">
+                  {mobileViewMode === "grid" ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {items.map((profile, i) => (
+                        <ProfileCardGrid
+                          key={`${profile.id}-${i}`}
+                          profile={profile}
+                          onOpen={handleOpen}
+                          onShortlist={handleShortlist}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {items.map((profile, i) => (
+                        <ProfileCardList
+                          key={`${profile.id}-${i}`}
+                          profile={profile}
+                          onOpen={handleOpen}
+                          onShortlist={handleShortlist}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
 
             {totalPages > 1 && (
               <Pagination

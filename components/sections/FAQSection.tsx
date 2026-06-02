@@ -9,15 +9,15 @@ const FAQS = [
   },
   {
     q: "2. Can I search for profiles by Christian community?",
-    a: "Yes! GetMarry allows you to filter profiles by religion, caste, sub-caste and community. Simply use the search filters and select 'Christian' under Religion, then further narrow down by denomination or region to find the most compatible matches.",
+    a: "Yes! Made2Match allows you to filter profiles by religion, caste, sub-caste and community. Simply use the search filters and select 'Christian' under Religion, then further narrow down by denomination or region to find the most compatible matches.",
   },
   {
     q: "3. Is the app free to download?",
-    a: "Yes, the GetMarry app is completely free to download on both Android and iOS. Basic features like profile creation, browsing and sending interests are free. Premium membership unlocks unlimited messaging, contact details and advanced search filters.",
+    a: "Yes, the Made2Match app is completely free to download on both Android and iOS. Basic features like profile creation, browsing and sending interests are free. Premium membership unlocks unlimited messaging, contact details and advanced search filters.",
   },
   {
     q: "4. Are the profiles verified?",
-    a: "All profiles on GetMarry go through a verification process. Members can get a 'Verified' badge by submitting a government-issued ID. We also use AI-based photo verification to ensure profile photos are genuine and up to date.",
+    a: "All profiles on Made2Match go through a verification process. Members can get a 'Verified' badge by submitting a government-issued ID. We also use AI-based photo verification to ensure profile photos are genuine and up to date.",
   },
   {
     q: "5. How do I contact a profile I like?",
@@ -25,11 +25,11 @@ const FAQS = [
   },
   {
     q: "6. Can I hide my profile from certain members?",
-    a: "Yes! GetMarry offers privacy controls that let you hide your profile from specific members, show it only to members you have connected with, or set it to visible only after you send an interest. You can manage these settings under Privacy Settings.",
+    a: "Yes! Made2Match offers privacy controls that let you hide your profile from specific members, show it only to members you have connected with, or set it to visible only after you send an interest. You can manage these settings under Privacy Settings.",
   },
   {
     q: "7. What membership plans are available?",
-    a: "GetMarry offers three membership plans — Basic (Free), Silver and Gold. Silver gives you access to contact details and unlimited messaging. Gold includes all Silver features plus priority placement in search results, profile highlighting and dedicated relationship manager support.",
+    a: "Made2Match offers three membership plans — Basic (Free), Silver and Gold. Silver gives you access to contact details and unlimited messaging. Gold includes all Silver features plus priority placement in search results, profile highlighting and dedicated relationship manager support.",
   },
   {
     q: "8. How do I report a fake or suspicious profile?",
@@ -43,13 +43,13 @@ export default function FAQSection() {
   const toggle = (i: number) => setOpenIndex(openIndex === i ? null : i);
 
   return (
-    <section className="py-20 px-4" style={{ background: "#fdf5f5" }}>
+    <section className="py-14 sm:py-20 px-4 sm:px-6 lg:px-8" style={{ background: "#fdf5f5" }}>
       <div className="max-w-3xl mx-auto">
 
         {/* Header */}
-        <div className="text-center mb-14">
+        <div className="text-center mb-10 sm:mb-14">
           <h2
-            className="text-5xl leading-tight"
+            className="text-3xl sm:text-4xl lg:text-5xl leading-tight"
             style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: "#1a0a0c" }}
           >
             Your{" "}
@@ -61,7 +61,7 @@ export default function FAQSection() {
                 color: "#1a0a0c",
               }}
             >
-              Matrimony
+              Made2Match
             </em>
             <br />
             Queries
