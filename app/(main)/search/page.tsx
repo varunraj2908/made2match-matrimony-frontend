@@ -1,23 +1,47 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  searchProfiles,
+  heightToCm,
+  MARITAL_STATUS_MAP,
+  PROFILE_CREATED_BY_MAP,
+  parseProfileId,
+  type SearchCriteria,
+  type SearchResult,
+} from "@/services/searchService";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function Select({ value, onChange, options, disabled = false }) {
+interface SelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  disabled?: boolean;
+}
+
+function Select({ value, onChange, options, disabled = false }: SelectProps) {
   return (
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
       disabled={disabled}
-      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 appearance-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-      style={{ focusRingColor: "#c0174c" }}
+      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#c0174c] appearance-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
     >
       {options.map(o => <option key={o}>{o}</option>)}
     </select>
   );
 }
 
-function RangeSelect({ fromVal, toVal, onFromChange, onToChange, options }) {
+interface RangeSelectProps {
+  fromVal: string;
+  toVal: string;
+  onFromChange: (value: string) => void;
+  onToChange: (value: string) => void;
+  options: string[];
+}
+
+function RangeSelect({ fromVal, toVal, onFromChange, onToChange, options }: RangeSelectProps) {
   return (
     <div className="flex items-center gap-2">
       <div className="relative flex-1">
@@ -39,7 +63,7 @@ function RangeSelect({ fromVal, toVal, onFromChange, onToChange, options }) {
   );
 }
 
-function FieldRow({ label, children }) {
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[180px_1fr] items-center gap-4 py-3 border-b border-gray-50 last:border-0">
       <span className="text-sm text-gray-600">{label}</span>
@@ -48,7 +72,7 @@ function FieldRow({ label, children }) {
   );
 }
 
-function SectionHeader({ title }) {
+function SectionHeader({ title }: { title: string }) {
   return (
     <div className="px-5 py-3 rounded-t-xl font-semibold text-sm text-white" style={{ background: "#c0174c" }}>
       {title}
@@ -56,7 +80,7 @@ function SectionHeader({ title }) {
   );
 }
 
-function ViewToggle({ expanded, onToggle }) {
+function ViewToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
   return (
     <button onClick={onToggle}
       className="flex items-center gap-1 text-sm font-semibold mt-3 hover:opacity-75 transition"
@@ -69,7 +93,7 @@ function ViewToggle({ expanded, onToggle }) {
   );
 }
 
-function PremiumLock({ onUpgrade }) {
+function PremiumLock({ onUpgrade }: { onUpgrade: () => void }) {
   return (
     <div className="relative rounded-xl border border-gray-200 overflow-hidden my-4">
       {/* Lock icon top center */}
@@ -108,7 +132,7 @@ function PremiumLock({ onUpgrade }) {
   );
 }
 
-function Checkbox({ checked, onChange, label }) {
+function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
   return (
     <label className="flex items-center gap-2 cursor-pointer">
       <div onClick={() => onChange(!checked)}
@@ -182,6 +206,76 @@ export default function SearchPage() {
   const heights = ["4'0\"","4'6\"","4'8\"","4'10\"","5'0\"","5'2\"","5'4\"","5'6\"","5'8\"","5'10\"","6'0\"","6'2\""];
   const incomeOptions = ["Any","1L","2L","3L","5L","7L","10L","15L","20L","25L+"];
 
+  // ─── Search API wiring ──────────────────────────────────────────
+  const router = useRouter();
+  const [results, setResults] = useState<SearchResult | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchErr, setSearchErr] = useState<string | null>(null);
+  const [pageNum, setPageNum] = useState(0);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
+
+  const buildCriteria = (): SearchCriteria => {
+    const c: SearchCriteria = {};
+    const minA = parseInt(ageFrom, 10);
+    const maxA = parseInt(ageTo, 10);
+    if (!Number.isNaN(minA)) c.minAge = minA;
+    if (!Number.isNaN(maxA)) c.maxAge = maxA;
+    const minH = heightToCm(heightFrom);
+    const maxH = heightToCm(heightTo);
+    if (minH) c.minHeightCm = minH;
+    if (maxH) c.maxHeightCm = maxH;
+    if (religion && religion !== "Any") c.religion = religion;
+    if (MARITAL_STATUS_MAP[maritalStatus]) c.maritalStatus = MARITAL_STATUS_MAP[maritalStatus];
+    if (education && education !== "Any") c.education = education;
+    if (PROFILE_CREATED_BY_MAP[profileCreatedBy]) c.profileCreatedBy = PROFILE_CREATED_BY_MAP[profileCreatedBy];
+    if (profilesWithPhoto) c.withPhotos = true;
+    return c;
+  };
+
+  const runSearch = async (p = 0) => {
+    setSearching(true);
+    setSearchErr(null);
+    try {
+      const r = await searchProfiles(buildCriteria(), p, 12);
+      setResults((prev) =>
+        p > 0 && prev ? { ...r, items: [...prev.items, ...r.items] } : r,
+      );
+      setPageNum(p);
+      setTotalCount(r.totalElements);
+    } catch (e) {
+      const msg =
+        (e as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Search failed. Please try again.";
+      setSearchErr(msg);
+      if (p === 0) setResults({ items: [], totalElements: 0, totalPages: 0, page: 0 });
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const resetFilters = () => {
+    setAgeFrom("20"); setAgeTo("33");
+    setHeightFrom("4'6\""); setHeightTo("5'6\"");
+    setProfileCreatedBy("Any"); setMaritalStatus("Never Married");
+    setReligion("Hindu"); setEducation("Any");
+    setProfilesWithPhoto(false);
+    setResults(null);
+    setSearchErr(null);
+  };
+
+  const searchByProfileId = () => {
+    const id = parseProfileId(profileIdInput);
+    if (id) router.push(`/profiles/${id}`);
+    else setSearchErr("Please enter a valid Profile ID (e.g. GM002341).");
+  };
+
+  // Initial match count for the bottom bar (no filters).
+  useEffect(() => {
+    searchProfiles({}, 0, 1)
+      .then((r) => setTotalCount(r.totalElements))
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50" style={{ fontFamily: "'Segoe UI', sans-serif" }}>
 
@@ -211,13 +305,18 @@ export default function SearchPage() {
               <p className="text-sm text-gray-600 mb-4">Enter a Matrimony ID to search for a specific profile.</p>
               <div className="flex gap-3">
                 <input value={profileIdInput} onChange={e => setProfileIdInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") searchByProfileId(); }}
                   placeholder="Enter Profile ID e.g. GM002341"
                   className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200" />
-                <button className="px-6 py-2.5 rounded-lg text-white text-sm font-bold hover:opacity-90 transition"
+                <button onClick={searchByProfileId}
+                  className="px-6 py-2.5 rounded-lg text-white text-sm font-bold hover:opacity-90 transition"
                   style={{ background: "linear-gradient(135deg, #c0174c, #8b0f38)" }}>
                   Search
                 </button>
               </div>
+              {searchErr && tab === "profile" && (
+                <p className="text-sm text-red-500 mt-3">{searchErr}</p>
+              )}
             </div>
           )}
 
@@ -502,18 +601,103 @@ export default function SearchPage() {
         <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4 border-t border-gray-100 shadow-xl"
           style={{ background: "white" }}>
           <p className="text-sm font-semibold text-gray-700">
-            <span className="font-black text-base" style={{ color: "#c0174c" }}>41,404</span>
+            <span className="font-black text-base" style={{ color: "#c0174c" }}>
+              {totalCount != null ? totalCount.toLocaleString() : "—"}
+            </span>
             <span className="text-gray-500 ml-1">matches based on your preferences</span>
           </p>
           <div className="flex gap-3">
-            <button className="px-6 py-2.5 rounded-full border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+            <button onClick={resetFilters}
+              className="px-6 py-2.5 rounded-full border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
               style={{ borderColor: "#d1d5db" }}>
               Reset
             </button>
-            <button className="px-8 py-2.5 rounded-full text-white text-sm font-bold hover:opacity-90 transition hover:scale-105 active:scale-95 shadow-lg"
+            <button onClick={() => runSearch(0)} disabled={searching}
+              className="px-8 py-2.5 rounded-full text-white text-sm font-bold hover:opacity-90 transition hover:scale-105 active:scale-95 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ background: "linear-gradient(135deg, #c0174c, #8b0f38)", boxShadow: "0 4px 14px rgba(192,23,76,0.4)" }}>
-              Search
+              {searching ? "Searching…" : "Search"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Results overlay ── */}
+      {results && (
+        <div className="fixed inset-0 z-[1500] bg-gray-50 overflow-y-auto">
+          {/* Results header */}
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-8 py-4 border-b border-gray-100 bg-white shadow-sm">
+            <button onClick={() => setResults(null)}
+              className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#c0174c] transition">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+              Modify search
+            </button>
+            <p className="text-sm font-semibold text-gray-700">
+              <span className="font-black text-base" style={{ color: "#c0174c" }}>
+                {results.totalElements.toLocaleString()}
+              </span>
+              <span className="text-gray-500 ml-1">profiles found</span>
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto px-4 py-6">
+            {searchErr && (
+              <p className="text-sm text-red-500 mb-4">{searchErr}</p>
+            )}
+
+            {results.items.length === 0 && !searching ? (
+              <div className="text-center text-gray-400 py-20">
+                No profiles match your criteria. Try widening your filters.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {results.items.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => router.push(`/profiles/${p.id}`)}
+                    className="text-left bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg hover:border-[#c0174c]/30 transition group"
+                  >
+                    <div className="relative w-full aspect-square overflow-hidden bg-gray-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={p.photo}
+                        alt={p.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {p.isPremium && (
+                        <span className="absolute top-2 left-2 bg-amber-400 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+                          PRIME
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <p className="text-sm font-bold text-gray-800 truncate">{p.name}</p>
+                      <p className="text-[11px] text-gray-500">
+                        {[p.age ? `${p.age} yrs` : null, p.height].filter(Boolean).join(", ") || "—"}
+                      </p>
+                      {p.location && (
+                        <p className="text-[11px] text-gray-400 truncate mt-0.5">{p.location}</p>
+                      )}
+                      {p.profession && (
+                        <p className="text-[11px] text-[#c0174c] truncate mt-0.5">{p.profession}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Load more */}
+            {results.items.length > 0 && results.items.length < results.totalElements && (
+              <div className="flex justify-center mt-8">
+                <button onClick={() => runSearch(pageNum + 1)} disabled={searching}
+                  className="px-8 py-2.5 rounded-full text-white text-sm font-bold hover:opacity-90 transition disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #c0174c, #8b0f38)" }}>
+                  {searching ? "Loading…" : "Load more"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
