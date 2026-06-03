@@ -6,7 +6,7 @@ export default function BeginLoveStory({ onClick,
   const [email, setEmail] = useState("");
   return (
     <section
-      className="my-4 overflow-hidden relative px-4 sm:px-6 lg:px-8 py-10 min-h-40"
+      className="my-4 overflow-hidden relative px-4 sm:px-6 lg:px-8 py-10 min-h-40 border-3 border-[#8b1a3a]"
       style={{
         background:
           "linear-gradient(135deg, #8b1a3a 0%, #c0174c 60%, #d4185a 100%)",

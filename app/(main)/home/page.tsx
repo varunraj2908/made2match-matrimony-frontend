@@ -21,6 +21,7 @@ import {
   type ProfileActivity,
 } from "@/services/homeService";
 import { uploadProfilePhoto } from "@/services/profileService";
+import ProfileBookModal from "@/components/sections/ProfileBookModal";
 
 // ─── UI display type (kept narrow — what cards actually render) ───
 interface CardProfile {
@@ -383,6 +384,7 @@ const HeroCarousel = ({ onCta }: { onCta?: () => void }) => {
           />
         ))}
       </div>
+
     </div>
   );
 };
@@ -568,6 +570,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Profile flip-book popup overlay */}
+      <ProfileBookModal />
+
       {/* ── Mobile Profile Banner ── */}
       <div className="lg:hidden bg-white border border-gray-200 px-4 py-3 mx-3 mt-3 lg:mt-0 rounded-xl lg:rounded-none">
         <div className="flex items-center gap-3">

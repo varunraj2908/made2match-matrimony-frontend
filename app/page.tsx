@@ -8,7 +8,7 @@ import BannerQuote from "@/components/sections/BannerQuote";
 import SuccessStories from "@/components/sections/SuccessStories";
 import BeginLoveStory from "@/components/sections/BeginLoveStory";
 import BrowseBySection from "@/components/sections/BrowseBySection";
-import MembershipPlans from "@/components/sections/MembershipPlans";
+import PricingSection from "@/components/ui/pricing-section";
 import FeaturedProfiles from "@/components/sections/FeaturedProfiles";
 import HeroRegistration, { SearchBar } from "@/components/sections/HeroRegistration";
 import MarriageQuoteBanner from "@/components/sections/MarriageQuoteBanner";
@@ -18,6 +18,10 @@ import HowItWorks from "@/components/sections/HowItWorks";
 import FAQSection from "@/components/sections/FAQSection";
 import Footer from "@/components/layout/Footer";
 import Testimonials from "@/components/sections/Testimonials";
+import LocationMap from "@/components/sections/LocationMap";
+import Testimonials3D from "@/components/sections/Testimonials3D";
+import SweetStoriesCarousel from "@/components/sections/SweetStoriesCarousel";
+import ProfileBookModal from "@/components/sections/ProfileBookModal";
 
 export default function Home() {
   const [open, setOpen] = useState(false);
@@ -126,6 +130,12 @@ export default function Home() {
         <FeaturedProfiles />
       </div>
 
+      {/* <Testimonials3D /> */}
+
+      {/* <SweetStoriesCarousel /> */}
+
+      <ProfileBookModal />
+
       {/* <EasyToGetStarted /> */}
 
       <MarriageQuoteBanner onClick={openFromPage} />
@@ -139,7 +149,7 @@ export default function Home() {
 
 
       <div ref={plansRef} style={{ scrollMarginTop: fixedNavH }}>
-        <MembershipPlans />
+        <PricingSection />
       </div>
 
       <BeginLoveStory onClick={openFromPage} />
@@ -151,7 +161,7 @@ export default function Home() {
       <div ref={faqsRef} style={{ scrollMarginTop: fixedNavH }}>
         <FAQSection />
       </div>
-
+      <LocationMap />
       <BrowseBySection />
       <Footer/>
       <RegisterNowButton onClick={openFromPage} />
