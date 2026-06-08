@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getMyProfile, type MyProfile } from "@/services/homeService";
+import { fetchNotifications, type AppNotification } from "@/services/notificationService";
 
 // ─── Nav Items (notification removed) ────────────────────────────────────────
 const NAV_ITEMS = [
@@ -72,124 +73,14 @@ const NAV_ITEMS = [
   },
 ];
 
-// ─── Notifications Data ───────────────────────────────────────────────────────
-const NOTIFICATIONS = [
-  {
-    id: 1,
-    type: "interest",
-    photo: "https://randomuser.me/api/portraits/women/44.jpg",
-    name: "Priya Sharma",
-    message: "sent you an interest",
-    time: "2 min ago",
-    unread: true,
-  },
-  {
-    id: 2,
-    type: "view",
-    photo: "https://randomuser.me/api/portraits/women/68.jpg",
-    name: "Anjali Nair",
-    message: "viewed your profile",
-    time: "15 min ago",
-    unread: true,
-  },
-  {
-    id: 3,
-    type: "message",
-    photo: "https://randomuser.me/api/portraits/women/32.jpg",
-    name: "Meera Pillai",
-    message: "sent you a message",
-    time: "1 hour ago",
-    unread: true,
-  },
-  {
-    id: 4,
-    type: "match",
-    photo: "https://randomuser.me/api/portraits/women/55.jpg",
-    name: "Deepa Thomas",
-    message: "is a new match for you!",
-    time: "2 hours ago",
-    unread: true,
-  },
-  {
-    id: 5,
-    type: "interest",
-    photo: "https://randomuser.me/api/portraits/women/17.jpg",
-    name: "Lakshmi Menon",
-    message: "accepted your interest",
-    time: "3 hours ago",
-    unread: false,
-  },
-  {
-    id: 6,
-    type: "view",
-    photo: "https://randomuser.me/api/portraits/women/72.jpg",
-    name: "Nithya Krishnan",
-    message: "viewed your profile",
-    time: "5 hours ago",
-    unread: false,
-  },
-  {
-    id: 7,
-    type: "message",
-    photo: "https://randomuser.me/api/portraits/women/29.jpg",
-    name: "Sreeja Varma",
-    message: "replied to your message",
-    time: "Yesterday",
-    unread: false,
-  },
-  {
-    id: 8,
-    type: "match",
-    photo: "https://randomuser.me/api/portraits/women/61.jpg",
-    name: "Divya Nambiar",
-    message: "is a new match for you!",
-    time: "Yesterday",
-    unread: false,
-  },
-  {
-    id: 9,
-    type: "interest",
-    photo: "https://randomuser.me/api/portraits/women/74.jpg",
-    name: "Arya Menon",
-    message: "sent you an interest",
-    time: "2 days ago",
-    unread: false,
-  },
-  {
-    id: 10,
-    type: "view",
-    photo: "https://randomuser.me/api/portraits/women/45.jpg",
-    name: "Resmi Pillai",
-    message: "viewed your profile",
-    time: "2 days ago",
-    unread: false,
-  },
-  {
-    id: 11,
-    type: "message",
-    photo: "https://randomuser.me/api/portraits/women/46.jpg",
-    name: "Fathima Beevi",
-    message: "sent you a message",
-    time: "3 days ago",
-    unread: false,
-  },
-  {
-    id: 12,
-    type: "match",
-    photo: "https://randomuser.me/api/portraits/women/48.jpg",
-    name: "Sneha Thomas",
-    message: "is a new match for you!",
-    time: "3 days ago",
-    unread: false,
-  },
-];
-
+// ─── Notification type → icon/colour ─────────────────────────────────────────
 const NOTIF_ICONS: Record<string, { icon: string; color: string; bg: string }> =
   {
-    interest: { icon: "💞", color: "#e85d8a", bg: "#ffeaf2" },
-    view:     { icon: "👁️", color: "#3db9d4", bg: "#e4f8fc" },
-    message:  { icon: "💬", color: "#f0a500", bg: "#fff8e1" },
-    match:    { icon: "❤️", color: "#b22234", bg: "#ffeaea" },
+    interest:  { icon: "💞", color: "#e85d8a", bg: "#ffeaf2" },
+    view:      { icon: "👁️", color: "#3db9d4", bg: "#e4f8fc" },
+    shortlist: { icon: "⭐", color: "#e0a800", bg: "#fff7df" },
+    message:   { icon: "💬", color: "#f0a500", bg: "#fff8e1" },
+    match:     { icon: "❤️", color: "#b22234", bg: "#ffeaea" },
   };
 
 export default function Navbar() {
@@ -198,7 +89,8 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [, setShowSwitchMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [notifLoading, setNotifLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [me, setMe] = useState<MyProfile | null>(null);
@@ -222,6 +114,16 @@ export default function Navbar() {
       cancelled = true;
       window.removeEventListener("profile:updated", onUpdated);
     };
+  }, []);
+
+  // Load notifications (aggregated from interests / views / shortlists / matches).
+  useEffect(() => {
+    let cancelled = false;
+    fetchNotifications()
+      .then((list) => { if (!cancelled) setNotifications(list); })
+      .catch(() => undefined)
+      .finally(() => { if (!cancelled) setNotifLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -264,10 +166,22 @@ export default function Navbar() {
 
   const markAllRead = () =>
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
-  const markRead = (id: number) =>
+  const markRead = (id: string) =>
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, unread: false } : n)),
     );
+
+  // Click a notification → mark read, close panel, go to the related profile.
+  const handleNotifClick = (n: AppNotification) => {
+    markRead(n.id);
+    setShowNotifications(false);
+    if (n.profileId) router.push(`/profiles/${n.profileId}`);
+  };
+
+  const viewAllNotifications = () => {
+    setShowNotifications(false);
+    router.push("/notifications");
+  };
 
   const isLoggedIn = true;
 
@@ -320,18 +234,25 @@ export default function Navbar() {
 
       {/* Scrollable list */}
       <div className="overflow-y-auto" style={{ maxHeight: 340 }}>
-        {displayed.length === 0 ? (
+        {notifLoading ? (
+          <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+            <svg className="animate-spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b22234" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+            <p className="text-xs mt-2">Loading notifications…</p>
+          </div>
+        ) : displayed.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-gray-300">
             <span style={{ fontSize: 32 }}>🔔</span>
-            <p className="text-xs mt-2">No unread notifications</p>
+            <p className="text-xs mt-2">
+              {activeTab === "unread" ? "No unread notifications" : "No notifications yet"}
+            </p>
           </div>
         ) : (
           displayed.map((notif) => {
-            const meta = NOTIF_ICONS[notif.type];
+            const meta = NOTIF_ICONS[notif.type] ?? NOTIF_ICONS.match;
             return (
               <div
                 key={notif.id}
-                onClick={() => markRead(notif.id)}
+                onClick={() => handleNotifClick(notif)}
                 className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-50 last:border-0 ${
                   notif.unread
                     ? "bg-[#fff9f9] hover:bg-[#fdf2f3]"
@@ -376,7 +297,7 @@ export default function Navbar() {
 
       {/* Footer */}
       <div className="px-4 py-2.5 border-t border-red-50 bg-gray-50">
-        <button className="w-full text-xs font-bold text-[#b22234] hover:underline text-center">
+        <button onClick={viewAllNotifications} className="w-full text-xs font-bold text-[#b22234] hover:underline text-center">
           View all notifications →
         </button>
       </div>

@@ -1,5 +1,6 @@
 
 import QueryProvider from "@/providers/QueryProvider";
+import CookieConsent from "@/components/layout/CookieConsent";
 import "./globals.css";
 
 export default function RootLayout({
@@ -13,6 +14,7 @@ export default function RootLayout({
           <QueryProvider>
           {children}
         </QueryProvider>
+        <CookieConsent />
       </body>
     </html>
   );

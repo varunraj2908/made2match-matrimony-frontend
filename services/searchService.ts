@@ -46,6 +46,7 @@ export interface SearchCriteria {
   education?: string;       // matches highestQualification
   city?: string;
   withPhotos?: boolean;
+  withHoroscope?: boolean;
   profileCreatedBy?: string; // SELF | FRIEND ...
   sortBy?: string;
 }
@@ -68,6 +69,7 @@ const buildParams = (c: SearchCriteria): Record<string, unknown> => {
   if (c.education) p.education = c.education;
   if (c.city) p.city = c.city;
   if (c.withPhotos) p.withPhotos = true;
+  if (c.withHoroscope) p.withHoroscope = true;
   if (c.profileCreatedBy) p.profileCreatedBy = c.profileCreatedBy;
   if (c.sortBy) p.sortBy = c.sortBy;
   return p;
