@@ -14,12 +14,18 @@ export default function RegistrationPage() {
     agreeTerms: false,
     newsletter: false,
   });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  type Field = keyof typeof form;
+  type TextField = {
+    [K in Field]: (typeof form)[K] extends string ? K : never;
+  }[Field];
+
+  const set = (k: Field) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const validate = () => {
-    const e = {};
+    const e: Record<string, string> = {};
     if (!form.firstName.trim()) e.firstName = "Required";
     if (!form.lastName.trim()) e.lastName = "Required";
     if (!form.email.trim()) e.email = "Required";
@@ -36,7 +42,17 @@ export default function RegistrationPage() {
     router.push("/verify-otp?email=" + encodeURIComponent(form.email));
   };
 
-  const InputField = ({ label, field, type = "text", placeholder = "" }) => (
+  const InputField = ({
+    label,
+    field,
+    type = "text",
+    placeholder = "",
+  }: {
+    label: string;
+    field: TextField;
+    type?: string;
+    placeholder?: string;
+  }) => (
     <div className="w-full">
       <label className="block text-xs font-semibold text-gray-500 mb-1 tracking-wide uppercase">{label}</label>
       <input
@@ -116,10 +132,10 @@ export default function RegistrationPage() {
 
           {/* Checkboxes */}
           <div className="space-y-3">
-            {[
+            {([
               { key: "agreeTerms", label: "I agree with Terms and conditions", required: true },
               { key: "newsletter", label: "I want to receive the newsletter", required: false },
-            ].map(({ key, label, required }) => (
+            ] as { key: Field; label: string; required: boolean }[]).map(({ key, label, required }) => (
               <label key={key} className="flex items-start gap-3 cursor-pointer">
                 <div
                   onClick={() => setForm((f) => ({ ...f, [key]: !f[key] }))}

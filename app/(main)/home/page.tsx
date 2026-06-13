@@ -22,6 +22,8 @@ import {
 } from "@/services/homeService";
 import { uploadProfilePhoto } from "@/services/profileService";
 import ProfileBookModal from "@/components/sections/ProfileBookModal";
+import { downloadBiodata } from "@/lib/biodata";
+import { celebrateMatch } from "@/lib/celebrate";
 
 // ─── UI display type (kept narrow — what cards actually render) ───
 interface CardProfile {
@@ -106,6 +108,13 @@ const MoreIcon = () => (
     <circle cx="12" cy="5" r="1" />
     <circle cx="12" cy="12" r="1" />
     <circle cx="12" cy="19" r="1" />
+  </svg>
+);
+const DownloadIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
   </svg>
 );
 const CheckCircle = () => (
@@ -421,6 +430,23 @@ export default function HomePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>("");
   const [profileWarning, setProfileWarning] = useState<string>("");
+  const [downloadingBiodata, setDownloadingBiodata] = useState(false);
+
+  const handleDownloadBiodata = async () => {
+    if (!me || downloadingBiodata) return;
+    setDownloadingBiodata(true);
+    try {
+      await downloadBiodata(me);
+    } catch (err) {
+      console.error("Biodata download failed:", err);
+    } finally {
+      setDownloadingBiodata(false);
+    }
+  };
+
+  // TEST: preview the "It's a Match!" celebration with sample data.
+  const previewMatch = () =>
+    celebrateMatch({ name: "Priya Nair", photo: "/image3.jpg", profileId: 1 });
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -644,6 +670,20 @@ export default function HomePage() {
         {uploadError && (
           <p className="text-[10px] text-red-500 mt-2">{uploadError}</p>
         )}
+        <button
+          onClick={handleDownloadBiodata}
+          disabled={!me || downloadingBiodata}
+          className="mt-3 w-full flex items-center justify-center gap-2 border border-[#b22234] text-[#b22234] text-xs font-bold py-2 rounded-full hover:bg-[#b22234] hover:text-white transition-colors disabled:opacity-50"
+        >
+          {downloadingBiodata ? "Preparing…" : (<><DownloadIcon /> Download Biodata</>)}
+        </button>
+        <button
+          onClick={previewMatch}
+          className="mt-2 w-full text-xs font-bold py-2 rounded-full text-white transition-opacity hover:opacity-90"
+          style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
+        >
+          🎉 Preview Match
+        </button>
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-6 flex gap-4 lg:gap-6">
@@ -718,6 +758,20 @@ export default function HomePage() {
             {uploadError && (
               <p className="text-[10px] text-red-500 mt-2">{uploadError}</p>
             )}
+            <button
+              onClick={handleDownloadBiodata}
+              disabled={!me || downloadingBiodata}
+              className="mt-3 w-full flex items-center justify-center gap-2 border border-[#b22234] text-[#b22234] text-xs font-bold py-2 rounded-full hover:bg-[#b22234] hover:text-white transition-colors disabled:opacity-50"
+            >
+              {downloadingBiodata ? "Preparing…" : (<><DownloadIcon /> Download Biodata</>)}
+            </button>
+            <button
+              onClick={previewMatch}
+              className="mt-2 w-full text-xs font-bold py-2 rounded-full text-white transition-opacity hover:opacity-90"
+              style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
+            >
+              🎉 Preview Match
+            </button>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

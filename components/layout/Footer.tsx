@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { submitContactMessage } from "@/services/contactService";
+import { useScrollLock } from "@/lib/useScrollLock";
 
 const PRIMARY_LINKS: { label: string; href: string }[] = [
   { label: "Home", href: "/" },
@@ -32,6 +33,16 @@ export default function Footer() {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<null | { ok: boolean; text: string }>(null);
+  const [showJourney, setShowJourney] = useState(false);
+  const [zoom, setZoom] = useState(100);
+
+  const openJourney = () => {
+    setZoom(100);
+    setShowJourney(true);
+  };
+
+  // Lock background page scroll (no page jump) while the journey popup is open.
+  useScrollLock(showJourney);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,6 +231,13 @@ export default function Footer() {
         </p>
 
         <div className="flex gap-2">
+          <button
+            onClick={openJourney}
+            className="bg-white/15 hover:bg-white/30 text-white text-xs font-bold px-4 py-1.5 rounded flex items-center gap-1.5 transition"
+          >
+            🗺️ User Journey
+          </button>
+
           <button className="bg-[#3b5998] hover:bg-[#2d4373] text-white text-xs font-bold px-4 py-1.5 rounded flex items-center gap-1.5 transition">
             f Share
           </button>
@@ -229,6 +247,69 @@ export default function Footer() {
           </button>
         </div>
       </div>
+
+      {/* USER JOURNEY MODAL */}
+      {showJourney && (
+        <div
+          className="fixed inset-0 z-[1700] bg-black/70 flex items-center justify-center p-3 sm:p-5"
+          onClick={() => setShowJourney(false)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="flex items-center justify-between px-4 py-3"
+              style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
+            >
+              <div>
+                <h3 className="font-bold text-white text-sm">Made2Match — Member User Journey</h3>
+                <p className="text-[11px] text-white/70">Complete flow from sign-up to match &amp; membership</p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setZoom((z) => Math.max(40, z - 20))}
+                  aria-label="Zoom out"
+                  className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center font-bold text-lg leading-none"
+                >
+                  −
+                </button>
+                <span className="text-white text-xs font-semibold w-11 text-center select-none">{zoom}%</span>
+                <button
+                  onClick={() => setZoom((z) => Math.min(300, z + 20))}
+                  aria-label="Zoom in"
+                  className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center font-bold text-lg leading-none"
+                >
+                  +
+                </button>
+                <a
+                  href="/user-journey.svg"
+                  download="Made2Match-UserJourney.svg"
+                  className="ml-1 text-xs font-semibold text-white border border-white/60 rounded-full px-3 py-1.5 hover:bg-white hover:text-[#c0174c] transition-colors"
+                >
+                  ⬇ Download
+                </a>
+                <button
+                  onClick={() => setShowJourney(false)}
+                  aria-label="Close"
+                  className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="overflow-auto p-4 bg-gray-50 flex-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/user-journey.svg"
+                alt="Made2Match member user journey flow"
+                style={{ width: `${zoom}%` }}
+                className="max-w-none h-auto select-none transition-[width] duration-150"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   );
 }

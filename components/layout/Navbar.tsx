@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getMyProfile, type MyProfile } from "@/services/homeService";
 import { fetchNotifications, type AppNotification } from "@/services/notificationService";
+import { setAppBadge } from "@/lib/appBadge";
 
 // ─── Nav Items (notification removed) ────────────────────────────────────────
 const NAV_ITEMS = [
@@ -163,6 +164,11 @@ export default function Navbar() {
     activeTab === "unread"
       ? notifications.filter((n) => n.unread)
       : notifications;
+
+  // Sync the unread count to the installed-PWA app-icon badge (Badging API).
+  useEffect(() => {
+    setAppBadge(unreadCount);
+  }, [unreadCount]);
 
   const markAllRead = () =>
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
