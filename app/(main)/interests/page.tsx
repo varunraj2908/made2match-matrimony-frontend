@@ -12,6 +12,7 @@ import {
   type InterestDto,
   type InterestStatus,
 } from "@/services/matchesService";
+import { celebrateMatch } from "@/lib/celebrate";
 
 /* ─────────────────────────────────────────────
    DISPLAY HELPERS
@@ -313,7 +314,7 @@ function ProfileCard({
   interest: InterestDto;
   mode: "received" | "sent";
   busy: boolean;
-  onAccept: (id: number) => void;
+  onAccept: (payload: { id: number; name: string; photo: string; profileId: number }) => void;
   onReject: (id: number) => void;
   onCancel: (id: number) => void;
   onOpenProfile: (profileId: number) => void;
@@ -417,7 +418,7 @@ function ProfileCard({
                     👎 Decline
                   </button>
                   <button
-                    onClick={() => onAccept(interest.id)}
+                    onClick={() => onAccept({ id: interest.id, name: card.name, photo: card.photo, profileId: card.profileNumericId })}
                     disabled={busy}
                     className="flex items-center gap-1.5 border rounded-full px-3 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-all border-[#b22234] text-[#b22234] hover:bg-orange-50 disabled:opacity-50 cursor-pointer"
                   >
@@ -606,8 +607,12 @@ export default function InterestsPage() {
     }
   };
 
-  const handleAccept = (id: number) =>
-    withBusy(id, async () => { await acceptInterest(id); showToast("Interest accepted"); });
+  const handleAccept = (payload: { id: number; name: string; photo: string; profileId: number }) =>
+    withBusy(payload.id, async () => {
+      await acceptInterest(payload.id);
+      // Accepting a received interest = a mutual match → celebrate 🎉
+      celebrateMatch({ name: payload.name, photo: payload.photo, profileId: payload.profileId });
+    });
 
   const handleReject = (id: number) =>
     withBusy(id, async () => { await rejectInterest(id); showToast("Interest declined"); });

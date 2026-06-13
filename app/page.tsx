@@ -21,7 +21,6 @@ import Testimonials from "@/components/sections/Testimonials";
 import LocationMap from "@/components/sections/LocationMap";
 import Testimonials3D from "@/components/sections/Testimonials3D";
 import SweetStoriesCarousel from "@/components/sections/SweetStoriesCarousel";
-import ProfileBookModal from "@/components/sections/ProfileBookModal";
 
 export default function Home() {
   const [open, setOpen] = useState(false);
@@ -133,8 +132,6 @@ export default function Home() {
       {/* <Testimonials3D /> */}
 
       {/* <SweetStoriesCarousel /> */}
-
-      <ProfileBookModal />
 
       {/* <EasyToGetStarted /> */}
 

@@ -1,7 +1,9 @@
 // app/(auth)/onboarding/success/page.tsx
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { markWelcomeCelebration } from "@/lib/celebrate";
 
 const steps = [
   "Basic details",
@@ -12,6 +14,11 @@ const steps = [
 
 export default function OnboardingSuccessPage() {
   const router = useRouter();
+
+  // Arm the one-time welcome celebration shown on the first home visit.
+  useEffect(() => {
+    markWelcomeCelebration();
+  }, []);
 
   return (
     <div

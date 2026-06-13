@@ -1,7 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import {
+  getAccount,
+  updateEmail,
+  changePassword,
+  deactivateAccount,
+  clearSession,
+} from '@/services/settingsService';
 
 function BackBar() {
   const router = useRouter();
@@ -39,14 +46,47 @@ const menuItems = [
 /* ───────────────────────────────────────────── */
 
 function EditEmail() {
-  const [email, setEmail] = useState(
-    'varunrajnellickal@gmail.com'
-  );
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [original, setOriginal] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    getAccount()
+      .then((a) => {
+        setEmail(a.email ?? '');
+        setOriginal(a.email ?? '');
+      })
+      .catch(() => setMsg({ ok: false, text: 'Could not load your account.' }))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const original =
-    'varunrajnellickal@gmail.com';
+  const save = async () => {
+    if (!email.trim()) {
+      setMsg({ ok: false, text: 'Email cannot be empty.' });
+      return;
+    }
+    setSaving(true);
+    setMsg(null);
+    try {
+      await updateEmail(email.trim());
+      // Email is the login identity — the current token is now stale, so re-login.
+      setMsg({ ok: true, text: 'Email updated. Please log in again…' });
+      clearSession();
+      setTimeout(() => router.push('/login'), 1300);
+    } catch (e) {
+      setMsg({
+        ok: false,
+        text:
+          (e as { response?: { data?: { message?: string } } })?.response?.data
+            ?.message || 'Could not update email.',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -57,39 +97,37 @@ function EditEmail() {
       <div className="border-t border-dashed border-gray-300 my-4" />
 
       <p className="text-sm md:text-base text-gray-600 mb-6 leading-relaxed">
-        A valid e-mail id will be used to send
-        you partner search mailers, member
-        communication mailers and special
-        offers.
+        A valid e-mail id will be used to send you partner search mailers, member
+        communication mailers and special offers.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="email"
           value={email}
+          disabled={loading}
           onChange={(e) => {
             setEmail(e.target.value);
-            setSaved(false);
+            setMsg(null);
           }}
-          className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm md:text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#c0174c] shadow-sm"
+          placeholder={loading ? 'Loading…' : 'you@example.com'}
+          className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm md:text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#c0174c] shadow-sm disabled:opacity-60"
         />
 
         <div className="flex gap-3">
           <button
-            onClick={() => setSaved(true)}
-            className="px-5 py-3 rounded-2xl text-white text-sm font-semibold transition hover:opacity-90 shadow-lg"
-            style={{
-              background:
-                'linear-gradient(135deg,#c0174c,#8b0f38)',
-            }}
+            onClick={save}
+            disabled={saving || loading}
+            className="px-5 py-3 rounded-2xl text-white text-sm font-semibold transition hover:opacity-90 shadow-lg disabled:opacity-60"
+            style={{ background: 'linear-gradient(135deg,#c0174c,#8b0f38)' }}
           >
-            Save
+            {saving ? 'Saving…' : 'Save'}
           </button>
 
           <button
             onClick={() => {
               setEmail(original);
-              setSaved(false);
+              setMsg(null);
             }}
             className="px-5 py-3 rounded-2xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
           >
@@ -98,12 +136,13 @@ function EditEmail() {
         </div>
       </div>
 
-      {saved && (
+      {msg && (
         <p
           className="text-sm mt-4 font-medium"
-          style={{ color: '#c0174c' }}
+          style={{ color: msg.ok ? '#c0174c' : '#dc2626' }}
         >
-          ✓ Email updated successfully.
+          {msg.ok ? '✓ ' : ''}
+          {msg.text}
         </p>
       )}
     </div>
@@ -122,6 +161,7 @@ function ChangePassword() {
   });
 
   const [msg, setMsg] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const set =
     (k: string) =>
@@ -131,28 +171,34 @@ function ChangePassword() {
         [k]: e.target.value,
       }));
 
-  const save = () => {
-    if (
-      !form.current ||
-      !form.newP ||
-      !form.confirm
-    ) {
+  const save = async () => {
+    if (!form.current || !form.newP || !form.confirm) {
       setMsg('Please fill all fields.');
       return;
     }
-
     if (form.newP !== form.confirm) {
       setMsg('Passwords do not match.');
       return;
     }
+    if (form.newP.length < 6) {
+      setMsg('New password must be at least 6 characters.');
+      return;
+    }
 
-    setMsg('✓ Password changed successfully.');
-
-    setForm({
-      current: '',
-      newP: '',
-      confirm: '',
-    });
+    setSaving(true);
+    setMsg('');
+    try {
+      await changePassword(form.current, form.newP);
+      setMsg('✓ Password changed successfully.');
+      setForm({ current: '', newP: '', confirm: '' });
+    } catch (e) {
+      setMsg(
+        (e as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || 'Could not change password.',
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -191,13 +237,14 @@ function ChangePassword() {
         <div className="flex gap-3">
           <button
             onClick={save}
-            className="px-6 py-3 rounded-2xl text-white text-sm font-semibold shadow-lg"
+            disabled={saving}
+            className="px-6 py-3 rounded-2xl text-white text-sm font-semibold shadow-lg disabled:opacity-60"
             style={{
               background:
                 'linear-gradient(135deg,#c0174c,#8b0f38)',
             }}
           >
-            Save
+            {saving ? 'Saving…' : 'Save'}
           </button>
 
           <button
@@ -229,6 +276,53 @@ function ChangePassword() {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────── */
+/* Deactivate Profile */
+/* ───────────────────────────────────────────── */
+
+function DeactivateProfile() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  const deactivate = async () => {
+    if (!confirm('Deactivate your profile? You will be logged out and hidden from matches.')) return;
+    setLoading(true);
+    setErr('');
+    try {
+      await deactivateAccount();
+      clearSession();
+      router.push('/login');
+    } catch (e) {
+      setErr(
+        (e as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || 'Could not deactivate your profile.',
+      );
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">Deactivate Profile</h2>
+      <div className="border-t border-dashed border-gray-300 my-4" />
+      <p className="text-sm md:text-base text-gray-600 mb-6 leading-relaxed max-w-xl">
+        Deactivating hides your profile from other members and pauses your matches. You can
+        reactivate any time by logging back in. Your data is not deleted.
+      </p>
+      <button
+        onClick={deactivate}
+        disabled={loading}
+        className="px-6 py-3 rounded-2xl text-white text-sm font-semibold shadow-lg disabled:opacity-60"
+        style={{ background: 'linear-gradient(135deg,#c0174c,#8b0f38)' }}
+      >
+        {loading ? 'Deactivating…' : 'Deactivate my profile'}
+      </button>
+      {err && <p className="text-sm mt-4 font-medium text-red-600">{err}</p>}
     </div>
   );
 }
@@ -353,6 +447,7 @@ function LogoutModal({
 /* ───────────────────────────────────────────── */
 
 export default function Settings() {
+  const router = useRouter();
   const [active, setActive] =
     useState('email');
 
@@ -369,6 +464,9 @@ export default function Settings() {
 
       case 'password':
         return <ChangePassword />;
+
+      case 'deactivate':
+        return <DeactivateProfile />;
 
       default:
         return (
@@ -396,7 +494,8 @@ export default function Settings() {
         <LogoutModal
           onConfirm={() => {
             setShowLogoutModal(false);
-            alert('Logged out!');
+            clearSession();
+            router.push('/login');
           }}
           onCancel={() => {
             setShowLogoutModal(false);

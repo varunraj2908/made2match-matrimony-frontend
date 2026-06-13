@@ -144,12 +144,51 @@ export interface PartnerPreferenceDto {
   casteNoBar?: boolean;
   preferredMaritalStatus?: string;
   preferredEducation?: string;
+  preferredOccupation?: string;
   minAnnualIncome?: number;
   preferredDiet?: string;
   smokingAcceptable?: string;
   drinkingAcceptable?: string;
   partnerDescription?: string;
 }
+
+// ── Partner preferences — GET/PUT /profiles/me/preferences ──────
+export interface PartnerPreferencePayload {
+  minAge?: number;
+  maxAge?: number;
+  minHeightCm?: number;
+  maxHeightCm?: number;
+  preferredCountry?: string;
+  preferredState?: string;
+  preferredReligion?: string;
+  preferredCaste?: string;
+  casteNoBar?: boolean;
+  preferredMaritalStatus?: string;
+  preferredEducation?: string;
+  preferredOccupation?: string;
+  minAnnualIncome?: number;
+  preferredDiet?: string;
+  smokingAcceptable?: boolean;
+  drinkingAcceptable?: boolean;
+  partnerDescription?: string;
+}
+
+export const getMyPreferences = async (): Promise<PartnerPreferencePayload> => {
+  const res = await axiosInstance.get<ApiEnvelope<PartnerPreferencePayload>>(
+    "/profiles/me/preferences",
+  );
+  return res.data.data ?? {};
+};
+
+export const updateMyPreferences = async (
+  payload: PartnerPreferencePayload,
+): Promise<PartnerPreferencePayload> => {
+  const res = await axiosInstance.put<ApiEnvelope<PartnerPreferencePayload>>(
+    "/profiles/me/preferences",
+    payload,
+  );
+  return res.data.data;
+};
 
 export interface FullProfile {
   id: number;
@@ -201,6 +240,65 @@ export interface FullProfile {
 
 export const getProfileById = async (id: number | string) => {
   const res = await axiosInstance.get<ApiEnvelope<FullProfile>>(`/profiles/${id}`);
+  return res.data.data;
+};
+
+// ── My profile (full) — GET /profiles/me ───────────────────────
+export const getMyProfileFull = async () => {
+  const res = await axiosInstance.get<ApiEnvelope<FullProfile>>("/profiles/me");
+  return res.data.data;
+};
+
+// Partial update payload — all fields optional; enum fields use the
+// backend enum NAME (e.g. "NEVER_MARRIED"). Only non-null fields are
+// applied server-side, so sending current values back is safe.
+export interface ProfileUpdatePayload {
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string; // YYYY-MM-DD
+  gender?: string;
+  bio?: string;
+  profilePhotoUrl?: string;
+  profileCreatedBy?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
+  religion?: string;
+  caste?: string;
+  subcaste?: string;
+  motherTongue?: string;
+  maritalStatus?: string;
+  willingToMarryAnyCaste?: boolean;
+  shudhajathakam?: string;
+  heightCm?: number;
+  weightKg?: number;
+  bodyType?: string;
+  complexion?: string;
+  physicalStatus?: string;
+  highestQualification?: string;
+  collegeUniversity?: string;
+  occupation?: string;
+  annualIncome?: number;
+  employedIn?: string;
+  familyType?: string;
+  familyStatus?: string;
+  fatherOccupation?: string;
+  motherOccupation?: string;
+  noOfBrothers?: number;
+  noOfSisters?: number;
+  diet?: string;
+  smoking?: string;
+  drinking?: string;
+  additionalPhotoUrls?: string[];
+}
+
+// PUT /profiles/me — returns the updated full profile.
+export const updateMyProfile = async (payload: ProfileUpdatePayload) => {
+  const res = await axiosInstance.put<ApiEnvelope<FullProfile>>(
+    "/profiles/me",
+    payload,
+  );
   return res.data.data;
 };
 

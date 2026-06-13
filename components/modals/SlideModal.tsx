@@ -12,6 +12,8 @@ type SlideModalProps = {
   title: string;
   width?: string;
   children: React.ReactNode;
+  onSave?: () => void;
+  saving?: boolean;
 };
 
 /* ─────────────────────────────────────────────
@@ -23,6 +25,8 @@ export default function SlideModal({
   title,
   width = "max-w-md",
   children,
+  onSave,
+  saving = false,
 }: SlideModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -179,6 +183,7 @@ export default function SlideModal({
             Cancel
           </button>
           <button
+            disabled={saving}
             style={{
               padding: "0.5rem 1.25rem",
               fontSize: "0.875rem",
@@ -187,14 +192,15 @@ export default function SlideModal({
               border: "none",
               borderRadius: "0.5rem",
               backgroundColor: "#c0174c",
-              cursor: "pointer",
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.6 : 1,
               transition: "background 0.15s",
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#8b1a3a"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#c0174c"; }}
-            onClick={onClose}
+            onMouseEnter={e => { if (!saving) (e.currentTarget as HTMLElement).style.backgroundColor = "#8b1a3a"; }}
+            onMouseLeave={e => { if (!saving) (e.currentTarget as HTMLElement).style.backgroundColor = "#c0174c"; }}
+            onClick={onSave ?? onClose}
           >
-            Save Changes
+            {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>

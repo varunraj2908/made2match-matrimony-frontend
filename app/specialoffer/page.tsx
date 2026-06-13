@@ -132,7 +132,7 @@ const assistedBenefits = [
 
 // ─── Shared Components ───────────────────────────────────────────────────────
 
-function Header({ onUpgrade }) {
+function Header({ onUpgrade }: { onUpgrade: () => void }) {
   return (
     <header
       className="text-white shadow-lg  "
@@ -165,7 +165,7 @@ function Header({ onUpgrade }) {
   );
 }
 
-function CheckMark({ color = "#c0174c" }) {
+function CheckMark({ color = "#c0174c" }: { color?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -179,7 +179,7 @@ function CheckMark({ color = "#c0174c" }) {
   );
 }
 
-function PayNowBtn({ label = "PAY NOW" }) {
+function PayNowBtn({ label = "PAY NOW" }: { label?: string }) {
   return (
     <button
       className="w-full py-3 rounded-lg text-white font-bold text-sm tracking-widest transition-all hover:opacity-90 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
@@ -201,7 +201,7 @@ function PayNowBtn({ label = "PAY NOW" }) {
 
 // ─── Page 1: Home (header only) ──────────────────────────────────────────────
 
-function HomePage({ onUpgrade }) {
+function HomePage({ onUpgrade }: { onUpgrade: () => void }) {
    const router = useRouter();
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -222,7 +222,13 @@ function HomePage({ onUpgrade }) {
 
 // ─── Page 2: Special Offer ───────────────────────────────────────────────────
 
-function SpecialOfferPage({ onViewAll, onUpgrade }) {
+function SpecialOfferPage({
+  onViewAll,
+  onUpgrade,
+}: {
+  onViewAll: () => void;
+  onUpgrade: () => void;
+}) {
    const router = useRouter();
   return (
     <div
@@ -477,12 +483,26 @@ function SpecialOfferPage({ onViewAll, onUpgrade }) {
 
 // ─── Page 3: All Packages ────────────────────────────────────────────────────
 
-function AllPackagesPage({ onBack, onUpgrade }) {
-  const [tab, setTab] = useState("prime");
-  const [duration, setDuration] = useState("6months");
+type Tab = keyof typeof allPackagesData;
+type Duration = keyof (typeof allPackagesData)["prime"];
+
+function AllPackagesPage({
+  onBack,
+  onUpgrade,
+}: {
+  onBack: () => void;
+  onUpgrade: () => void;
+}) {
+  const [tab, setTab] = useState<Tab>("prime");
+  const [duration, setDuration] = useState<Duration>("6months");
   const [assistedDuration, setAssistedDuration] = useState("3months");
 
-  const durations = [
+  const durations: {
+    key: Duration;
+    label: string;
+    saveBadge?: boolean;
+    valueBadge?: boolean;
+  }[] = [
     { key: "3months", label: "3 Months" },
     { key: "6months", label: "6 Months", saveBadge: true },
     { key: "12months", label: "12 Months" },
@@ -552,10 +572,10 @@ function AllPackagesPage({ onBack, onUpgrade }) {
 
         {/* Tabs */}
         <div className="flex border-b border-gray-200 mb-6">
-          {[
+          {([
             ["prime", "PRIME Packages"],
             ["regular", "Regular Packages"],
-          ].map(([key, label]) => (
+          ] as [Tab, string][]).map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
