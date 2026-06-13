@@ -113,7 +113,7 @@ export function SearchBar() {
 
   return (
     <section
-      className="relative py-3 w-full justify-between"
+      className="relative py-3 w-full px-4 sm:px-6 lg:px-8"
       style={{
         background: "linear-gradient(135deg, #fc8bab 0%, #c0174c 60%, #d4185a 100%)",
       }}
@@ -127,7 +127,7 @@ export function SearchBar() {
         }}
       />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 lg:py-2">
+      <div className="relative max-w-6xl mx-auto py-3 lg:py-2">
         <div className="flex flex-col lg:flex-row lg:items-center lg:gap-6 gap-3">
           {/* Brand */}
           <div className="flex flex-col leading-tight shrink-0">
@@ -144,31 +144,28 @@ export function SearchBar() {
 
           {/* Filters */}
           <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
-            <div className="flex  items-center rounded-md px-3 py-1.5 gap-2">
+            <div className="flex items-center gap-2">
               <span className="text-white/80 text-xs font-semibold">Looking</span>
-              <div className="flex items-center gap-1 ">
-                <button
-                  onClick={() => setLookingFor("bride")}
-                  aria-label="Looking for bride"
-                  className="w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer"
-                  style={{
-                    background: lookingFor === "bride" ? "white" : "transparent",
-                    border: lookingFor === "bride" ? "none" : "1px solid rgba(255,255,255,0.4)",
-                  }}
-                >
-                  <span className="text-base" style={{ color: lookingFor === "bride" ? "#c0174c" : "white" }}>👰</span>
-                </button>
-                <button
-                  onClick={() => setLookingFor("groom")}
-                  aria-label="Looking for groom"
-                  className="w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer"
-                  style={{
-                    background: lookingFor === "groom" ? "white" : "transparent",
-                    border: lookingFor === "groom" ? "none" : "1px solid rgba(255,255,255,0.4)",
-                  }}
-                >
-                  <span className="text-base" style={{ color: lookingFor === "groom" ? "#c0174c" : "white" }}>🤵</span>
-                </button>
+              {/* Segmented pill toggle (Bride / Groom) */}
+              <div className="inline-flex items-center rounded-full bg-white p-1 shadow-sm">
+                {(["bride", "groom"] as LookingFor[]).map((opt) => {
+                  const isActive = lookingFor === opt;
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() => setLookingFor(opt)}
+                      aria-label={`Looking for ${opt}`}
+                      className={`px-4 py-2 rounded-full text-xs font-bold capitalize transition-all cursor-pointer ${
+                        isActive ? "text-white" : "text-gray-500 hover:text-[#c0174c]"
+                      }`}
+                      style={{
+                        background: isActive ? "#c0174c" : "transparent",
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -178,7 +175,7 @@ export function SearchBar() {
 
             <button
               onClick={handleSearch}
-              className="bg-white text-[#c0174c]  font-extrabold text-xs tracking-widest px-6 py-3 rounded-md hover:bg-white/95 transition-colors cursor-pointer shrink-0"
+              className="btn-primary text-xs tracking-widest px-6 py-3 rounded-md cursor-pointer shrink-0"
             >
               SEARCH
             </button>
@@ -243,6 +240,7 @@ function HeroForm() {
   });
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showPwd, setShowPwd] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -300,7 +298,7 @@ function HeroForm() {
       </div>
 
       {/* 80%-max content wrapper */}
-      <div className="relative z-10 w-full lg:max-w-[80%] mx-auto flex flex-col lg:flex-row items-stretch">
+      <div className="relative z-10 w-full lg:max-w-7xl mx-auto flex flex-col lg:flex-row items-stretch">
 
         {/* MOBILE COUPLE IMAGE */}
         <div className="lg:hidden relative w-full overflow-hidden flex justify-center items-end pt-6">
@@ -321,11 +319,11 @@ function HeroForm() {
         </div>
 
         {/* LEFT — rotating content (lg+) */}
-        <div className="hidden lg:flex relative z-10 lg:w-1/2 flex-col justify-center px-12 py-16 text-white">
+        <div className="hidden lg:flex relative z-10 lg:w-1/2 flex-col justify-center px-6 py-12 text-white">
           {SLIDES.map((s, i) => (
             <div
               key={s.image}
-              className="absolute inset-0 px-12 py-16 flex flex-col justify-center transition-opacity duration-700 ease-out"
+              className="absolute inset-0 px-6 py-12 flex flex-col justify-center transition-opacity duration-700 ease-out"
               style={{
                 opacity: i === bgIdx ? 1 : 0,
                 pointerEvents: i === bgIdx ? "auto" : "none",
@@ -357,7 +355,7 @@ function HeroForm() {
           ))}
 
           {/* Slide indicator dots */}
-          <div className="absolute bottom-6 left-12 flex items-center gap-2">
+          <div className="absolute bottom-6 left-6 flex items-center gap-2">
             {SLIDES.map((_, i) => (
               <button
                 key={i}
@@ -374,27 +372,33 @@ function HeroForm() {
         </div>
 
         {/* RIGHT — registration form */}
-        <div className="relative z-10 flex-1 lg:w-1/2 flex flex-col justify-center items-center px-4 py-8 lg:px-10 lg:py-8">
-          <div className="text-center mb-6 lg:hidden">
-            <h2 className="text-[#c0174c] text-2xl font-bold tracking-wide">
-              Find Your Perfect Match
-            </h2>
-            <p className="text-gray-500 text-xs mt-1">
-              Create your free profile in seconds
-            </p>
-          </div>
-
+        <div className="relative z-10 flex-1 lg:w-1/2 flex flex-col justify-center items-center px-4 py-8 lg:px-6 lg:py-12">
           <div
             className="
-              w-full max-w-sm lg:max-w-md rounded-2xl p-6 lg:p-7 flex flex-col gap-4
-              bg-linear-to-br from-[#ff6b9d] via-[#c0174c] to-[#8b1a3a]
-              border border-white/25
-              shadow-[0_10px_30px_rgba(192,23,76,0.35)]
-              lg:bg-none lg:bg-[rgba(15,8,18,0.55)] lg:border-white/30
-              lg:backdrop-blur-xl lg:backdrop-saturate-150
-              lg:shadow-[0_20px_50px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]
+              w-full max-w-sm lg:max-w-md rounded-2xl overflow-hidden flex flex-col
+              bg-white border border-[#f0d9e0]
+              shadow-[0_12px_34px_rgba(192,23,76,0.15)]
+              lg:backdrop-blur-md
             "
           >
+            {/* Header — content above the form */}
+            <div
+              className="px-6 pt-4 pb-3 text-center border-b border-[#f6e3ea]"
+              style={{ background: "linear-gradient(135deg, #fff0f5, #fde7ef)" }}
+            >
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm text-xl mb-1.5">
+                💍
+              </div>
+              <h3 className="text-[#c0174c] text-lg font-bold tracking-wide">
+                Create Your Free Profile
+              </h3>
+              <p className="text-gray-500 text-xs mt-1">
+                Join lakhs of happy members &amp; find your perfect match on Made2Match
+              </p>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 lg:px-7 py-4 flex flex-col gap-3">
             {/* FULL NAME */}
             <FormField
               name="fullName"
@@ -426,23 +430,38 @@ function HeroForm() {
             />
 
             {/* PASSWORD */}
-            <FormField
-              name="password"
-              type="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              error={validationErrors.password}
-            />
+            <div>
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPwd ? "text" : "password"}
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="
+                    w-full px-4 pr-14 py-3 rounded-xl text-sm outline-none transition-colors
+                    bg-[#f9fafb] border border-gray-200 text-gray-800 placeholder-gray-400
+                    focus:border-[#c0174c] focus:bg-white
+                  "
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((s) => !s)}
+                  aria-label={showPwd ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#c0174c] text-xs font-semibold px-1"
+                >
+                  {showPwd ? "Hide" : "Show"}
+                </button>
+              </div>
+              {validationErrors.password && (
+                <p className="text-red-400 text-xs mt-1">{validationErrors.password}</p>
+              )}
+            </div>
 
             <button
               onClick={handleSubmit}
               disabled={isPending}
-              className="w-full py-3 rounded-xl font-bold text-sm tracking-wide transition-all hover:scale-[1.02] active:scale-95 mt-1 disabled:opacity-60 text-[#8b1a3a] lg:text-white"
-              style={{
-                background: "linear-gradient(135deg, #ffd76b, #ffa726)",
-                boxShadow: "0 6px 20px rgba(255,167,38,0.55)",
-              }}
+              className="btn-primary w-full py-3 rounded-xl text-sm tracking-wide mt-1"
             >
               {isPending ? "Registering..." : "Join Now For Free 🎉"}
             </button>
@@ -458,15 +477,16 @@ function HeroForm() {
               </p>
             )}
 
-            <p className="text-center text-white lg:text-white/40 text-xs">
+            <p className="text-center text-gray-500 text-xs">
               Already registered?{" "}
               <a
                 href="/login"
-                className="text-[#ffa726] lg:text-white/80 underline font-medium hover:text-[#a01040] lg:hover:text-white transition"
+                className="text-[#c0174c] underline font-medium hover:text-[#a01040] transition"
               >
                 Sign in
               </a>
             </p>
+            </div>
           </div>
         </div>
       </div>
@@ -496,10 +516,7 @@ function FormField({
         className="
           w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors
           bg-[#f9fafb] border border-gray-200 text-gray-800 placeholder-gray-400
-          lg:bg-white/15 lg:border-white/35 lg:text-white lg:placeholder-white/70
-          lg:backdrop-blur-md
-          focus:border-[#c0174c]
-          lg:focus:bg-white/25 lg:focus:border-white
+          focus:border-[#c0174c] focus:bg-white
         "
       />
       {error && (

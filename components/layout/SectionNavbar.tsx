@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { motion } from "motion/react";
 
 interface NavbarProps {
   onScrollTo?: (section: string) => void;
@@ -86,9 +87,58 @@ export default function SectionNavbar({ onScrollTo }: NavbarProps) {
   };
 
   return (
-    <header className="relative bg-gray-100 border-b border-gray-100 shadow-sm">
+    <header className="relative bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-center h-16">
-        <nav className="flex items-center gap-1">
+        {/* Desktop (lg+): light pill nav — active item highlighted in pink */}
+        <nav
+          className="hidden lg:flex items-center gap-1 rounded-full px-1.5 py-1.5 bg-white/40 backdrop-blur-xl"
+          style={{
+            border: "1px solid rgba(255,255,255,0.6)",
+            boxShadow:
+              "0 0 0 4px rgba(253,238,244,0.6), inset 0 1px 0 rgba(255,255,255,0.8), 0 10px 26px rgba(192,23,76,0.15)",
+          }}
+        >
+          {navItems.map((item) => {
+            const isActive = active === item.key;
+            return (
+              <button
+                key={item.key}
+                onClick={() => handleNav(item.key)}
+                className={`relative px-5 py-2 rounded-full text-sm cursor-pointer transition-colors ${
+                  isActive
+                    ? "text-white font-bold"
+                    : "text-gray-500 font-semibold hover:text-[#c0174c]"
+                }`}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="navPill"
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background: "#c0174c",
+                      border: "1px solid rgba(255,255,255,0.3)",
+                      boxShadow:
+                        "inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -3px 7px rgba(120,10,40,0.4), 0 7px 18px rgba(192,23,76,0.5)",
+                    }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10">{item.label}</span>
+                {item.badge && (
+                  <span
+                    className="absolute -top-1 -right-1 z-10 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{ background: "#c0174c" }}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Mobile / tablet (below lg): icon + label nav */}
+        <nav className="flex lg:hidden items-center gap-1">
           {navItems.map((item) => {
             const isActive = active === item.key;
             return (
