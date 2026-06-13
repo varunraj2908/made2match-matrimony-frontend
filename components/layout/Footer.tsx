@@ -84,8 +84,9 @@ export default function Footer() {
   return (
     <footer
       style={{ background: "#c0174c" }}
-      className="px-4 md:px-64 py-8 "
+      className="px-4 sm:px-6 lg:px-8 py-8"
     >
+      <div className="max-w-6xl mx-auto">
       {/* TOP SECTION */}
       <div className="flex flex-col md:flex-row gap-10 md:gap-8">
 
@@ -246,6 +247,7 @@ export default function Footer() {
             🐦 Tweet
           </button>
         </div>
+      </div>
       </div>
 
       {/* USER JOURNEY MODAL */}

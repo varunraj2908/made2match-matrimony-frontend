@@ -154,10 +154,7 @@ export default function FAQSection() {
           <p className="text-sm mb-4" style={{ color: "#c97080" }}>
             Still have questions? We&apos;re here to help.
           </p>
-          <button
-            className="inline-flex items-center gap-2 font-bold px-8 py-3 rounded-2xl text-sm transition-all hover:scale-105 hover:shadow-lg"
-            style={{ background: "#b22234", color: "#fff" }}
-          >
+          <button className="btn-primary inline-flex items-center gap-2 px-8 py-3 rounded-2xl text-sm cursor-pointer">
             💬 Contact Support
           </button>
         </div>

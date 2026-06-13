@@ -62,19 +62,21 @@ export default function Header({
             Let&apos;s Get Married
           </span>
 
-          <button
-            onClick={() => router.push("/login")}
-            className="bg-[#8b1a3a] hover:bg-[#6e1430] text-white px-4 sm:px-5 py-1.5 rounded font-semibold transition cursor-pointer text-sm"
-          >
-            Login
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => router.push("/login")}
+              className="btn-primary px-4 sm:px-5 py-1.5 rounded-md cursor-pointer text-sm"
+            >
+              Login
+            </button>
 
-          <button
-            onClick={onClick}
-            className="bg-[#8b1a3a] hover:bg-[#6e1430] text-white px-4 sm:px-5 py-1.5 rounded font-semibold transition cursor-pointer text-sm"
-          >
-            Register Free
-          </button>
+            <button
+              onClick={onClick}
+              className="btn-primary px-4 sm:px-5 py-1.5 rounded-md cursor-pointer text-sm"
+            >
+              Register Free
+            </button>
+          </div>
 
           {/* DESKTOP LOGO */}
           <div className="hidden lg:flex w-8 h-10 lg:w-14 lg:h-14 rounded-full bg-white border-2 border-[#c0174c] items-center justify-center font-bold text-[#c0174c] text-[16px]">

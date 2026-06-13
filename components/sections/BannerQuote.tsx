@@ -62,20 +62,7 @@ export default function BannerQuote({ onClick }: { onClick: () => void }) {
 
         <button
           onClick={onClick}
-          className="
-            border border-white
-            text-white
-            font-bold
-            text-xs
-            tracking-widest
-            px-5 py-2
-            rounded-full
-            hover:bg-white
-            hover:text-[#c0174c]
-            transition
-            uppercase
-            cursor-pointer
-          "
+          className="btn-primary text-xs tracking-widest px-5 py-2 rounded-full uppercase cursor-pointer"
         >
           Register Now
         </button>

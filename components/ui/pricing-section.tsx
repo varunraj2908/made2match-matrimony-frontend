@@ -264,7 +264,7 @@ export default function PricingSection() {
                   <button
                     className={`w-full mb-6 p-3 text-lg font-bold rounded-xl transition ${
                       plan.popular
-                        ? "bg-gradient-to-t from-[#a01040] to-[#c0174c] shadow-lg shadow-[#c0174c]/40 border border-[#c0174c] text-white hover:from-[#8a0d36] hover:to-[#a01040]"
+                        ? "btn-primary"
                         : "border-2 border-[#c0174c] text-[#c0174c] hover:bg-[#c0174c] hover:text-white"
                     }`}
                   >

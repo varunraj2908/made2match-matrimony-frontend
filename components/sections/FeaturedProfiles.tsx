@@ -15,7 +15,7 @@ export default function FeaturedProfiles() {
   const [activeIdx, setActiveIdx] = useState(2); // center one is highlighted
 
   return (
-    <section className="bg-white px-4 sm:px-8 py-12">
+    <section className="bg-white px-4 sm:px-6 lg:px-8 py-12">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
@@ -49,12 +49,11 @@ export default function FeaturedProfiles() {
                   setTab(t.key);
                   setActiveIdx(2);
                 }}
-                className="px-7 py-2 rounded-full text-sm font-bold transition-colors cursor-pointer"
-                style={{
-                  background: active ? "#c0174c" : "white",
-                  color: active ? "white" : "#c0174c",
-                  border: active ? "2px solid #c0174c" : "2px solid #c0174c",
-                }}
+                className={`px-7 py-2 rounded-full text-sm font-bold cursor-pointer transition-all ${
+                  active
+                    ? "btn-primary"
+                    : "border-2 border-[#c0174c] text-[#c0174c] bg-white hover:bg-[#fdeef4]"
+                }`}
               >
                 {t.label}
               </button>
@@ -105,7 +104,7 @@ export default function FeaturedProfiles() {
 
         {/* CTA */}
         <div className="flex justify-center mt-10">
-          <button className="bg-[#c0174c] hover:bg-[#a01040] text-white font-bold px-10 py-3 rounded-md text-sm transition-all shadow-md cursor-pointer">
+          <button className="btn-primary px-10 py-3 rounded-md text-sm cursor-pointer">
             LEARN MORE ABOUT US
           </button>
         </div>

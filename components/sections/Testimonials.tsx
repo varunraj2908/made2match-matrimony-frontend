@@ -39,7 +39,7 @@ export default function Testimonials() {
   const t = TESTIMONIALS[idx];
 
   return (
-    <section className="relative bg-white px-4 sm:px-8 py-16 overflow-hidden">
+    <section className="relative bg-white px-4 sm:px-6 lg:px-8 py-16 overflow-hidden">
       {/* Decorative dots */}
       <span
         aria-hidden

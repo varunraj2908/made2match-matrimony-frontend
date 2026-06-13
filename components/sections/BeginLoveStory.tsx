@@ -33,7 +33,7 @@ export default function BeginLoveStory({ onClick,
               placeholder="Enter your email address"
               className="bg-white/20 border border-white/40 rounded-full px-5 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:bg-white/30 w-full sm:w-56"
             />
-            <button onClick={onClick} className="bg-white cursor-pointer text-[#c0174c] font-bold px-6 py-2 rounded-full text-sm hover:bg-white/90 transition shrink-0">
+            <button onClick={onClick} className="btn-primary cursor-pointer px-6 py-2 rounded-full text-sm shrink-0">
               Register Free →
             </button>
           </div>

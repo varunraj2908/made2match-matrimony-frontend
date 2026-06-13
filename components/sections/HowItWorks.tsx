@@ -655,7 +655,7 @@ export default function HowItWorks() {
               "opacity 0.7s ease 0.4s, transform 0.7s ease 0.4s",
           }}
         >
-          <button className="bg-[#b22234] hover:bg-[#9a1d2b] text-white font-bold px-7 md:px-10 py-3 md:py-4 rounded-2xl text-sm md:text-base transition-all hover:scale-105 hover:shadow-xl shadow-md">
+          <button className="btn-primary px-7 md:px-10 py-3 md:py-4 rounded-2xl text-sm md:text-base cursor-pointer">
             💕 Get Started Free
           </button>
         </div>

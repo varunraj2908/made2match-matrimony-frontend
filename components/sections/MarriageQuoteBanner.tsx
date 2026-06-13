@@ -78,7 +78,8 @@ export default function MarriageQuoteBanner({
         </g>
       </svg>
 
-      <div className="relative max-w-7xl mx-auto grid md:grid-cols-2 gap-8 items-center px-4 sm:px-8 py-12 md:py-16">
+      <div className="relative px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8 items-center">
         {/* LEFT — copy */}
         <div className="text-white relative z-10">
           <h2
@@ -115,7 +116,7 @@ export default function MarriageQuoteBanner({
 
           <button
             onClick={onClick}
-            className="mt-8 bg-white text-[#c0174c] font-bold px-7 py-3 rounded-md text-sm hover:bg-white/90 transition cursor-pointer"
+            className="mt-8 btn-primary px-7 py-3 rounded-md text-sm cursor-pointer"
           >
             REGISTER FREE →
           </button>
@@ -130,6 +131,7 @@ export default function MarriageQuoteBanner({
             className="object-center"
             sizes="(max-width: 768px) 100vw, 50vw"
           />
+        </div>
         </div>
       </div>
     </section>
