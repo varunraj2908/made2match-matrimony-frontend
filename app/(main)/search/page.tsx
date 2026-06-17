@@ -282,7 +282,7 @@ export default function SearchPage() {
       {/* Header */}
      
 
-      <div className="max-w-5xl mx-auto px-4 py-6 pb-28">
+      <div className="max-w-5xl mx-auto px-4 py-6 pb-6 lg:pb-28">
 
         {/* Tabs */}
         <div className="bg-gray-100 rounded-xl shadow-sm border border-gray-100 mb-4 overflow-hidden">
@@ -598,7 +598,7 @@ export default function SearchPage() {
 
       {/* ── Sticky Bottom Bar ── */}
       {tab === "criteria" && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4 border-t border-gray-100 shadow-xl"
+        <div className="static lg:fixed lg:bottom-0 lg:left-0 lg:right-0 lg:z-40 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-8 py-4 border-t border-gray-100 lg:shadow-xl"
           style={{ background: "white" }}>
           <p className="text-sm font-semibold text-gray-700">
             <span className="font-black text-base" style={{ color: "#c0174c" }}>
