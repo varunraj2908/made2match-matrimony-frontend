@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { getMyProfile, type MyProfile } from "@/services/homeService";
 import { fetchNotifications, type AppNotification } from "@/services/notificationService";
@@ -91,6 +92,10 @@ export default function Navbar() {
   // the route (works on direct loads and survives navigation).
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
+  // Top-level routes show the logo; everything deeper is an "inner page" that
+  // shows a back button (mobile) in the logo's place.
+  const MAIN_ROUTES = ["/", "/home", "/profiles", "/interests", "/chat", "/search"];
+  const isInnerPage = !MAIN_ROUTES.includes(pathname);
   const [activeNav, setActiveNav] = useState("home");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [, setShowSwitchMenu] = useState(false);
@@ -114,7 +119,16 @@ export default function Navbar() {
         .then((p) => { if (!cancelled) setMe(p); })
         .catch(() => undefined);
     load();
-    const onUpdated = () => load();
+    const onUpdated = (e: Event) => {
+      // If the event carries the new photo URL, apply it instantly so the
+      // avatar updates without waiting on (and possibly caching) a re-fetch.
+      const url = (e as CustomEvent<{ profilePhotoUrl?: string }>).detail
+        ?.profilePhotoUrl;
+      if (url) {
+        setMe((prev) => (prev ? { ...prev, profilePhotoUrl: url } : prev));
+      }
+      load();
+    };
     window.addEventListener("profile:updated", onUpdated);
     return () => {
       cancelled = true;
@@ -309,49 +323,59 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* ─────────────────────────────────────────────────
-              MOBILE — Hamburger (left)
+              LEFT — Back button (mobile inner pages) or Logo
           ───────────────────────────────────────────────── */}
-          {isLoggedIn && (
-            <button
-              onClick={() => {
-                setShowUserMenu((prev) => !prev);
-                setShowNotifications(false);
-              }}
-              className="flex lg:hidden w-10 h-10 rounded-full overflow-hidden border-2 border-[#f5d0d7] hover:border-[#b22234] transition-colors shrink-0"
-              aria-label="Profile menu"
-            >
-              <img
-                src={avatarUrl}
-                alt={displayName}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = fallbackAvatar;
-                }}
-              />
-            </button>
-          )}
+          <div className="flex items-center shrink-0">
+            {/* Mobile back button — only on inner pages */}
+            {isInnerPage && (
+              <button
+                onClick={() => router.back()}
+                className="flex lg:hidden w-10 h-10 items-center justify-center rounded-full bg-red-50 border border-[#f5d0d7] text-[#b22234] hover:bg-[#b22234] hover:text-white hover:border-[#b22234] transition-colors shrink-0 shadow-sm"
+                aria-label="Go back"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+            )}
 
-          {/* ─────────────────────────────────────────────────
-              LOGO — centered on mobile, left on desktop
-          ───────────────────────────────────────────────── */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 shrink-0 absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0"
-          >
-            <div className="flex flex-col leading-none">
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-2xl font-black" style={{ color: "#b22234", fontFamily: "Georgia, serif" }}>
-                  Made
-                </span>
-                <span className="text-2xl font-bold" style={{ color: "#f3e228" }}>
-                  2
-                </span>
-                <span className="text-2xl font-black" style={{ color: "#b22234", fontFamily: "Georgia, serif" }}>
-                  Match
-                </span>
+            {/* Logo — left aligned; hidden on mobile inner pages (back button takes its place) */}
+            <Link
+              href="/"
+              className={`items-center gap-1.5 shrink-0 ${isInnerPage ? "hidden lg:flex" : "flex"}`}
+            >
+              <Image
+                src="/golden-hearts.png"
+                alt="Made2Match"
+                width={84}
+                height={56}
+                priority
+                className="h-14 w-auto object-contain -ml-5 sm:-ml-6"
+              />
+              <div className="flex flex-col leading-none">
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-2xl font-black" style={{ color: "#b22234", fontFamily: "Georgia, serif" }}>
+                    Made
+                  </span>
+                  <span className="text-2xl font-bold" style={{ color: "#f3e228" }}>
+                    2
+                  </span>
+                  <span className="text-2xl font-black" style={{ color: "#b22234", fontFamily: "Georgia, serif" }}>
+                    Match
+                  </span>
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          </div>
 
           {/* ─────────────────────────────────────────────────
               DESKTOP Center Nav
@@ -430,8 +454,8 @@ export default function Navbar() {
                   {showNotifications && <NotificationPanel />}
                 </div>
 
-                {/* ── Profile Avatar (desktop) ── */}
-                <div className="relative hidden lg:block" ref={menuRef}>
+                {/* ── Profile Avatar (mobile + desktop) ── */}
+                <div className="relative" ref={menuRef}>
                   <button
                     onClick={() => {
                       setShowUserMenu((prev) => !prev);

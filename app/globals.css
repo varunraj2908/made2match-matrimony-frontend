@@ -228,3 +228,112 @@ h1, h2, h3, h4, h5, h6 {
   animation: shake 3s ease-in-out infinite;
 }
 
+/* ─────────────────────────────────────────────────────────────────
+   AI Compatibility Matching modal (Ask AI) animations
+   ───────────────────────────────────────────────────────────────── */
+
+/* Vertical scanning beam that sweeps across a profile while analysing. */
+@keyframes ai-scan {
+  0%   { transform: translateY(-110%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(110%); opacity: 0; }
+}
+.animate-ai-scan {
+  animation: ai-scan 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Flowing dashed "love thread" connecting the two profiles. */
+@keyframes ai-thread {
+  to { stroke-dashoffset: -32; }
+}
+.animate-ai-thread {
+  animation: ai-thread 0.9s linear infinite;
+}
+
+/* Particles drifting along the thread between profiles. */
+@keyframes ai-particle {
+  0%   { offset-distance: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+/* Golden shimmer sweeping over the score ring on completion. */
+@keyframes ai-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-ai-shimmer {
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(232, 197, 71, 0.55) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: ai-shimmer 2.2s linear infinite;
+}
+
+/* Soft pulsing halo behind the central score ring. */
+@keyframes ai-halo {
+  0%, 100% { transform: scale(1);    opacity: 0.55; }
+  50%      { transform: scale(1.12); opacity: 0.9; }
+}
+.animate-ai-halo {
+  animation: ai-halo 2.4s ease-in-out infinite;
+}
+
+/* Floating hearts in the modal backdrop. */
+@keyframes ai-float {
+  0%   { transform: translateY(0) scale(1);    opacity: 0; }
+  15%  { opacity: 0.8; }
+  100% { transform: translateY(-120px) scale(1.4); opacity: 0; }
+}
+.animate-ai-float {
+  animation: ai-float linear infinite;
+}
+
+/* Row reveal as each attribute finishes scoring. */
+@keyframes ai-reveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-ai-reveal {
+  animation: ai-reveal 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* Blinking analysis cursor / live dot. */
+@keyframes ai-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.3; transform: scale(0.7); }
+}
+.animate-ai-live {
+  animation: ai-live 1s ease-in-out infinite;
+}
+
+/* @keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (max-width: 640px) {
+  .animate-marquee {
+    animation-duration: 18s;
+  }
+}
+ */

@@ -21,6 +21,7 @@ import Testimonials from "@/components/sections/Testimonials";
 import LocationMap from "@/components/sections/LocationMap";
 import Testimonials3D from "@/components/sections/Testimonials3D";
 import SweetStoriesCarousel from "@/components/sections/SweetStoriesCarousel";
+import MobileSplash from "@/components/sections/MobileSplash";
 
 export default function Home() {
   const [open, setOpen] = useState(false);
@@ -88,6 +89,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#fdf5f5] font-sans text-sm"  >
+
+      {/* Mobile-only splash gate (CSS-gated so it shows on first paint, no flash) —
+          forward only via Register / Login */}
+      <div className="fixed inset-0 z-[3000] lg:hidden overflow-y-auto">
+        <MobileSplash />
+      </div>
 
       {/* Header + Navbar stick together at top:0 as a single block.
           Position fixed guarantees this regardless of any ancestor overflow. */}

@@ -149,7 +149,7 @@ export function FieldGroup({ label, error, optional, children,isHeight }: {
   label: string; error?: string; optional?: boolean; children: React.ReactNode;isHeight?:string
 }) {
   return (
-    <div className={isHeight ? isHeight:"h-20"}>
+    <div className={isHeight ? isHeight:"min-h-20"}>
       <h3 className="text-sm font-bold text-gray-700 mb-2.5">
         {label}
         {optional && <span className="text-gray-400 font-normal ml-1 text-xs">(Optional)</span>}

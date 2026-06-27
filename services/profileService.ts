@@ -243,6 +243,36 @@ export const getProfileById = async (id: number | string) => {
   return res.data.data;
 };
 
+// ── Horoscope (Guna Milan) compatibility ───────────────────────
+export interface HoroscopeKoota {
+  name: string;
+  obtained: number;
+  max: number;
+  note: string;
+}
+export interface HoroscopeMatch {
+  totalPoints: number;
+  maxPoints: number;
+  percentage: number;
+  compatible: boolean;
+  verdict: string;
+  brideNakshatra: string;
+  groomNakshatra: string;
+  brideRaasi: string;
+  groomRaasi: string;
+  breakdown: HoroscopeKoota[];
+}
+
+// Real Vedic 36-point match between the logged-in user and `profileId`.
+export const getHoroscopeMatch = async (
+  profileId: number | string,
+): Promise<HoroscopeMatch> => {
+  const res = await axiosInstance.get<ApiEnvelope<HoroscopeMatch>>(
+    `/compatibility/horoscope/${profileId}`,
+  );
+  return res.data.data;
+};
+
 // ── My profile (full) — GET /profiles/me ───────────────────────
 export const getMyProfileFull = async () => {
   const res = await axiosInstance.get<ApiEnvelope<FullProfile>>("/profiles/me");

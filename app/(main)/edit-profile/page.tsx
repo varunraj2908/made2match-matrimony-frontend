@@ -1,8 +1,50 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import SlideModal from "@/components/modals/SlideModal";
+import {
+  getMyProfileFull,
+  updateMyProfile,
+  type FullProfile,
+  type ProfileUpdatePayload,
+} from "@/services/profileService";
+
+// ── Display helpers (DB → readable) ─────────────────────────────────
+const NOT_SET = "Not Specified";
+
+const friendly = (v?: string): string => {
+  if (!v) return NOT_SET;
+  return v
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+};
+
+const fmtHeight = (cm?: number): string => {
+  if (!cm) return NOT_SET;
+  const totalInches = Math.round(cm / 2.54);
+  const ft = Math.floor(totalInches / 12);
+  const inch = totalInches % 12;
+  return `${ft} Ft ${inch} In / ${cm} Cms`;
+};
+
+const fmtWeight = (kg?: number): string =>
+  kg ? `${kg} Kgs / ${Math.round(kg * 2.205)} lbs` : NOT_SET;
+
+const fmtIncome = (annual?: number): string => {
+  if (annual == null) return NOT_SET;
+  if (annual === 0) return "No income";
+  const lakhs = annual / 100000;
+  return `Rs. ${Number.isInteger(lakhs) ? lakhs : lakhs.toFixed(1)} Lakhs`;
+};
+
+const fullNameOf = (p: FullProfile | null): string =>
+  p ? [p.firstName, p.lastName].filter(Boolean).join(" ") || "—" : "—";
+
+const createdForLabel = (v?: string): string =>
+  (v || "").toUpperCase() === "SELF" ? "My Self" : friendly(v);
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const EditIcon = () => (
@@ -462,29 +504,182 @@ const TwoColDetails = ({ rows }: { rows: { label: string; value: string; isLink?
   </div>
 );
 
-// ─── Modal Form Components ────────────────────────────────────────────────────
-const FieldRow = ({ label, defaultValue, type = "text" }: { label: string; defaultValue?: string; type?: string }) => (
+// ─── Controlled form fields ───────────────────────────────────────────────────
+const FIELD_CLS = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all";
+const LABEL_CLS = "block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide";
+
+const TextField = ({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) => (
   <div className="mb-4">
-    <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">{label}</label>
-    <input type={type} defaultValue={defaultValue} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all" />
+    <label className={LABEL_CLS}>{label}</label>
+    <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className={FIELD_CLS} />
   </div>
 );
-const SelectRow = ({ label, defaultValue, options }: { label: string; defaultValue?: string; options: string[] }) => (
+const EnumField = ({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: [string, string][] }) => (
   <div className="mb-4">
-    <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">{label}</label>
-    <select defaultValue={defaultValue} className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all bg-white">
-      {options.map(o => <option key={o}>{o}</option>)}
+    <label className={LABEL_CLS}>{label}</label>
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={`${FIELD_CLS} bg-white`}>
+      <option value="">Select…</option>
+      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
     </select>
   </div>
 );
 
-const BasicDetailsForm    = () => (<><SelectRow label="Profile Created For" defaultValue="My Self" options={["My Self","Son","Daughter","Brother","Sister","Friend"]} /><FieldRow label="Name" defaultValue="Varun" /><FieldRow label="Age" defaultValue="33" type="number" /><SelectRow label="Height" defaultValue="5 Ft 6 In / 168 Cms" options={["5 Ft 0 In","5 Ft 2 In","5 Ft 4 In","5 Ft 6 In / 168 Cms","5 Ft 8 In","6 Ft 0 In"]} /><SelectRow label="Mother Tongue" defaultValue="Malayalam" options={["Malayalam","Tamil","Hindi","Telugu","Kannada"]} /><SelectRow label="Marital Status" defaultValue="Never Married" options={["Never Married","Divorced","Widowed","Awaiting Divorce"]} /><SelectRow label="Body Type" defaultValue="Average" options={["Slim","Average","Athletic","Heavy"]} /><SelectRow label="Eating Habits" defaultValue="Non Vegetarian" options={["Vegetarian","Non Vegetarian","Vegan","Eggetarian"]} /><SelectRow label="Drinking Habits" defaultValue="Never drinks" options={["Never drinks","Occasionally","Regularly"]} /><SelectRow label="Smoking Habits" defaultValue="Never smokes" options={["Never smokes","Occasionally","Regularly"]} /><FieldRow label="Weight (Kgs)" defaultValue="75" type="number" /></>);
-const ReligionForm        = () => (<><SelectRow label="Religion" defaultValue="Hindu" options={["Hindu","Muslim","Christian","Sikh","Jain","Buddhist"]} /><FieldRow label="Caste / Sub Caste" defaultValue="Ezhava" /><FieldRow label="Gothram" defaultValue="" /><SelectRow label="Star / Raasi" defaultValue="Aswathi" options={["Aswathi","Bharani","Karthika","Rohini","Makayiram","Thiruvathira"]} /><FieldRow label="Time of Birth" type="time" /><FieldRow label="Place of Birth" defaultValue="" /><SelectRow label="Suddha Jadhagam" defaultValue="Not Specified" options={["Not Specified","Yes","No"]} /></>);
-const LocationForm        = () => (<><SelectRow label="Country" defaultValue="India" options={["India","USA","UK","Canada","Australia","UAE"]} /><SelectRow label="State" defaultValue="Kerala" options={["Kerala","Tamil Nadu","Karnataka","Maharashtra","Delhi"]} /><FieldRow label="City" defaultValue="Kalamassery" /><FieldRow label="Ancestral Origin" defaultValue="Palakkad" /><SelectRow label="Citizenship" defaultValue="India" options={["India","USA","UK","Canada","Australia"]} /></>);
-const ProfessionalForm    = () => (<><SelectRow label="Education" defaultValue="B.Tech - Bachelor of Technology" options={["B.Tech - Bachelor of Technology","M.Tech","MBA","MBBS","B.Sc","M.Sc","PhD"]} /><FieldRow label="Education in Detail" defaultValue="" /><FieldRow label="College / Institution" defaultValue="Mannarkkad universal college" /><SelectRow label="Employed In" defaultValue="Private Sector" options={["Private Sector","Government","Business","Defence","Not Working"]} /><SelectRow label="Occupation" defaultValue="Software Professional" options={["Software Professional","Doctor","Engineer","Teacher","Lawyer","Accountant"]} /><FieldRow label="Occupation in Detail" defaultValue="" /><FieldRow label="Organization" defaultValue="Mykare Health Private limited" /><SelectRow label="Annual Income" defaultValue="Rs. 7 - 8 Lakhs" options={["Rs. 2 - 3 Lakhs","Rs. 4 - 5 Lakhs","Rs. 5 - 7 Lakhs","Rs. 7 - 8 Lakhs","Rs. 10 - 15 Lakhs","Rs. 15+ Lakhs"]} /></>);
-const FamilyForm          = () => (<><SelectRow label="Family Values" defaultValue="Moderate" options={["Orthodox","Traditional","Moderate","Liberal"]} /><SelectRow label="Family Type" defaultValue="Nuclear" options={["Nuclear","Joint"]} /><SelectRow label="Family Status" defaultValue="Middle class" options={["Lower Middle Class","Middle class","Upper Middle Class","Rich","Affluent"]} /><SelectRow label="Father's Occupation" defaultValue="Employed" options={["Employed","Business","Retired","Passed Away","Not Employed"]} /><SelectRow label="Mother's Occupation" defaultValue="Homemaker" options={["Homemaker","Employed","Business","Retired","Passed Away"]} /><FieldRow label="No. of Brothers" defaultValue="1" type="number" /><FieldRow label="No. of Sisters" defaultValue="1" type="number" /><FieldRow label="Family Location" defaultValue="" /></>);
-const HobbiesForm         = () => (<><div className="mb-4"><label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Hobbies & Interests</label><div className="flex flex-wrap gap-2">{["Acting","Adventure sports","Gardening","Cooking","Reading","Travelling","Painting","Dancing"].map(h => (<button key={h} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${["Acting","Adventure sports"].includes(h) ? "border-blue-400 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600 hover:border-blue-300"}`}>{h}</button>))}</div></div><div className="mb-4"><label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Music</label><div className="flex flex-wrap gap-2">{["Classical","Devotional","Pop","Rock","Jazz","Folk"].map(m => (<button key={m} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${["Classical","Devotional"].includes(m) ? "border-blue-400 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600 hover:border-blue-300"}`}>{m}</button>))}</div></div><div className="mb-4"><label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Spoken Languages</label><div className="flex flex-wrap gap-2">{["English","Malayalam","Hindi","Tamil","Kannada"].map(l => (<button key={l} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${["English","Malayalam"].includes(l) ? "border-blue-400 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600 hover:border-blue-300"}`}>{l}</button>))}</div></div><FieldRow label="Sports & Fitness" defaultValue="American Football, Bowling" /><FieldRow label="Favourite Food" defaultValue="Arabic" /></>);
-const AboutMyselfForm     = () => (<div className="mb-4"><label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">About Yourself</label><textarea rows={6} defaultValue="I have a bachelor's degree and I am employed in the private sector as a software professional currently based in Palakkad. I belong to a middle-class, nuclear family with moderate values." className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all resize-none" /></div>);
+// Backend enum option lists (value = enum NAME sent to API).
+const OPT = {
+  createdFor:   [["SELF","My Self"],["SON","Son"],["DAUGHTER","Daughter"],["BROTHER","Brother"],["SISTER","Sister"],["RELATIVE","Relative"],["FRIEND","Friend"]] as [string,string][],
+  motherTongue: [["MALAYALAM","Malayalam"],["TAMIL","Tamil"],["TELUGU","Telugu"],["KANNADA","Kannada"],["HINDI","Hindi"],["BENGALI","Bengali"],["GUJARATI","Gujarati"],["MARATHI","Marathi"],["PUNJABI","Punjabi"],["OTHER","Other"]] as [string,string][],
+  marital:      [["NEVER_MARRIED","Never Married"],["DIVORCED","Divorced"],["WIDOWED","Widowed"],["AWAITING_DIVORCE","Awaiting Divorce"]] as [string,string][],
+  bodyType:     [["SLIM","Slim"],["ATHLETIC","Athletic"],["AVERAGE","Average"],["HEAVY","Heavy"]] as [string,string][],
+  complexion:   [["VERY_FAIR","Very Fair"],["FAIR","Fair"],["WHEATISH","Wheatish"],["DARK","Dark"]] as [string,string][],
+  physical:     [["NORMAL","Normal"],["PHYSICALLY_CHALLENGED","Physically Challenged"]] as [string,string][],
+  diet:         [["VEGETARIAN","Vegetarian"],["NON_VEGETARIAN","Non Vegetarian"],["EGGETARIAN","Eggetarian"],["VEGAN","Vegan"],["JAIN","Jain"]] as [string,string][],
+  smoking:      [["NO","Never smokes"],["OCCASIONALLY","Occasionally"],["YES","Regularly"]] as [string,string][],
+  drinking:     [["NO","Never drinks"],["OCCASIONALLY","Occasionally"],["YES","Regularly"]] as [string,string][],
+  familyType:   [["NUCLEAR","Nuclear"],["JOINT","Joint"],["EXTENDED","Extended"]] as [string,string][],
+  familyStatus: [["MIDDLE_CLASS","Middle Class"],["UPPER_MIDDLE_CLASS","Upper Middle Class"],["RICH","Rich"],["AFFLUENT","Affluent"]] as [string,string][],
+  shudha:       [["YES","Yes"],["NO","No"],["DONT_KNOW","Don't Know"]] as [string,string][],
+};
+
+type FormProps = { profile: FullProfile | null; onChange: (p: ProfileUpdatePayload) => void };
+const num = (s: string): number | undefined => (s.trim() === "" ? undefined : Number(s));
+const str = (s: string): string | undefined => (s.trim() === "" ? undefined : s);
+
+const BasicDetailsForm = ({ profile, onChange }: FormProps) => {
+  const [v, setV] = useState({
+    firstName: profile?.firstName ?? "", lastName: profile?.lastName ?? "",
+    profileCreatedBy: profile?.profileCreatedBy ?? "", heightCm: profile?.heightCm != null ? String(profile.heightCm) : "",
+    weightKg: profile?.weightKg != null ? String(profile.weightKg) : "", motherTongue: profile?.motherTongue ?? "",
+    maritalStatus: profile?.maritalStatus ?? "", bodyType: profile?.bodyType ?? "",
+    diet: profile?.diet ?? "", drinking: profile?.drinking ?? "", smoking: profile?.smoking ?? "",
+  });
+  const set = (k: keyof typeof v, val: string) => setV((s) => ({ ...s, [k]: val }));
+  useEffect(() => {
+    onChange({
+      firstName: str(v.firstName), lastName: str(v.lastName), profileCreatedBy: str(v.profileCreatedBy),
+      heightCm: num(v.heightCm), weightKg: num(v.weightKg), motherTongue: str(v.motherTongue),
+      maritalStatus: str(v.maritalStatus), bodyType: str(v.bodyType), diet: str(v.diet),
+      drinking: str(v.drinking), smoking: str(v.smoking),
+    });
+  }, [v, onChange]);
+  return (<>
+    <EnumField label="Profile Created For" value={v.profileCreatedBy} onChange={(x) => set("profileCreatedBy", x)} options={OPT.createdFor} />
+    <TextField label="First Name" value={v.firstName} onChange={(x) => set("firstName", x)} />
+    <TextField label="Last Name" value={v.lastName} onChange={(x) => set("lastName", x)} />
+    <TextField label="Height (cm)" value={v.heightCm} onChange={(x) => set("heightCm", x)} type="number" />
+    <TextField label="Weight (kg)" value={v.weightKg} onChange={(x) => set("weightKg", x)} type="number" />
+    <EnumField label="Mother Tongue" value={v.motherTongue} onChange={(x) => set("motherTongue", x)} options={OPT.motherTongue} />
+    <EnumField label="Marital Status" value={v.maritalStatus} onChange={(x) => set("maritalStatus", x)} options={OPT.marital} />
+    <EnumField label="Body Type" value={v.bodyType} onChange={(x) => set("bodyType", x)} options={OPT.bodyType} />
+    <EnumField label="Eating Habits" value={v.diet} onChange={(x) => set("diet", x)} options={OPT.diet} />
+    <EnumField label="Drinking Habits" value={v.drinking} onChange={(x) => set("drinking", x)} options={OPT.drinking} />
+    <EnumField label="Smoking Habits" value={v.smoking} onChange={(x) => set("smoking", x)} options={OPT.smoking} />
+  </>);
+};
+
+const ReligionForm = ({ profile, onChange }: FormProps) => {
+  const [v, setV] = useState({
+    religion: profile?.religion ?? "", caste: profile?.caste ?? "", subcaste: profile?.subcaste ?? "",
+    willingToMarryAnyCaste: !!profile?.willingToMarryAnyCaste, shudhajathakam: profile?.shudhajathakam ?? "",
+  });
+  const set = (k: keyof typeof v, val: string | boolean) => setV((s) => ({ ...s, [k]: val }));
+  useEffect(() => {
+    onChange({
+      religion: str(v.religion), caste: str(v.caste), subcaste: str(v.subcaste),
+      willingToMarryAnyCaste: v.willingToMarryAnyCaste, shudhajathakam: str(v.shudhajathakam),
+    });
+  }, [v, onChange]);
+  return (<>
+    <TextField label="Religion" value={v.religion} onChange={(x) => set("religion", x)} />
+    <TextField label="Caste" value={v.caste} onChange={(x) => set("caste", x)} />
+    <TextField label="Sub Caste" value={v.subcaste} onChange={(x) => set("subcaste", x)} />
+    <EnumField label="Suddha Jadhagam" value={v.shudhajathakam} onChange={(x) => set("shudhajathakam", x)} options={OPT.shudha} />
+    <label className="flex items-center gap-2 text-sm text-gray-700 mb-2 cursor-pointer">
+      <input type="checkbox" checked={v.willingToMarryAnyCaste} onChange={(e) => set("willingToMarryAnyCaste", e.target.checked)} className="accent-[#c0174c] w-4 h-4" />
+      Willing to marry any caste (Caste No Bar)
+    </label>
+  </>);
+};
+
+const LocationForm = ({ profile, onChange }: FormProps) => {
+  const [v, setV] = useState({
+    country: profile?.country ?? "", state: profile?.state ?? "", city: profile?.city ?? "", pincode: profile?.pincode ?? "",
+  });
+  const set = (k: keyof typeof v, val: string) => setV((s) => ({ ...s, [k]: val }));
+  useEffect(() => {
+    onChange({ country: str(v.country), state: str(v.state), city: str(v.city), pincode: str(v.pincode) });
+  }, [v, onChange]);
+  return (<>
+    <TextField label="Country" value={v.country} onChange={(x) => set("country", x)} />
+    <TextField label="State" value={v.state} onChange={(x) => set("state", x)} />
+    <TextField label="City" value={v.city} onChange={(x) => set("city", x)} />
+    <TextField label="Pincode" value={v.pincode} onChange={(x) => set("pincode", x)} />
+  </>);
+};
+
+const ProfessionalForm = ({ profile, onChange }: FormProps) => {
+  const [v, setV] = useState({
+    highestQualification: profile?.highestQualification ?? "", collegeUniversity: profile?.collegeUniversity ?? "",
+    employedIn: profile?.employedIn ?? "", occupation: profile?.occupation ?? "",
+    annualIncome: profile?.annualIncome != null ? String(profile.annualIncome) : "",
+  });
+  const set = (k: keyof typeof v, val: string) => setV((s) => ({ ...s, [k]: val }));
+  useEffect(() => {
+    onChange({
+      highestQualification: str(v.highestQualification), collegeUniversity: str(v.collegeUniversity),
+      employedIn: str(v.employedIn), occupation: str(v.occupation), annualIncome: num(v.annualIncome),
+    });
+  }, [v, onChange]);
+  return (<>
+    <TextField label="Education" value={v.highestQualification} onChange={(x) => set("highestQualification", x)} />
+    <TextField label="College / Institution" value={v.collegeUniversity} onChange={(x) => set("collegeUniversity", x)} />
+    <TextField label="Employed In" value={v.employedIn} onChange={(x) => set("employedIn", x)} />
+    <TextField label="Occupation" value={v.occupation} onChange={(x) => set("occupation", x)} />
+    <TextField label="Annual Income (₹ per year)" value={v.annualIncome} onChange={(x) => set("annualIncome", x)} type="number" />
+  </>);
+};
+
+const FamilyForm = ({ profile, onChange }: FormProps) => {
+  const [v, setV] = useState({
+    familyType: profile?.familyType ?? "", familyStatus: profile?.familyStatus ?? "",
+    fatherOccupation: profile?.fatherOccupation ?? "", motherOccupation: profile?.motherOccupation ?? "",
+    noOfBrothers: profile?.noOfBrothers != null ? String(profile.noOfBrothers) : "",
+    noOfSisters: profile?.noOfSisters != null ? String(profile.noOfSisters) : "",
+  });
+  const set = (k: keyof typeof v, val: string) => setV((s) => ({ ...s, [k]: val }));
+  useEffect(() => {
+    onChange({
+      familyType: str(v.familyType), familyStatus: str(v.familyStatus),
+      fatherOccupation: str(v.fatherOccupation), motherOccupation: str(v.motherOccupation),
+      noOfBrothers: num(v.noOfBrothers), noOfSisters: num(v.noOfSisters),
+    });
+  }, [v, onChange]);
+  return (<>
+    <EnumField label="Family Type" value={v.familyType} onChange={(x) => set("familyType", x)} options={OPT.familyType} />
+    <EnumField label="Family Status" value={v.familyStatus} onChange={(x) => set("familyStatus", x)} options={OPT.familyStatus} />
+    <TextField label="Father's Occupation" value={v.fatherOccupation} onChange={(x) => set("fatherOccupation", x)} />
+    <TextField label="Mother's Occupation" value={v.motherOccupation} onChange={(x) => set("motherOccupation", x)} />
+    <TextField label="No. of Brothers" value={v.noOfBrothers} onChange={(x) => set("noOfBrothers", x)} type="number" />
+    <TextField label="No. of Sisters" value={v.noOfSisters} onChange={(x) => set("noOfSisters", x)} type="number" />
+  </>);
+};
+
+const AboutMyselfForm = ({ profile, onChange }: FormProps) => {
+  const [bio, setBio] = useState(profile?.bio ?? "");
+  useEffect(() => { onChange({ bio: str(bio) }); }, [bio, onChange]);
+  return (
+    <div className="mb-4">
+      <label className={LABEL_CLS}>About Yourself</label>
+      <textarea rows={6} value={bio} onChange={(e) => setBio(e.target.value)} className={`${FIELD_CLS} resize-none`} />
+    </div>
+  );
+};
+
+// Hobbies are managed via a separate interests endpoint — informational only here.
+const HobbiesForm = () => (
+  <p className="text-sm text-gray-500">
+    Hobbies &amp; interests are managed from the onboarding “Interests” step. Coming soon to this editor.
+  </p>
+);
 
 // ─── Main Profile Page ────────────────────────────────────────────────────────
 export default function MyProfilePage() {
@@ -500,16 +695,72 @@ export default function MyProfilePage() {
   const [academicInput, setAcademicInput]     = useState("");
   const [openModal, setOpenModal]             = useState<string | null>(null);
   const [mobileNumber, setMobileNumber]       = useState("+91-8075067058");
+  const [profile, setProfile]                 = useState<FullProfile | null>(null);
+  const [saving, setSaving]                   = useState(false);
+  const [toast, setToast]                     = useState("");
+  const draftRef = useRef<ProfileUpdatePayload>({});
+  const setDraft = useCallback((p: ProfileUpdatePayload) => { draftRef.current = p; }, []);
 
-  const open  = (key: string) => setOpenModal(key);
+  // Load the logged-in user's real profile from the database.
+  useEffect(() => {
+    getMyProfileFull()
+      .then(setProfile)
+      .catch(() => undefined);
+  }, []);
+
+  const open  = (key: string) => { draftRef.current = {}; setOpenModal(key); };
   const close = () => setOpenModal(null);
 
+  const showToast = (m: string) => {
+    setToast(m);
+    window.setTimeout(() => setToast(""), 2500);
+  };
+
+  // Persist the currently-open form's draft to the backend (PUT /profiles/me).
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updated = await updateMyProfile(draftRef.current);
+      setProfile(updated);
+      showToast("Profile updated successfully");
+      close();
+    } catch (e: any) {
+      showToast(e?.response?.data?.message || e?.message || "Could not update profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const primaryPhoto  = photos.find(p => p.isPrimary);
-  const displayPhoto  = primaryPhoto?.url ?? "https://i.pravatar.cc/300?img=33";
+  const displayPhoto  = primaryPhoto?.url ?? profile?.profilePhotoUrl ?? "https://i.pravatar.cc/300?img=33";
   const displayMobile = mobileNumber.startsWith("+91-") ? `+91-${mobileNumber.slice(4)}` : mobileNumber;
+
+  // ── Real profile display values ──
+  const displayName   = fullNameOf(profile);
+  const createdFor    = createdForLabel(profile?.profileCreatedBy);
+  const ageStr        = profile?.age != null ? `${profile.age} Years` : NOT_SET;
+  const heightStr     = fmtHeight(profile?.heightCm);
+  const religionStr   = friendly(profile?.religion);
+  const casteStr      = profile?.caste
+    ? `${profile.caste}${profile.willingToMarryAnyCaste ? " (Caste No Bar)" : ""}`
+    : NOT_SET;
+  const cityState     = [profile?.city, profile?.state, profile?.country].filter(Boolean).join(", ") || NOT_SET;
+  const educationStr  = friendly(profile?.highestQualification);
+  const occupationStr = friendly(profile?.occupation);
+  const isGroom       = (profile?.gender || "").toUpperCase().startsWith("M");
+  const heroSummaryLine = profile?.age != null || profile?.heightCm
+    ? `${profile?.age != null ? `${profile.age} Yrs` : ""}${profile?.heightCm ? `, ${fmtHeight(profile.heightCm)}` : ""}`
+    : NOT_SET;
 
   return (
     <div className="min-h-screen bg-gray-100 py-4 sm:py-6 px-3 sm:px-4">
+      {/* Save / error toast */}
+      {toast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[10000] bg-[#c0174c] text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg">
+          {toast}
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4">
 
         {/* ── Back nav ── */}
@@ -536,7 +787,7 @@ export default function MyProfilePage() {
                 <div className="relative w-24 h-28 rounded-lg overflow-hidden border-2 mb-2 group cursor-pointer"
                   style={{ borderColor: "#e0e0e0" }} onClick={() => setShowPhotoModal(true)}>
                   {!imgFallback ? (
-                    <img src={displayPhoto} alt="Varun" className="w-full h-full object-cover object-top" onError={() => setImgFallback(true)} />
+                    <img src={displayPhoto} alt={displayName} className="w-full h-full object-cover object-top" onError={() => setImgFallback(true)} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl bg-linear-to-br from-gray-100 to-gray-200">🤵</div>
                   )}
@@ -561,7 +812,7 @@ export default function MyProfilePage() {
               {/* Name + quick info + preview button */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <h1 className="text-lg font-bold text-gray-900 leading-tight">Varun</h1>
+                  <h1 className="text-lg font-bold text-gray-900 leading-tight">{displayName}</h1>
                   <button onClick={() => router.push(`/edit-profile/${profileId}`)}
                     className="flex items-center gap-1 border-2 text-xs font-semibold px-2.5 py-1.5 rounded shrink-0 transition-all"
                     style={{ borderColor: "#c0174c", color: "#c0174c" }}
@@ -570,12 +821,12 @@ export default function MyProfilePage() {
                     <EyeIcon /> Preview
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mb-2">Profile created for My Self</p>
+                <p className="text-xs text-gray-500 mb-2">Profile created for {createdFor}</p>
                 <div className="space-y-0.5 text-xs text-gray-700">
-                  <p>33 Yrs, 5 Ft 6 In / 168 Cms</p>
-                  <p>Hindu, Ezhava (Caste No Bar)</p>
-                  <p>Kalamassery, Kerala, India</p>
-                  <p className="text-[11px] text-gray-500">B.Tech, Software Professional</p>
+                  <p>{heroSummaryLine}</p>
+                  <p>{religionStr}{casteStr !== NOT_SET ? `, ${casteStr}` : ""}</p>
+                  <p>{cityState}</p>
+                  <p className="text-[11px] text-gray-500">{educationStr}{occupationStr !== NOT_SET ? `, ${occupationStr}` : ""}</p>
                 </div>
                 {/* Mobile number row */}
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mt-2">
@@ -599,7 +850,7 @@ export default function MyProfilePage() {
               <div className="relative w-36 h-40 rounded-lg overflow-hidden border-2 mb-2.5 group cursor-pointer"
                 style={{ borderColor: "#e0e0e0" }} onClick={() => setShowPhotoModal(true)}>
                 {!imgFallback ? (
-                  <img src={displayPhoto} alt="Varun" className="w-full h-full object-cover object-top" onError={() => setImgFallback(true)} />
+                  <img src={displayPhoto} alt={displayName} className="w-full h-full object-cover object-top" onError={() => setImgFallback(true)} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-5xl bg-linear-to-br from-gray-100 to-gray-200">🤵</div>
                 )}
@@ -625,13 +876,13 @@ export default function MyProfilePage() {
 
             {/* Desktop Info */}
             <div className="flex-1 min-w-0 hidden sm:block">
-              <h1 className="text-2xl font-bold text-gray-900 mb-0.5">Varun</h1>
-              <p className="text-sm text-gray-500 mb-3">Profile created for My Self</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-0.5">{displayName}</h1>
+              <p className="text-sm text-gray-500 mb-3">Profile created for {createdFor}</p>
               <div className="space-y-1.5 text-sm text-gray-700 mb-4">
-                <p>33 Yrs, 5 Ft 6 In / 168 Cms</p>
-                <p>Hindu, Ezhava (Caste No Bar)</p>
-                <p>Kalamassery, Kerala, India</p>
-                <p>B.Tech - Bachelor of Technology, Software Professional</p>
+                <p>{heroSummaryLine}</p>
+                <p>{religionStr}{casteStr !== NOT_SET ? `, ${casteStr}` : ""}</p>
+                <p>{cityState}</p>
+                <p>{educationStr}{occupationStr !== NOT_SET ? `, ${occupationStr}` : ""}</p>
                 <div className="flex items-center gap-2 flex-wrap">
                   <PhoneIcon />
                   <span className="font-medium text-gray-800">{displayMobile}</span>
@@ -682,26 +933,26 @@ export default function MyProfilePage() {
         <h2 className="text-lg sm:text-xl font-bold pt-1 sm:pt-2" style={{ color: "#c0174c" }}>Personal Information</h2>
 
         <SectionCard title="In my own words" onEdit={() => open("about")}>
-          <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">I have a bachelor's degree and I am employed in the private sector as a software professional currently based in Palakkad. I belong to a middle-class, nuclear family with moderate values.</p>
+          <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">{profile?.bio || NOT_SET}</p>
         </SectionCard>
 
         <SectionCard title="Basic Details" onEdit={() => open("basic")}>
           <TwoColDetails rows={[
             [
-              { label: "Profile created for", value: "My Self" },
-              { label: "Body Type",           value: "Average" },
-              { label: "Physical Status",     value: "Normal" },
-              { label: "Weight",              value: "75 Kgs / 165 lbs" },
-              { label: "Marital Status",      value: "Never Married" },
-              { label: "Drinking Habits",     value: "Never drinks" },
+              { label: "Profile created for", value: createdFor },
+              { label: "Body Type",           value: friendly(profile?.bodyType) },
+              { label: "Physical Status",     value: friendly(profile?.physicalStatus) },
+              { label: "Weight",              value: fmtWeight(profile?.weightKg) },
+              { label: "Marital Status",      value: friendly(profile?.maritalStatus) },
+              { label: "Drinking Habits",     value: friendly(profile?.drinking) },
             ],
             [
-              { label: "Name",           value: "Varun" },
-              { label: "Age",            value: "33 Years" },
-              { label: "Height",         value: "5 Ft 6 In / 168 Cms" },
-              { label: "Mother Tongue",  value: "Malayalam" },
-              { label: "Eating Habits",  value: "Non Vegetarian" },
-              { label: "Smoking Habits", value: "Never smokes" },
+              { label: "Name",           value: displayName },
+              { label: "Age",            value: ageStr },
+              { label: "Height",         value: heightStr },
+              { label: "Mother Tongue",  value: friendly(profile?.motherTongue) },
+              { label: "Eating Habits",  value: friendly(profile?.diet) },
+              { label: "Smoking Habits", value: friendly(profile?.smoking) },
             ],
           ]} />
         </SectionCard>
@@ -710,11 +961,11 @@ export default function MyProfilePage() {
           {/* 1 col on mobile, 2 cols on sm+ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-8">
             <div>
-              <DetailRow label="Religion"          value="Hindu" />
-              <DetailRow label="Caste / Sub Caste" value="Ezhava (Caste No Bar) - Ezhava" />
-              <DetailRow label="Gothram"           value="-" />
-              <DetailRow label="Star / Raasi"      value="Aswathi" />
-              <DetailRow label="Suddha Jadhagam"   value="Not Specified" />
+              <DetailRow label="Religion"          value={religionStr} />
+              <DetailRow label="Caste / Sub Caste" value={[casteStr !== NOT_SET ? casteStr : "", friendly(profile?.subcaste) !== NOT_SET ? friendly(profile?.subcaste) : ""].filter(Boolean).join(" - ") || NOT_SET} />
+              <DetailRow label="Gothram"           value={NOT_SET} />
+              <DetailRow label="Star / Raasi"      value={NOT_SET} />
+              <DetailRow label="Suddha Jadhagam"   value={friendly(profile?.shudhajathakam)} />
             </div>
             <div>
               <DetailRow label="Time of Birth"  value="Add Time"  isLink />
@@ -723,49 +974,44 @@ export default function MyProfilePage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Groom's Location" onEdit={() => open("location")}>
+        <SectionCard title={`${isGroom ? "Groom" : "Bride"}'s Location`} onEdit={() => open("location")}>
           <TwoColDetails rows={[
             [
-              { label: "Country",          value: "India" },
-              { label: "State",            value: "Kerala" },
-              { label: "Ancestral Origin", value: "palakkad" },
+              { label: "Country",          value: profile?.country || NOT_SET },
+              { label: "State",            value: profile?.state || NOT_SET },
+              { label: "Pincode",          value: profile?.pincode || NOT_SET },
             ],
             [
-              { label: "City",        value: "Kalamassery" },
-              { label: "Citizenship", value: "India" },
+              { label: "City",        value: profile?.city || NOT_SET },
+              { label: "Citizenship", value: profile?.country || NOT_SET },
             ],
           ]} />
         </SectionCard>
 
         <SectionCard title="Professional Information" onEdit={() => open("professional")}>
-          <DetailRow label="Education"             value="B.Tech - Bachelor of Technology" />
-          <DetailRow label="Education in Detail"   value="Not Specified" />
-          <DetailRow label="College / Institution" value="Mannarkkad universal college" />
-          <DetailRow label="Employed in"           value="Private Sector" />
-          <DetailRow label="Occupation"            value="Software Professional" />
-          <DetailRow label="Occupation in Detail"  value="Not Specified" />
-          <DetailRow label="Organization"          value="Mykare Health Private limited" />
-          <DetailRow label="Annual Income"         value="Rs. 7 - 8 Lakhs" />
+          <DetailRow label="Education"             value={educationStr} />
+          <DetailRow label="College / Institution" value={profile?.collegeUniversity || NOT_SET} />
+          <DetailRow label="Employed in"           value={friendly(profile?.employedIn)} />
+          <DetailRow label="Occupation"            value={occupationStr} />
+          <DetailRow label="Annual Income"         value={fmtIncome(profile?.annualIncome)} />
         </SectionCard>
 
         <SectionCard title="Family Details" onEdit={() => open("family")}>
           <TwoColDetails rows={[
             [
-              { label: "Family Values",   value: "Moderate" },
-              { label: "Family Type",     value: "Nuclear" },
-              { label: "Family Status",   value: "Middle class" },
-              { label: "No of Sister(s)", value: "1 / 1 Married" },
+              { label: "Family Type",     value: friendly(profile?.familyType) },
+              { label: "Family Status",   value: friendly(profile?.familyStatus) },
+              { label: "No of Sister(s)", value: profile?.noOfSisters != null ? String(profile.noOfSisters) : NOT_SET },
             ],
             [
-              { label: "Father's Occupation", value: "Employed" },
-              { label: "Mother's Occupation", value: "Homemaker" },
-              { label: "No of Brother(s)",    value: "1 / 1 Married" },
-              { label: "Family Location",     value: "Not Specified" },
+              { label: "Father's Occupation", value: friendly(profile?.fatherOccupation) },
+              { label: "Mother's Occupation", value: friendly(profile?.motherOccupation) },
+              { label: "No of Brother(s)",    value: profile?.noOfBrothers != null ? String(profile.noOfBrothers) : NOT_SET },
             ],
           ]} />
         </SectionCard>
 
-        <SectionCard title="About My Family" editLabel="Add" onEdit={() => open("aboutFamily")}>
+        <SectionCard title="About My Family" editLabel="Add" onEdit={() => showToast("About My Family editing is coming soon.")}>
           <p className="text-xs sm:text-sm text-gray-400 italic">Not Specified</p>
         </SectionCard>
 
@@ -796,14 +1042,27 @@ export default function MyProfilePage() {
       <EditMobileModal isOpen={showMobileModal} onClose={() => setShowMobileModal(false)} currentNumber={displayMobile}
         onSave={num => { setMobileNumber(num); setShowMobileModal(false); }} />
 
-      <SlideModal isOpen={openModal === "about"}        onClose={close} title="Edit — In My Own Words"><AboutMyselfForm /></SlideModal>
-      <SlideModal isOpen={openModal === "basic"}        onClose={close} title="Edit — Basic Details"><BasicDetailsForm /></SlideModal>
-      <SlideModal isOpen={openModal === "religion"}     onClose={close} title="Edit — Religion Information"><ReligionForm /></SlideModal>
-      <SlideModal isOpen={openModal === "location"}     onClose={close} title="Edit — Location"><LocationForm /></SlideModal>
-      <SlideModal isOpen={openModal === "professional"} onClose={close} title="Edit — Professional Information"><ProfessionalForm /></SlideModal>
-      <SlideModal isOpen={openModal === "family"}       onClose={close} title="Edit — Family Details"><FamilyForm /></SlideModal>
-      <SlideModal isOpen={openModal === "aboutFamily"}  onClose={close} title="Add — About My Family" width="max-w-md"><AboutMyselfForm /></SlideModal>
-      <SlideModal isOpen={openModal === "hobbies"}      onClose={close} title="Edit — Hobbies & Interests" width="max-w-lg"><HobbiesForm /></SlideModal>
+      <SlideModal isOpen={openModal === "about"}        onClose={close} onSave={handleSave} saving={saving} title="Edit — In My Own Words">
+        {openModal === "about" && <AboutMyselfForm profile={profile} onChange={setDraft} />}
+      </SlideModal>
+      <SlideModal isOpen={openModal === "basic"}        onClose={close} onSave={handleSave} saving={saving} title="Edit — Basic Details">
+        {openModal === "basic" && <BasicDetailsForm profile={profile} onChange={setDraft} />}
+      </SlideModal>
+      <SlideModal isOpen={openModal === "religion"}     onClose={close} onSave={handleSave} saving={saving} title="Edit — Religion Information">
+        {openModal === "religion" && <ReligionForm profile={profile} onChange={setDraft} />}
+      </SlideModal>
+      <SlideModal isOpen={openModal === "location"}     onClose={close} onSave={handleSave} saving={saving} title="Edit — Location">
+        {openModal === "location" && <LocationForm profile={profile} onChange={setDraft} />}
+      </SlideModal>
+      <SlideModal isOpen={openModal === "professional"} onClose={close} onSave={handleSave} saving={saving} title="Edit — Professional Information">
+        {openModal === "professional" && <ProfessionalForm profile={profile} onChange={setDraft} />}
+      </SlideModal>
+      <SlideModal isOpen={openModal === "family"}       onClose={close} onSave={handleSave} saving={saving} title="Edit — Family Details">
+        {openModal === "family" && <FamilyForm profile={profile} onChange={setDraft} />}
+      </SlideModal>
+      <SlideModal isOpen={openModal === "hobbies"}      onClose={close} title="Edit — Hobbies & Interests" width="max-w-lg">
+        {openModal === "hobbies" && <HobbiesForm />}
+      </SlideModal>
     </div>
   );
 }

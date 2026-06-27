@@ -85,6 +85,38 @@ const SLIDES: Slide[] = [
       "Premium assistance available",
     ],
   },
+  {
+    image: "/Gemini_Generated_Image_itaz25itaz25itaz.png",
+    eyebrow: "Begin your forever",
+    headline: (
+      <>
+        Your wedding <span className="block">begins here</span>
+      </>
+    ),
+    subtitle:
+      "Thousands of couples started their journey on Made2Match. Create your profile and take the first step today.",
+    bullets: [
+      "Smart, preference-based matches",
+      "Chat safely with verified members",
+      "Trusted by families nationwide",
+    ],
+  },
+  {
+    image: "/Gemini_Generated_Image_7d97r17d97r17d97.png",
+    eyebrow: "Rooted in tradition",
+    headline: (
+      <>
+        Matches made <span className="block">with values</span>
+      </>
+    ),
+    subtitle:
+      "Celebrate your culture and customs while finding a partner who truly shares your beliefs and aspirations.",
+    bullets: [
+      "Community & horoscope matching",
+      "Respectful, family-first approach",
+      "Dedicated relationship support",
+    ],
+  },
 ];
 
 /* ============================================================

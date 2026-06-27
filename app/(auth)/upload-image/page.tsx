@@ -110,10 +110,10 @@ export default function AddPhotoPage(): JSX.Element {
         </div>
 
         {/* Grid */}
-        <div className="grid md:grid-cols-2 ">
+        <div className="grid md:grid-cols-2 gap-5 justify-items-center">
 
           {/* Left Card */}
-          <div className="rounded-[28px] w-120 border border-[#efc6d5] bg-white p-5 shadow-sm">
+          <div className="rounded-[28px] w-full md:w-120 border border-[#efc6d5] bg-white p-5 shadow-sm">
 
             <div
               onClick={openPicker}
@@ -205,7 +205,7 @@ export default function AddPhotoPage(): JSX.Element {
           </div>
 
           {/* Right Card */}
-          <div className="rounded-[28px] w-120 border border-[#efc6d5] bg-white p-10 shadow-sm">
+          <div className="rounded-[28px] w-full md:w-120 border border-[#efc6d5] bg-white p-5 md:p-10 shadow-sm">
 
             <h2 className="text-xl font-black text-[#111827] leading-tight">
               Add a photo for

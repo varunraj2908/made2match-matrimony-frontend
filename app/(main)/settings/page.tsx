@@ -9,6 +9,7 @@ import {
   deactivateAccount,
   clearSession,
 } from '@/services/settingsService';
+import AlertsUpdates from '@/components/sections/AlertsUpdates';
 
 function BackBar() {
   const router = useRouter();
@@ -464,6 +465,9 @@ export default function Settings() {
 
       case 'password':
         return <ChangePassword />;
+
+      case 'alerts':
+        return <AlertsUpdates />;
 
       case 'deactivate':
         return <DeactivateProfile />;

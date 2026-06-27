@@ -33,7 +33,7 @@ export default function CookieConsent() {
 
   return (
     <div className="fixed bottom-5 left-5 z-[1600] w-[calc(100vw-2.5rem)] max-w-[20rem] animate-modal-pop">
-      <div className="relative bg-white rounded-3xl shadow-2xl border border-[#c0174c]/10 overflow-hidden">
+      <div className="relative bg-white rounded-xl shadow-2xl border border-[#c0174c]/10 overflow-hidden">
         {/* Decorative gradient glow at the top */}
         <div
           className="absolute -top-16 -right-10 w-40 h-40 rounded-full blur-2xl opacity-20 pointer-events-none"

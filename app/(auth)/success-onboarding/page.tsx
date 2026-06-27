@@ -22,7 +22,7 @@ export default function OnboardingSuccessPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center "
+      className="min-h-screen flex items-center justify-center px-4 sm:px-0"
       style={{ background: "#fdf2f5" }}
     >
       <div

@@ -573,9 +573,15 @@ export default function HomePage() {
     try {
       const res = await uploadProfilePhoto(file);
       const photoUrl = (res?.data as { photoUrl?: string } | undefined)?.photoUrl;
-      if (photoUrl) setProfilePhoto(photoUrl);
-      // Tell the rest of the UI (Navbar, etc.) to re-fetch /profiles/me
-      window.dispatchEvent(new CustomEvent("profile:updated"));
+      // Cache-bust so the browser shows the new image immediately (not the
+      // previously cached avatar) without needing a page refresh.
+      const freshUrl = photoUrl ? `${photoUrl}?t=${Date.now()}` : undefined;
+      if (freshUrl) setProfilePhoto(freshUrl);
+      // Tell the rest of the UI (Navbar, etc.) — pass the new URL so the avatar
+      // updates instantly instead of waiting on a (possibly cached) re-fetch.
+      window.dispatchEvent(
+        new CustomEvent("profile:updated", { detail: { profilePhotoUrl: freshUrl } }),
+      );
     } catch (ex: any) {
       setUploadError(
         ex?.response?.data?.message ||
@@ -731,16 +737,23 @@ export default function HomePage() {
                 onChange={handlePhotoChange}
               />
             </div>
-            <h3 className="font-bold text-gray-800 text-sm">{displayName}</h3>
+            <h3 className="font-bold text-gray-900 text-lg sm:text-xl leading-tight">{displayName}</h3>
             <div className="flex items-center justify-center gap-1 text-[10px] text-[#b22234] font-medium mb-1">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#b22234" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
               </svg>
               Made2Match Matrimony
             </div>
-            <p className="text-[11px] text-gray-500 font-mono mb-1">{userIdLabel}</p>
-            <span className="inline-block text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-              {isPremium ? "Prime member" : "Free member"}
+            <p className="text-[11px] text-gray-500 font-mono mb-1.5">{userIdLabel}</p>
+            <span
+              className="inline-block text-[10px] font-bold px-3 py-1 rounded-full text-white shadow-sm"
+              style={{
+                background: isPremium
+                  ? "linear-gradient(135deg,#E8C547,#d4a017)"
+                  : "linear-gradient(135deg,#c0174c,#8b0f38)",
+              }}
+            >
+              {isPremium ? "★ Prime member" : "Free member"}
             </span>
             {!isPremium && (
               <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-center">
@@ -755,6 +768,29 @@ export default function HomePage() {
                 </button>
               </div>
             )}
+
+            {/* Complete Your Profile (moved here from main content) */}
+            <div className="mt-3 text-left bg-orange-50/60 border border-orange-200 rounded-lg p-2.5">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-bold text-gray-700">Complete Your Profile</span>
+                <span className="text-[10px] font-bold text-[#ea580c]">{completionPct}%</span>
+              </div>
+              <div className="w-full bg-white rounded-full h-1.5 mb-2 border border-orange-100">
+                <div className="bg-[#ea580c] h-1.5 rounded-full" style={{ width: `${completionPct}%` }} />
+              </div>
+              <button
+                onClick={() => router.push("/onboarding/horoscope")}
+                className="w-full flex items-center justify-center gap-1.5 border border-[#ea580c] bg-white text-[#ea580c] text-[10px] font-semibold py-1.5 rounded-full hover:bg-[#ea580c] hover:text-white transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="16" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+                Add Horoscope
+              </button>
+            </div>
+
             {uploadError && (
               <p className="text-[10px] text-red-500 mt-2">{uploadError}</p>
             )}
@@ -826,6 +862,38 @@ export default function HomePage() {
 
         {/* ── Main Content ── */}
         <div className="flex-1 min-w-0 space-y-3 sm:space-y-5">
+          {/* AI awareness banner — points users to profiles where Ask AI lives */}
+          <div
+            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-3 shadow-sm"
+            style={{ background: "linear-gradient(120deg,#2D1B35,#b22234 60%,#c0174c)" }}
+          >
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">🤖</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">
+                  Made2Match AI
+                </span>
+              </div>
+              <h3 className="text-base sm:text-xl font-bold text-white leading-tight" style={{ fontFamily: "Georgia, serif" }}>
+                Now check compatibility with AI
+              </h3>
+              <p className="text-[11px] sm:text-xs text-white/80 mt-0.5 max-w-md">
+                Open any profile and tap <span className="font-semibold text-amber-200">Ask AI</span> to score
+                facial harmony, horoscope, family, education &amp; lifestyle — in real time.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push("/profiles")}
+              className="relative z-10 shrink-0 flex items-center gap-2 bg-white text-sm font-bold px-4 sm:px-5 py-2.5 rounded-full hover:scale-105 transition-transform"
+              style={{ color: "#c0174c" }}
+            >
+              ✨ Explore matches
+            </button>
+            {/* decorative blurred hearts */}
+            <span className="absolute -right-2 -top-3 text-7xl opacity-10 select-none">❤️</span>
+            <span className="absolute right-24 bottom-1 text-4xl opacity-10 select-none">💍</span>
+          </div>
+
           {/* Hero carousel — large screens only */}
           <HeroCarousel onCta={() => router.push("/search")} />
 
@@ -850,28 +918,6 @@ export default function HomePage() {
               </button>
             </div>
           )}
-
-          {/* Profile completion (desktop) */}
-          <div className="hidden lg:block bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold text-gray-800">Complete Your Profile</h3>
-            </div>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-xs text-gray-500">Profile completeness score</span>
-              <span className="text-xs font-bold text-[#ea580c]">{completionPct}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-              <div className="bg-[#ea580c] h-2 rounded-full" style={{ width: `${completionPct}%` }} />
-            </div>
-            <button className="flex items-center gap-2 border border-[#ea580c] text-[#ea580c] text-xs font-semibold px-4 py-2 rounded-lg hover:bg-orange-50 transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="16" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-              </svg>
-              Add Horoscope
-            </button>
-          </div>
 
           {/* Daily Recommendations */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
