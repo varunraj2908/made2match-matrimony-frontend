@@ -399,7 +399,7 @@ export default function ChatAssistant() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Chat assistant"
-        className="fixed bottom-5 right-5 z-[1400] w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-20 lg:bottom-5 right-5 z-[1400] w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
         style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
       >
         {open ? (
@@ -418,7 +418,7 @@ export default function ChatAssistant() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-24 right-5 z-[1400] w-[92vw] max-w-sm h-[70vh] max-h-[560px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden animate-fade-in">
+        <div className="fixed bottom-36 lg:bottom-24 right-5 z-[1400] w-[92vw] max-w-sm h-[70vh] max-h-[560px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden animate-fade-in">
           {/* Header */}
           <div className="px-4 py-3 flex items-center gap-3 text-white shrink-0" style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}>
             <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-lg">💞</div>

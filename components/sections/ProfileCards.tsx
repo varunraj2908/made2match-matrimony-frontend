@@ -14,7 +14,7 @@ import {
   type SidebarLabel,
 } from "@/services/matchesService";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
 
 // Maps the UI-level FilterBar state to backend query params.
 const PROFILE_CREATED_BY_MAP: Record<string, string> = {
@@ -769,14 +769,14 @@ const ProfileCardList = ({
 }) => {
   const [imgError, setImgError] = useState(false);
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col">
       <div className="flex gap-3 p-3">
         <button
           type="button"
           onClick={() => onOpen(profile)}
-          className="shrink-0 cursor-pointer"
+          className="shrink-0 cursor-pointer flex self-stretch"
         >
-          <div className="w-16 h-20 rounded-md overflow-hidden border-2 border-[#f5d0d7]">
+          <div className="w-32 h-full min-h-[120px] rounded-md overflow-hidden border-2 border-[#f5d0d7]">
             {imgError || !profile.photo ? (
               <div className="w-full h-full bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center text-xl">
                 👤
@@ -785,7 +785,7 @@ const ProfileCardList = ({
               <img
                 src={profile.photo}
                 alt={profile.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
                 onError={() => setImgError(true)}
               />
             )}
@@ -837,30 +837,32 @@ const ProfileCardList = ({
               </p>
             )}
           </button>
-          <div className="flex gap-1.5 mt-2">
-            <button
-              type="button"
-              onClick={() => onShortlist(profile)}
-              className="flex-1 bg-[#b22234] text-white text-[10px] font-bold py-1.5 rounded transition-colors"
-            >
-              ⭐ Shortlist
-            </button>
-            <button
-              type="button"
-              onClick={() => onOpen(profile)}
-              className="flex-1 border border-[#b22234] text-[#b22234] text-[10px] font-bold py-1.5 rounded transition-colors"
-            >
-              View
-            </button>
-            <button
-              type="button"
-              onClick={() => onOpen(profile)}
-              className="px-2.5 text-[10px] text-[#b22234] font-bold border border-[#b22234] rounded transition-colors"
-            >
-              📞
-            </button>
-          </div>
         </div>
+      </div>
+
+      {/* Full-width action bar (edge-to-edge, ~20% of card) */}
+      <div className="flex items-stretch gap-1.5 px-3 pb-3 pt-0 mt-auto">
+        <button
+          type="button"
+          onClick={() => onShortlist(profile)}
+          className="flex-1 bg-[#b22234] text-white text-[10px] font-bold py-2 rounded transition-colors"
+        >
+          ⭐ Shortlist
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpen(profile)}
+          className="flex-1 border border-[#b22234] text-[#b22234] text-[10px] font-bold py-2 rounded transition-colors"
+        >
+          View
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpen(profile)}
+          className="px-3 text-[10px] text-[#b22234] font-bold border border-[#b22234] rounded transition-colors"
+        >
+          📞
+        </button>
       </div>
     </div>
   );

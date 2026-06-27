@@ -145,59 +145,94 @@ export const Component = ({ testimonials, width = 300, height = 450 }: Component
           </div>
         </div>
 
-        {/* ── Profile pages ── */}
-        {testimonials.map((testimonial, index) => (
-          <div
-            key={index}
-            className="w-full h-full flex flex-col justify-center items-center bg-white border border-gray-300 box-border cursor-grab"
-          >
-            <div className="page-front text-end text-white p-3 bg-[#c0174c]">{index + 2}</div>
-            <div className="flex justify-center items-center mt-7">
+        {/* ── Profile pages — full-bleed photo cards ── */}
+        {testimonials.map((testimonial, index) => {
+          const parts = (testimonial.jobtitle || '').split('·').map((s) => s.trim());
+          const age = parts[0] || '';
+          const city = parts[parts.length - 1] || '';
+          const tier =
+            testimonial.rating >= 5
+              ? { label: 'DIAMOND', bg: 'linear-gradient(135deg,#5b2a86,#2d1b35)' }
+              : testimonial.rating >= 4
+              ? { label: 'GOLD', bg: 'linear-gradient(135deg,#d4a017,#8a6d11)' }
+              : { label: 'SILVER', bg: 'linear-gradient(135deg,#9ca3af,#4b5563)' };
+          return (
+            <div
+              key={index}
+              className="relative w-full h-full overflow-hidden bg-gray-900 box-border cursor-grab rounded-xl border-[3px] border-white"
+              style={{
+                boxShadow:
+                  '0 14px 30px rgba(80,10,30,0.40), 0 6px 10px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(0,0,0,0.06)',
+              }}
+            >
+              {/* Photo */}
               <Image
                 src={testimonial.image || ''}
                 alt={testimonial.name}
-                width={100}
-                height={100}
-                className="rounded-full object-cover h-[100px] w-[100px] border-4 border-[#fbeef2]"
+                fill
+                sizes="300px"
+                className="object-cover"
               />
-            </div>
-            <div className="flex flex-col justify-center items-center mt-3">
-              <span className="font-semibold text-gray-800">{testimonial.name}</span>
-              <span className="text-gray-500 text-sm">{testimonial.jobtitle}</span>
-            </div>
-            <div className="p-5 font-serif font-semibold text-center text-gray-700">{testimonial.text}</div>
-            <div className="flex justify-center items-center mt-3">
-              {[...Array(testimonial.rating)].map((_, i) => (
-                <svg key={i} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFA800" className="size-7">
-                  <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-                </svg>
-              ))}
-              {[...Array(5 - testimonial.rating)].map((_, i) => (
-                <svg key={i} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#CBD5E1" className="size-7">
-                  <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-                </svg>
-              ))}
-            </div>
 
-            {/* Accept / Decline actions */}
-            <div className="flex justify-center items-center gap-3 mt-5">
-              <button
-                onClick={handleAction}
-                onMouseDown={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 border border-gray-300 text-gray-600 text-xs font-bold px-4 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
+              {/* Dark + signature orange glow overlay */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    'linear-gradient(0deg, rgba(0,0,0,0.88) 6%, rgba(0,0,0,0.15) 48%, rgba(0,0,0,0) 70%), ' +
+                    'linear-gradient(0deg, rgba(255,110,40,0.55) 2%, rgba(255,110,40,0) 42%)',
+                }}
+              />
+
+              {/* Tier ribbon — top-left */}
+              <div
+                className="absolute top-0 left-4 z-10 px-2.5 pt-2 pb-3 text-center text-white shadow-lg"
+                style={{ background: tier.bg, clipPath: 'polygon(0 0,100% 0,100% 78%,50% 100%,0 78%)' }}
               >
-                ✕ Decline
-              </button>
-              <button
-                onClick={handleAction}
-                onMouseDown={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 bg-[#c0174c] text-white text-xs font-bold px-4 py-1.5 rounded-full hover:bg-[#a01040] transition-colors"
-              >
-                ♥ Accept
-              </button>
+                <div className="text-[8px] leading-none text-amber-300">★★★★★</div>
+                <div className="text-[8px] font-bold tracking-[0.15em] mt-1">{tier.label}</div>
+              </div>
+
+              {/* Rating badge — top-right */}
+              <div className="absolute top-3 right-3 z-10 flex items-center gap-0.5 bg-white/85 backdrop-blur-sm px-2 py-0.5 rounded-full text-[11px] font-bold text-gray-800 shadow">
+                {testimonial.rating.toFixed(1)}
+                <span className="text-amber-500">★</span>
+              </div>
+
+              {/* Bottom content */}
+              <div className="absolute inset-x-0 bottom-0 z-10 p-4 text-white">
+                <h3 className="text-2xl font-bold leading-tight font-serif drop-shadow">{testimonial.name}</h3>
+                <p className="text-[11px] text-white/85 leading-snug mt-1 font-mono line-clamp-2">
+                  {testimonial.text}
+                </p>
+
+                <div className="flex items-end justify-between mt-3 gap-2">
+                  <div className="flex gap-4">
+                    {age && (
+                      <div>
+                        <p className="text-[8px] uppercase tracking-wider text-white/60">Age</p>
+                        <p className="text-sm font-bold">{age}</p>
+                      </div>
+                    )}
+                    {city && (
+                      <div>
+                        <p className="text-[8px] uppercase tracking-wider text-white/60">City</p>
+                        <p className="text-sm font-bold">{city}</p>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleAction}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-bold px-4 py-1.5 rounded-full hover:bg-white transition-colors shadow"
+                  >
+                    Follow
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* ── Back cover ── */}
         <div className="relative bg-gradient-to-b from-[#c0174c] to-[#8b1a3a] border p-8 text-white flex flex-col items-center justify-center">

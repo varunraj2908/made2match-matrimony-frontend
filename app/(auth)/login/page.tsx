@@ -1,130 +1,146 @@
-
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import AuthBrandHeader from "@/components/sections/AuthBrandHeader";
+import { useLogin } from "@/hooks/useLogin";
+
+const FIELD =
+  "w-full pl-10 pr-3 py-3 rounded-xl text-sm text-white placeholder-white/55 outline-none transition-all bg-white/10 border border-white/25 focus:border-[#E8C547] focus:bg-white/15";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [showPass, setShowPass] = useState(false);
+  const { mutate, isPending } = useLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleLogin = () => {
+    setError("");
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter your email and password.");
+      return;
+    }
+    mutate(
+      { email: email.trim(), password },
+      {
+        onSuccess: (res: any) => {
+          const tokens = res?.data;
+          if (tokens?.accessToken) {
+            localStorage.setItem("token", tokens.accessToken);
+            if (tokens.refreshToken) localStorage.setItem("refreshToken", tokens.refreshToken);
+          }
+          router.push("/home");
+        },
+        onError: (e: any) => {
+          setError(e?.response?.data?.message || "Invalid email or password.");
+        },
+      },
+    );
+  };
 
   return (
     <div
-      className="h-full min-h-full flex items-center justify-center px-4 py-6 overflow-y-auto"
-      style={{ background: "#f5e0e5" }}
+      className="h-full overflow-y-auto"
+      style={{ background: "linear-gradient(165deg,#2d1b35 0%,#8f0e39 45%,#c0174c 100%)" }}
     >
-      <div
-        className="w-full max-w-125 bg-white rounded-3xl px-8 py-8 relative"
-        style={{ boxShadow: "0 20px 60px rgba(192,23,76,0.15)" }}
-      >
-        <div className="flex flex-col items-center mb-7">
+      <div className="relative w-full max-w-md mx-auto min-h-full px-6 py-8 flex flex-col justify-center">
+        <div className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(232,197,71,0.2)" }} />
+        <div className="pointer-events-none absolute bottom-10 -left-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(255,106,156,0.22)" }} />
+
+        <div className="relative z-10">
+          <AuthBrandHeader />
+
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-md"
-            style={{ background: "linear-gradient(135deg, #c0174c, #8b0f38)" }}
+            className="mt-6 rounded-3xl p-6 backdrop-blur-md"
+            style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="w-8 h-8">
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-black text-gray-900">Welcome Back</h2>
-          <p className="text-sm text-gray-400 mt-1 text-center">
-            Sign in to find your perfect match
-          </p>
-        </div>
+            <div className="flex justify-center">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full" style={{ background: "#E8C547", color: "#5e0a24" }}>
+                Welcome Back
+              </span>
+            </div>
 
-        {/* Email */}
-        <div className="mb-5">
-          <label className="block text-sm font-semibold mb-1.5" style={{ color: "#c0174c" }}>
-            Email address
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl text-sm text-gray-800 outline-none transition-all"
-            style={{ border: "1.5px solid #f0d2d7", background: "#fdf8f9" }}
-            onFocus={e => { e.target.style.border = "1.5px solid #c0174c"; e.target.style.background = "#fff"; }}
-            onBlur={e =>  { e.target.style.border = "1.5px solid #f0d2d7"; e.target.style.background = "#fdf8f9"; }}
-          />
-        </div>
+            <h2 className="mt-4 text-center text-2xl font-black text-white">Sign in to your account</h2>
+            <p className="mt-1 text-center text-sm text-white/70">Find your perfect match today</p>
 
-        {/* Password */}
-        <div className="mb-7">
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-sm font-semibold" style={{ color: "#c0174c" }}>
-              Password
-            </label>
-            <button className="text-sm font-medium hover:underline transition" style={{ color: "#c0174c" }}>
-              I forgot
-            </button>
-          </div>
-          <div className="relative">
-            <input
-              type={showPass ? "text" : "password"}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 pr-11 rounded-xl text-sm text-gray-800 outline-none transition-all"
-              style={{ border: "1.5px solid #f0d2d7", background: "#fdf8f9" }}
-              onFocus={e => { e.target.style.border = "1.5px solid #c0174c"; e.target.style.background = "#fff"; }}
-              onBlur={e =>  { e.target.style.border = "1.5px solid #f0d2d7"; e.target.style.background = "#fdf8f9"; }}
-            />
+            {/* Email */}
+            <label className="block text-sm font-bold text-white/90 mt-7 mb-1.5">Email address</label>
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E8C547" strokeWidth="2">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="M22 6l-10 7L2 6" />
+              </svg>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                className={FIELD}
+              />
+            </div>
+
+            {/* Password */}
+            <label className="block text-sm font-bold text-white/90 mt-4 mb-1.5">Password</label>
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E8C547" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                placeholder="Enter your password"
+                className={FIELD}
+              />
+            </div>
+
+            <div className="text-right mt-2">
+              <button className="text-sm font-semibold text-[#E8C547] hover:underline">Forgot password?</button>
+            </div>
+
+            {error && (
+              <p className="mt-3 text-center text-sm text-amber-200 bg-red-500/20 border border-red-400/30 rounded-lg py-2">
+                {error}
+              </p>
+            )}
+
+            {/* Login */}
             <button
-              type="button"
-              onClick={() => setShowPass(p => !p)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+              onClick={handleLogin}
+              disabled={isPending}
+              className="w-full mt-5 py-3.5 rounded-full font-extrabold text-[#5e0a24] active:scale-[0.98] transition-transform disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg,#ffe08a,#E8C547 55%,#d4a017)", boxShadow: "0 8px 22px rgba(232,197,71,0.4)" }}
             >
-              {showPass ? (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                  <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              )}
+              {isPending ? "Signing in…" : "Login"}
             </button>
+
+            {/* Divider */}
+            <div className="relative flex items-center my-7">
+              <div className="flex-1 h-px bg-white/20" />
+              <span className="px-3 text-xs text-white/60">or continue with</span>
+              <div className="flex-1 h-px bg-white/20" />
+            </div>
+
+            {/* Social */}
+            <div className="grid grid-cols-2 gap-3">
+              <button className="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/25 bg-white/10 text-sm font-semibold text-white hover:bg-white/20 transition-colors">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#4285F4" }} /> Google
+              </button>
+              <button className="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/25 bg-white/10 text-sm font-semibold text-white hover:bg-white/20 transition-colors">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#1877F2" }} /> Facebook
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Login Button only */}
-        <button
-          onClick={() => router.push("/home")}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white text-sm font-black tracking-widest uppercase transition-all hover:opacity-90 hover:scale-[1.02] active:scale-95 mb-5"
-          style={{
-            background: "linear-gradient(135deg, #c0174c, #8b0f38)",
-            boxShadow: "0 6px 20px rgba(192,23,76,0.35)",
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
-            <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
-            <polyline points="10 17 15 12 10 7" />
-            <line x1="15" y1="12" x2="3" y2="12" />
-          </svg>
-          Sign In
-        </button>
-
-        {/* Bottom links */}
-        <div className="flex items-center justify-between text-sm">
-          <p className="text-gray-500">
-            No account?{" "}
-            <a
-              href="/"
-              className="font-bold underline underline-offset-2 transition hover:opacity-75"
-              style={{ color: "#c0174c" }}
-            >
+          <p className="mt-6 text-center text-sm text-white/75">
+            New here?{" "}
+            <button onClick={() => router.push("/register")} className="font-bold text-[#E8C547]">
               Register free
-            </a>
+            </button>
           </p>
-          <a
-            href="#"
-            className="text-gray-400 text-xs hover:text-gray-600 transition underline underline-offset-2"
-          >
-            Stay signed in
-          </a>
         </div>
       </div>
     </div>

@@ -4,13 +4,18 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getProfileById, type FullProfile } from "@/services/profileService";
+import {
+  getProfileById,
+  getMyProfileFull,
+  type FullProfile,
+} from "@/services/profileService";
 import {
   fetchSentInterestStatusByProfileId,
   recordProfileView,
   sendInterest,
   type InterestStatus,
 } from "@/services/matchesService";
+import AiMatchModal, { type MatchPerson } from "./AiMatchModal";
 
 // ── Display helpers ─────────────────────────────────────────────
 const FALLBACK_AVATAR = (name?: string) =>
@@ -65,6 +70,26 @@ const formatDate = (iso?: string): string => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+// Maps a fetched FullProfile to the AI modal's MatchPerson shape.
+const toMatchPerson = (p: FullProfile): MatchPerson => {
+  const name = [p.firstName, p.lastName].filter(Boolean).join(" ") || "—";
+  const isFemale = (p.gender || "").toUpperCase().startsWith("F");
+  return {
+    name,
+    role: isFemale ? "Bride" : "Groom",
+    photo: p.profilePhotoUrl || p.photoUrls?.[0] || FALLBACK_AVATAR(name),
+    age: p.age ?? 0,
+    height: formatHeight(p.heightCm),
+    education: [p.highestQualification, p.occupation].filter(Boolean).join(", ") || "—",
+    family: [friendly(p.familyType), friendly(p.familyStatus)]
+      .filter((v) => v && v !== "—")
+      .join(" · ") || "—",
+    location: [p.city, p.state].filter(Boolean).join(", ") || "—",
+    weight: p.weightKg ? `${p.weightKg} kg` : "—",
+    horoscope: friendly(p.shudhajathakam) !== "—" ? friendly(p.shudhajathakam) : "—",
+  };
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -522,6 +547,15 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
   const [interestStatus, setInterestStatus] = useState<InterestStatus | null>(null);
   const [actionMsg, setActionMsg] = useState<string>("");
   const [actionBusy, setActionBusy] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [me, setMe] = useState<FullProfile | null>(null);
+
+  // Logged-in user — used as the other side of the AI compatibility match.
+  useEffect(() => {
+    getMyProfileFull()
+      .then(setMe)
+      .catch(() => undefined);
+  }, []);
 
   const showToast = (msg: string) => {
     setActionMsg(msg);
@@ -643,7 +677,6 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
         weight: formatWeight(profile.weightKg),
         religion: formatReligion(profile),
         caste: profile.caste || "—",
-        subCaste: profile.subcaste || "—",
         location: formatLocation(profile),
         education: profile.highestQualification || "—",
         profession: profile.occupation || "—",
@@ -662,12 +695,26 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
         country: profile.country || "—",
         state: profile.state || "—",
         city: profile.city || "—",
-        educationDetail: profile.collegeUniversity || profile.highestQualification || "—",
-        employedIn: profile.employedIn || "—",
-        occupationType: profile.occupation || "—",
-        occupationDetail: profile.occupation || "—",
+        educationDetail: profile.collegeUniversity || profile.highestQualification || "",
+        employedIn: friendly(profile.employedIn),
+        occupationType: profile.occupation || "",
+        occupationDetail: profile.occupation || "",
         dob: formatDate(profile.dateOfBirth),
         lastLogin: formatDate(profile.createdAt),
+        // Fields not stored on the profile record → show "Not Specified"
+        // instead of leaking mock data.
+        subCaste: profile.subcaste || "",
+        citizenship: profile.country || "",
+        star: "",
+        raasi: "",
+        gothram: "",
+        dosh: "",
+        manglik: friendly(profile.shudhajathakam),
+        birthPlace: "",
+        timeOfBirth: "",
+        chatStatus: "",
+        callStatus: "",
+        sendMail: "",
       }
     : PROFILE;
 
@@ -687,15 +734,73 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
         city: PROFILE.partnerPreferences.city,
         religion: pref.preferredReligion || "Any",
         caste: pref.preferredCaste || (pref.casteNoBar ? "Any (no bar)" : "Any"),
-        eatingHabits: friendly(pref.preferredDiet),
+        eatingHabits: friendly(pref.preferredDiet) || "Any",
         drinkingHabits: friendly(pref.drinkingAcceptable) || "Any",
         smokingHabits: friendly(pref.smokingAcceptable) || "Any",
+        occupation: pref.preferredOccupation || "Any",
         aboutPartner: pref.partnerDescription || PROFILE.partnerPreferences.aboutPartner,
+        // Not part of the preference record → default to "Any".
+        motherTongue: "Any",
+        physicalStatus: "Any",
+        subCaste: "Any",
+        citizenship: "Any",
+        star: "Any",
+        raasi: "Any",
+        gothram: "Any",
+        dosh: "Any",
       }
     : PROFILE.partnerPreferences;
 
+  // Gender-aware wording (template is bride-worded by default).
+  const g = (profile?.gender || "").toUpperCase();
+  const isBride = !(g === "MALE" || g === "GROOM" || g === "M");
+  const selfNoun = isBride ? "bride" : "groom";
+  const partnerNoun = isBride ? "Groom" : "Bride";
+  const possessive = isBride ? "Her" : "His";
+
+  // Build the AI match pair from the CURRENT profile + the logged-in viewer.
+  // The viewed profile keeps its real data; the viewer fills the opposite slot.
+  const viewedPerson = profile ? toMatchPerson(profile) : undefined;
+  const viewerPerson = me ? toMatchPerson(me) : undefined;
+  const aiBride = viewedPerson
+    ? viewedPerson.role === "Bride"
+      ? viewedPerson
+      : viewerPerson && { ...viewerPerson, role: "Bride" }
+    : undefined;
+  const aiGroom = viewedPerson
+    ? viewedPerson.role === "Groom"
+      ? viewedPerson
+      : viewerPerson && { ...viewerPerson, role: "Groom" }
+    : undefined;
+
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* AI compatibility analysis popup — analyses the current profile */}
+      <AiMatchModal
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        bride={aiBride || undefined}
+        groom={aiGroom || undefined}
+        targetProfileId={id}
+      />
+
+      {/* Floating "Ask AI" button — right side, stacked above the chat FAB.
+          z below the chat layer (1400) so the chat popup covers it when open. */}
+      <button
+        onClick={() => setAiOpen(true)}
+        className="group fixed bottom-[8.75rem] lg:bottom-[5.5rem] right-5 z-[1300] w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center transition-transform hover:scale-110 active:scale-95 animate-fab-pulse"
+        style={{ background: "linear-gradient(135deg,#c0174c,#ea580c)" }}
+        aria-label="Ask AI to analyze compatibility"
+      >
+        <span className="text-2xl leading-none">🤖</span>
+        <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-300 text-[#2D1B35] text-[11px] font-black flex items-center justify-center shadow-md">
+          ✦
+        </span>
+        <span className="pointer-events-none absolute right-16 px-3 py-1.5 rounded-full bg-[#2D1B35] text-white text-xs font-bold whitespace-nowrap opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all shadow-lg">
+          Ask AI
+        </span>
+      </button>
+
       {/* Toast for interest / chat actions */}
       {actionMsg && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#b22234] text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg">
@@ -703,9 +808,17 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
         </div>
       )}
 
-      {/* Top Banner */}
-      <div className="bg-[#b22234] text-white text-center py-2 text-xs font-medium tracking-wider">
-        💕 Find Your Perfect Match — Browse Thousands of Verified Profiles 💕
+      {/* Back navigation */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-3 sm:pt-4">
+        <button
+          onClick={() => router.back()}
+          aria-label="Back"
+          className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:text-white hover:bg-[#b22234] hover:border-[#b22234] transition-colors cursor-pointer"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 flex gap-4 lg:gap-6">
@@ -755,8 +868,8 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
 
                 {/* Right Panel */}
                 <div className="sm:w-52 shrink-0">
-                  <p className="text-[10px] text-gray-600 leading-relaxed mb-3">
-                    Integer non nisl elit in ac tempor amet, eget iaculis augue. Nunc orci lorem, iaculis quis lorem id, eleifend accumsen purin eros, consectetur tur eleifend eros.
+                  <p className="text-[10px] text-gray-600 leading-relaxed mb-3 line-clamp-5">
+                    {p.about}
                   </p>
                   {/* Social Icons */}
                   <div className="flex gap-1.5 mb-3">
@@ -825,7 +938,7 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
             <div className="mb-5 p-3 bg-orange-50 rounded-lg border border-orange-100">
               <div className="flex items-center gap-2 mb-2">
                 <span>📍</span>
-                <span className="text-xs font-bold text-gray-700">About my daughter</span>
+                <span className="text-xs font-bold text-gray-700">About the {selfNoun}</span>
               </div>
               <p className="text-xs text-gray-600 leading-relaxed">{p.about}</p>
             </div>
@@ -864,7 +977,6 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
                   <span className="text-sm font-bold text-gray-700">Contact Details</span>
                 </div>
                 {[
-                  { label: "Contact Number", value: "+1(614) 93-431-7696" },
                   { label: "Chat Status", value: p.chatStatus },
                   { label: "Call Status", value: p.callStatus },
                   { label: "Send Mail", value: p.sendMail },
@@ -876,10 +988,10 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
                   <span className="text-sm font-bold text-gray-700">Religion Information</span>
                 </div>
                 {[
-                  { label: "Religion", value: "Hindu" },
-                  { label: "Caste / Sub Caste", value: p.subCaste },
-                  { label: "Star / Raasi", value: p.star },
-                  { label: "Dosh", value: p.dosh },
+                  { label: "Religion", value: friendly(profile?.religion) },
+                  { label: "Caste", value: p.caste },
+                  { label: "Sub Caste", value: p.subCaste },
+                  { label: "Mother Tongue", value: p.motherTongue },
                 ].map((r) => <DetailRow key={r.label} {...r} />)}
               </div>
             </div>
@@ -888,7 +1000,7 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-sm">📍</span>
-                <span className="text-sm font-bold text-gray-700">Bride&apos;s Location</span>
+                <span className="text-sm font-bold text-gray-700">{selfNoun === "bride" ? "Bride" : "Groom"}&apos;s Location</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
                 <div>
@@ -910,12 +1022,11 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
                   <span className="text-sm font-bold text-gray-700">Professional Information</span>
                 </div>
                 {[
-                  { label: "Education", value: p.educationDetail },
-                  { label: "Education in Detail", value: "MBA (Sales/b)" },
+                  { label: "Education", value: p.education },
+                  { label: "College / University", value: p.educationDetail },
                   { label: "Employed In", value: p.employedIn },
-                  { label: "Occupation Type", value: p.occupationType },
-                  { label: "Occupation in Detail", value: p.occupationDetail },
-                  { label: "Annual Income", value: "Rs. 6 - 8 Lakhs" },
+                  { label: "Occupation", value: p.occupationType },
+                  { label: "Annual Income", value: p.annualIncome },
                 ].map((r) => <DetailRow key={r.label} {...r} />)}
               </div>
               <div>
@@ -925,17 +1036,37 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
                 </div>
                 {[
                   { label: "Date of Birth", value: p.dob },
-                  { label: "Place of Birth", value: p.birthPlace },
-                  { label: "Time of Birth", value: p.timeOfBirth },
-                  { label: "Manglik", value: p.manglik },
+                  { label: "Shudhajathakam", value: p.manglik },
+                  { label: "Star / Nakshatra", value: p.star },
+                  { label: "Raasi", value: p.raasi },
                 ].map((r) => <DetailRow key={r.label} {...r} />)}
               </div>
+            </div>
+
+            {/* Family Details (from DB) */}
+            <div className="mt-5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm">👪</span>
+                <span className="text-sm font-bold text-gray-700">Family Details</span>
+              </div>
+              <TwoColDetails
+                left={[
+                  { label: "Family Type", value: friendly(profile?.familyType) },
+                  { label: "Family Status", value: friendly(profile?.familyStatus) },
+                  { label: "Father's Occupation", value: friendly(profile?.fatherOccupation) },
+                ]}
+                right={[
+                  { label: "Mother's Occupation", value: friendly(profile?.motherOccupation) },
+                  { label: "No. of Brothers", value: profile?.noOfBrothers != null ? String(profile.noOfBrothers) : "" },
+                  { label: "No. of Sisters", value: profile?.noOfSisters != null ? String(profile.noOfSisters) : "" },
+                ]}
+              />
             </div>
           </div>
 
           {/* ── Partner Preferences ── */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 sm:p-5">
-            <SectionHeader icon="💞" title="Her Partner Preferences" />
+            <SectionHeader icon="💞" title={`${possessive} Partner Preferences`} />
 
             {/* About Partner */}
             <div className="mb-5 p-3 bg-pink-50 rounded-lg border border-pink-100">
@@ -954,20 +1085,14 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
               </div>
               <TwoColDetails
                 left={[
-                  { label: "Groom's Age", value: `${pp.ageFrom} – ${pp.ageTo} Yrs` },
+                  { label: `${partnerNoun}'s Age`, value: `${pp.ageFrom} – ${pp.ageTo} Yrs` },
                   { label: "Height", value: `${pp.heightFrom} – ${pp.heightTo}` },
                   { label: "Marital Status", value: pp.maritalStatus },
-                  { label: "Mother Tongue", value: pp.motherTongue },
-                  { label: "Physical Status", value: pp.physicalStatus },
-                  { label: "Eating Habits", value: pp.eatingHabits },
                 ]}
                 right={[
-                  { label: "Smoking Habits", value: pp.smokingHabits },
                   { label: "Physical Status", value: pp.physicalStatus },
                   { label: "Eating Habits", value: pp.eatingHabits },
                   { label: "Drinking Habits", value: pp.drinkingHabits },
-                  { label: "Drinking Habits", value: pp.drinkingHabits },
-                  { label: "Smoking Habits", value: pp.smokingHabits },
                 ]}
               />
             </div>
@@ -981,15 +1106,11 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
               <TwoColDetails
                 left={[
                   { label: "Education", value: pp.education },
-                  { label: "Mother Tongue", value: pp.motherTongue },
                   { label: "Occupation", value: pp.occupation },
-                  { label: "Annual Income", value: pp.annualIncome },
                 ]}
                 right={[
-                  { label: "Smoking Habits", value: pp.smokingHabits },
+                  { label: "Annual Income", value: pp.annualIncome },
                   { label: "Eating Habits", value: pp.eatingHabits },
-                  { label: "Occupation", value: pp.occupation },
-                  { label: "Smoking Habits", value: pp.smokingHabits },
                 ]}
               />
             </div>

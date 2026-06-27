@@ -4,7 +4,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { useRouter, usePathname } from "next/navigation";
 import { getMyProfile, type MyProfile } from "@/services/homeService";
 import { fetchNotifications, type AppNotification } from "@/services/notificationService";
 import { setAppBadge } from "@/lib/appBadge";
@@ -86,6 +87,15 @@ const NOTIF_ICONS: Record<string, { icon: string; color: string; bg: string }> =
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
+  // Active tab is derived from the current URL so the highlight always tracks
+  // the route (works on direct loads and survives navigation).
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
+  // Top-level routes show the logo; everything deeper is an "inner page" that
+  // shows a back button (mobile) in the logo's place.
+  const MAIN_ROUTES = ["/", "/home", "/profiles", "/interests", "/chat", "/search"];
+  const isInnerPage = !MAIN_ROUTES.includes(pathname);
   const [activeNav, setActiveNav] = useState("home");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [, setShowSwitchMenu] = useState(false);
@@ -109,7 +119,16 @@ export default function Navbar() {
         .then((p) => { if (!cancelled) setMe(p); })
         .catch(() => undefined);
     load();
-    const onUpdated = () => load();
+    const onUpdated = (e: Event) => {
+      // If the event carries the new photo URL, apply it instantly so the
+      // avatar updates without waiting on (and possibly caching) a re-fetch.
+      const url = (e as CustomEvent<{ profilePhotoUrl?: string }>).detail
+        ?.profilePhotoUrl;
+      if (url) {
+        setMe((prev) => (prev ? { ...prev, profilePhotoUrl: url } : prev));
+      }
+      load();
+    };
     window.addEventListener("profile:updated", onUpdated);
     return () => {
       cancelled = true;
@@ -129,19 +148,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowUserMenu(false);
-      }
-      if (
-        mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(e.target as Node)
-      ) {
-        setShowMobileMenu(false);
-      }
-      if (
-        notifRef.current &&
-        !notifRef.current.contains(e.target as Node)
-      ) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setShowNotifications(false);
       }
     };
@@ -312,110 +319,63 @@ export default function Navbar() {
 
   return (
     <header className="w-full bg-gray-100 shadow-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 relative">
         <div className="flex items-center justify-between h-16">
 
           {/* ─────────────────────────────────────────────────
-              MOBILE — Hamburger (left)
+              LEFT — Back button (mobile inner pages) or Logo
           ───────────────────────────────────────────────── */}
-          {isLoggedIn && (
-            <div className="flex lg:hidden" ref={mobileMenuRef}>
+          <div className="flex items-center shrink-0">
+            {/* Mobile back button — only on inner pages */}
+            {isInnerPage && (
               <button
-                onClick={() => {
-                  setShowMobileMenu((prev) => !prev);
-                  setShowUserMenu(false);
-                  setShowNotifications(false);
-                }}
-                className="relative flex items-center justify-center w-10 h-10 rounded-xl text-gray-600 hover:text-[#b22234] hover:bg-red-50 transition-all"
-                aria-label="Open menu"
+                onClick={() => router.back()}
+                className="flex lg:hidden w-10 h-10 items-center justify-center rounded-full bg-red-50 border border-[#f5d0d7] text-[#b22234] hover:bg-[#b22234] hover:text-white hover:border-[#b22234] transition-colors shrink-0 shadow-sm"
+                aria-label="Go back"
               >
-                {showMobileMenu ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                ) : (
-                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                  </svg>
-                )}
-                {/* {totalBadgeCount > 0 && !showMobileMenu && (
-                  <span className="absolute top-1 right-1 bg-[#b22234] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
-                    {totalBadgeCount > 9 ? "9+" : totalBadgeCount}
-                  </span>
-                )} */}
-              </button>
-
-              {/* Mobile Dropdown Menu */}
-              {showMobileMenu && (
-                <div
-                  className="absolute left-0 top-16 w-full bg-white shadow-2xl z-50"
-                  style={{ borderRight: "1px solid #fce4ec", borderBottom: "1px solid #fce4ec" }}
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <div className="px-4 py-3 border-b border-red-50 bg-[#fff9f9]">
-                    <p className="text-xs font-black text-[#b22234] uppercase tracking-wider">
-                      Navigation
-                    </p>
-                  </div>
-                  {NAV_ITEMS.map((item) => (
-                    <Link
-                      key={item.id}
-                      href={item.href}
-                      onClick={() => {
-                        setActiveNav(item.id);
-                        setShowMobileMenu(false);
-                        setShowNotifications(false);
-                      }}
-                      className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors border-b border-gray-50 last:border-0 ${
-                        activeNav === item.id
-                          ? "text-[#b22234] bg-red-50"
-                          : "text-gray-600 hover:bg-red-50 hover:text-[#b22234]"
-                      }`}
-                    >
-                      <span className="relative">
-                        {item.icon}
-                        {item.badge && (
-                          <span className="absolute -top-1.5 -right-2 bg-[#b22234] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
-                            {item.badge}
-                          </span>
-                        )}
-                      </span>
-                      <span className="flex-1">{item.label}</span>
-                      {item.badge && (
-                        <span className="bg-[#ffeaea] text-[#b22234] text-[10px] font-black px-2 py-0.5 rounded-full">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+            )}
 
-          {/* ─────────────────────────────────────────────────
-              LOGO — centered on mobile, left on desktop
-          ───────────────────────────────────────────────── */}
-          <Link
-            href="/"
-            className="flex items-center gap-2 shrink-0 absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0"
-          >
-            <div className="flex flex-col leading-none">
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-2xl font-black" style={{ color: "#b22234", fontFamily: "Georgia, serif" }}>
-                  Made
-                </span>
-                <span className="text-2xl font-bold" style={{ color: "#f3e228" }}>
-                  2
-                </span>
-                <span className="text-2xl font-black" style={{ color: "#b22234", fontFamily: "Georgia, serif" }}>
-                  Match
-                </span>
+            {/* Logo — left aligned; hidden on mobile inner pages (back button takes its place) */}
+            <Link
+              href="/"
+              className={`items-center gap-1.5 shrink-0 ${isInnerPage ? "hidden lg:flex" : "flex"}`}
+            >
+              <Image
+                src="/golden-hearts.png"
+                alt="Made2Match"
+                width={84}
+                height={56}
+                priority
+                className="h-14 w-auto object-contain -ml-5 sm:-ml-6"
+              />
+              <div className="flex flex-col leading-none">
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-2xl font-black" style={{ color: "#b22234", fontFamily: "Georgia, serif" }}>
+                    Made
+                  </span>
+                  <span className="text-2xl font-bold" style={{ color: "#f3e228" }}>
+                    2
+                  </span>
+                  <span className="text-2xl font-black" style={{ color: "#b22234", fontFamily: "Georgia, serif" }}>
+                    Match
+                  </span>
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          </div>
 
           {/* ─────────────────────────────────────────────────
               DESKTOP Center Nav
@@ -431,12 +391,12 @@ export default function Navbar() {
                     setShowNotifications(false);
                   }}
                   className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all group ${
-                    activeNav === item.id
+                    isActive(item.href)
                       ? "text-[#b22234]"
                       : "text-gray-500 hover:text-[#b22234]"
                   }`}
                 >
-                  {activeNav === item.id && (
+                  {isActive(item.href) && (
                     <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#b22234]" />
                   )}
                   <span className="relative">
@@ -494,7 +454,7 @@ export default function Navbar() {
                   {showNotifications && <NotificationPanel />}
                 </div>
 
-                {/* ── Profile Avatar ── */}
+                {/* ── Profile Avatar (mobile + desktop) ── */}
                 <div className="relative" ref={menuRef}>
                   <button
                     onClick={() => {
@@ -531,64 +491,6 @@ export default function Navbar() {
                       <path d="M2 4l4 4 4-4" />
                     </svg> */}
                   </button>
-
-                  {showUserMenu && (
-                    <div className="fixed inset-x-0 top-16 md:absolute md:inset-auto md:right-0 md:top-12.5 w-full md:w-96 bg-white border border-gray-100 shadow-xl py-2 z-50 max-h-[calc(100vh-4rem)] overflow-y-auto">
-                      {/* User info */}
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <p className="text-sm font-bold text-gray-800">{displayName}</p>
-                          <span
-                            className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: "#fff0f4", color: "#c0174c", border: "1px solid #f9c8d6" }}
-                          >
-                            {planLabel}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-400">{subtitle}</p>
-                      </div>
-
-                      {/* Upgrade Banner */}
-                      <div
-                        className="mx-3 my-2 rounded-xl px-3 py-2.5 text-center"
-                        style={{ background: "#fff8f9", border: "1px solid #f5c0cc" }}
-                      >
-                        <p className="text-xs text-gray-600 mb-2 leading-snug">
-                          Upgrade membership to call or message with matches
-                        </p>
-                        <button
-                          onClick={() => {
-                            setShowUserMenu(false);
-                            router.push("/specialoffer");
-                          }}
-                          className="w-full py-2 cursor-pointer rounded-lg text-white text-xs font-bold tracking-wide hover:opacity-90 active:scale-95 transition-all"
-                          style={{ background: "linear-gradient(135deg, #c0174c, #8b0f38)" }}
-                        >
-                          Upgrade now
-                        </button>
-                      </div>
-
-                      {/* Nav Links */}
-                      {[
-                        { label: "Edit Profile",             icon: "👤", href: "/edit-profile" },
-                        { label: "Edit Partner preferences", icon: "✏️", href: "/partnerpreferences" },
-                        { label: "My Matches",               icon: "💞", href: "/profiles" },
-                        { label: "Messages",                 icon: "💬", href: "/chat" },
-                        { label: "Settings",                 icon: "⚙️", href: "/settings" },
-                        { label: "Help",                     icon: "❓", href: "/help" },
-                      ].map((item) => (
-                        <Link
-                          key={item.label}
-                          href={item.href}
-                          onClick={() => setShowUserMenu(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-xs text-gray-600 hover:bg-red-50 hover:text-[#c0174c] transition-colors"
-                        >
-                          <span style={{ fontSize: 13 }}>{item.icon}</span>
-                          {item.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </>
             ) : (
@@ -618,6 +520,71 @@ export default function Navbar() {
             )}
           </div>
         </div>
+
+        {/* ── User menu (shared: opened by mobile-left avatar or desktop-right avatar) ── */}
+        {isLoggedIn && showUserMenu && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowUserMenu(false)}
+            />
+            <div className="fixed inset-x-0 top-16 lg:absolute lg:inset-auto lg:right-2 lg:top-14 w-full lg:w-96 bg-white border border-gray-100 shadow-xl py-2 z-50 max-h-[calc(100vh-4rem)] overflow-y-auto">
+              {/* User info */}
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between mb-0.5">
+                  <p className="text-sm font-bold text-gray-800">{displayName}</p>
+                  <span
+                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: "#fff0f4", color: "#c0174c", border: "1px solid #f9c8d6" }}
+                  >
+                    {planLabel}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400">{subtitle}</p>
+              </div>
+
+              {/* Upgrade Banner */}
+              <div
+                className="mx-3 my-2 rounded-xl px-3 py-2.5 text-center"
+                style={{ background: "#fff8f9", border: "1px solid #f5c0cc" }}
+              >
+                <p className="text-xs text-gray-600 mb-2 leading-snug">
+                  Upgrade membership to call or message with matches
+                </p>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    router.push("/specialoffer");
+                  }}
+                  className="w-full py-2 cursor-pointer rounded-lg text-white text-xs font-bold tracking-wide hover:opacity-90 active:scale-95 transition-all"
+                  style={{ background: "linear-gradient(135deg, #c0174c, #8b0f38)" }}
+                >
+                  Upgrade now
+                </button>
+              </div>
+
+              {/* Nav Links */}
+              {[
+                { label: "Edit Profile",             icon: "👤", href: "/edit-profile" },
+                { label: "Edit Partner preferences", icon: "✏️", href: "/partnerpreferences" },
+                { label: "My Matches",               icon: "💞", href: "/profiles" },
+                { label: "Messages",                 icon: "💬", href: "/chat" },
+                { label: "Settings",                 icon: "⚙️", href: "/settings" },
+                { label: "Help",                     icon: "❓", href: "/help" },
+              ].map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-3 px-4 py-2 text-xs text-gray-600 hover:bg-red-50 hover:text-[#c0174c] transition-colors"
+                >
+                  <span style={{ fontSize: 13 }}>{item.icon}</span>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── Bottom Nav Bar (guest only) ── */}
@@ -638,6 +605,84 @@ export default function Navbar() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Mobile curved bottom navigation with center FAB ── */}
+      {isLoggedIn && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
+          {/* Pink bar */}
+          <div
+            className="relative h-16 shadow-[0_-4px_16px_rgba(0,0,0,0.12)]"
+            style={{ background: "linear-gradient(90deg,#c0174c,#e0185a)" }}
+          >
+            {/* White notch cradle behind the FAB */}
+            <div className="absolute left-1/2 -translate-x-1/2 -top-9 w-[72px] h-[72px] rounded-full bg-white" />
+
+            <div className="relative grid grid-cols-5 items-center h-full">
+              {NAV_ITEMS.slice(0, 2).map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  onClick={() => setActiveNav(item.id)}
+                  className={`relative flex flex-col items-center justify-center gap-0.5 h-full transition-colors ${
+                    isActive(item.href) ? "text-white" : "text-white/65"
+                  }`}
+                >
+                  <span className="relative">
+                    {item.icon}
+                    {item.badge && (
+                      <span className="absolute -top-1.5 -right-2 bg-white text-[#c0174c] text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                        {item.badge}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[10px] font-semibold leading-none">{item.label}</span>
+                  {isActive(item.href) && (
+                    <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white" />
+                  )}
+                </Link>
+              ))}
+
+              {/* Center column reserved for the FAB */}
+              <div aria-hidden />
+
+              {NAV_ITEMS.slice(2, 4).map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  onClick={() => setActiveNav(item.id)}
+                  className={`relative flex flex-col items-center justify-center gap-0.5 h-full transition-colors ${
+                    isActive(item.href) ? "text-white" : "text-white/65"
+                  }`}
+                >
+                  <span className="relative">
+                    {item.icon}
+                    {item.badge && (
+                      <span className="absolute -top-1.5 -right-2 bg-white text-[#c0174c] text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                        {item.badge}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[10px] font-semibold leading-none">{item.label}</span>
+                  {isActive(item.href) && (
+                    <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white" />
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Center floating action button */}
+          <Link
+            href={NAV_ITEMS[4].href}
+            onClick={() => setActiveNav(NAV_ITEMS[4].id)}
+            aria-label={NAV_ITEMS[4].label}
+            className="animate-fab-pulse absolute left-1/2 -translate-x-1/2 -top-7 w-14 h-14 rounded-full flex items-center justify-center text-white [&_svg]:w-6 [&_svg]:h-6"
+            style={{ background: "linear-gradient(135deg,#e8275f,#c0174c)" }}
+          >
+            {NAV_ITEMS[4].icon}
+          </Link>
         </div>
       )}
     </header>

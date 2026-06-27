@@ -21,6 +21,8 @@ export default function MainLayout({
       <ChatAssistant />
       <MatchCelebration />
       <WelcomeCelebration />
+      {/* Spacer so content clears the fixed mobile bottom nav */}
+      <div className="h-16 lg:hidden" aria-hidden />
     </>
   );
 }
