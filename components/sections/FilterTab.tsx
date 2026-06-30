@@ -182,7 +182,7 @@ function ArrowBtn({
   return (
     <button
       onClick={onClick}
-      className={`flex-shrink-0 w-8 h-8 rounded-full border border-gray-300 bg-white shadow-sm flex items-center justify-center text-gray-600 hover:border-gray-500 hover:text-gray-900 transition-all ${
+      className={`flex-shrink-0 w-8 h-8 rounded-full border-2 border-[#b22234] bg-white shadow-sm flex items-center justify-center text-[#b22234] hover:bg-[#b22234] hover:text-white cursor-pointer transition-all ${
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >

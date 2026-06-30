@@ -1,7 +1,7 @@
 // app/(auth)/onboarding/hobbies/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { mapInterestCategory, saveAllInterests } from "@/services/profileService";
 
@@ -119,6 +119,15 @@ function CloseIcon() {
 export default function HobbiesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("hobbies");
+  const tabBarRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll the active tab into view (reveals the next tab too).
+  useEffect(() => {
+    const el = tabBarRef.current?.querySelector(
+      `[data-tab="${activeTab}"]`,
+    ) as HTMLElement | null;
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [activeTab]);
   const [selected, setSelected] = useState<Record<TabKey, Set<string>>>(
     () => Object.fromEntries(TABS.map(t => [t.key, new Set<string>()])) as Record<TabKey, Set<string>>
   );
@@ -174,10 +183,10 @@ export default function HobbiesPage() {
   const totalSelected = allSelected.length;
 
   return (
-    <div className="min-h-screen flex flex-col p-5" style={{ background: "#fdf2f5" }}>
+    <div className="min-h-screen flex flex-col p-2 sm:p-5" style={{ background: "#fdf2f5" }}>
 
       {/* ── Top bar ── */}
-      <div className="flex items-center justify-between px-6 py-5 max-w-4xl mx-auto w-full">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-5 max-w-4xl mx-auto w-full">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
@@ -200,17 +209,19 @@ export default function HobbiesPage() {
       </div>
 
       {/* ── Card ── */}
-      <div className="flex-1 px-6 pb-10 max-w-4xl mx-auto w-full ">
+      <div className="flex-1 px-2 sm:px-6 pb-10 max-w-4xl mx-auto w-full ">
         <div className="bg-white rounded-2xl overflow-hidden shadow-md" style={{ border: "0.5px solid #f0c0d0" }}>
 
           {/* ── Tabs ── */}
           <div
+            ref={tabBarRef}
             className="flex overflow-x-auto h-18"
             style={{ borderBottom: "1px solid #f0c0d0", scrollbarWidth: "none" }}
           >
             {TABS.map(tab => (
               <button
                 key={tab.key}
+                data-tab={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className="shrink-0 px-4 py-3.5 text-md cursor-pointer font-semibold whitespace-nowrap transition-colors"
                 style={{
@@ -306,7 +317,7 @@ export default function HobbiesPage() {
             {allSelected.length === 0 ? (
               <p className="text-xs text-gray-300 italic">Nothing selected yet — tap interests above</p>
             ) : (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 max-h-[150px] overflow-y-auto pr-1">
                 {allSelected.map(({ tab, item }) => (
                   <div
                     key={`${tab}-${item}`}

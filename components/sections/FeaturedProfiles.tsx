@@ -9,8 +9,21 @@ type Tab = "bride" | "groom";
 export default function FeaturedProfiles() {
   const [tab, setTab] = useState<Tab>("bride");
 
-  const brides = profiles.slice(0, 5);
-  const grooms = profiles.slice(5, 10);
+  // Real featured brides (images live in /public).
+  const brides = [
+    { name: "Sandra Benny", age: 27, height: "5'4\"", city: "Kochi", image: "/sandra-profile.jpg" },
+    { name: "Sushama", age: 27, height: "5'3\"", city: "Palakkad", image: "/sushama-profile.jpg" },
+    { name: "Varsha", age: 29, height: "5'5\"", city: "Trivandrum", image: "/varsha-profile.jpg" },
+    { name: "Lakshmi", age: 29, height: "5'4\"", city: "Malappuram", image: "/lakshmi-profile.jpg" },
+    { name: "Anjana", age: 27, height: "5'4\"", city: "Malappuram", image: "/anjana-profile.jpg" },
+  ];
+  const grooms = [
+    { name: "Varun", age: 33, height: "5'6\"", city: "Palakkad", image: "/varun-groom.jpg" },
+    { name: "Shijo", age: 30, height: "6'0\"", city: "Palakkad", image: "/shijo-groom.jpg" },
+    { name: "Sabin", age: 31, height: "5'9\"", city: "Palakkad", image: "/sabin-groom.jpg" },
+    { name: "Arjun Nair", age: 29, height: "5'8\"", city: "Kozhikode", image: "https://randomuser.me/api/portraits/men/45.jpg" },
+    ...profiles.slice(5, 6),
+  ];
   const list = tab === "bride" ? brides : grooms;
   const [activeIdx, setActiveIdx] = useState(2); // center one is highlighted
 
@@ -86,16 +99,26 @@ export default function FeaturedProfiles() {
                     className="object-cover object-top group-hover:scale-105 transition-transform"
                   />
                 </div>
-                <div className="bg-white rounded-md border border-gray-200 px-3 py-2 text-center min-w-[110px] shadow-sm">
-                  <p className="text-[11px] font-bold text-gray-800 truncate">
+                <div
+                  className={`rounded-2xl px-4 py-2.5 text-center min-w-[130px] transition-all ${
+                    isActive
+                      ? "bg-gradient-to-b from-[#fff0f5] to-white border-2 border-[#c0174c] shadow-[0_10px_25px_rgba(192,23,76,0.22)] -translate-y-0.5"
+                      : "bg-white border border-gray-200 shadow-md hover:shadow-lg"
+                  }`}
+                >
+                  <p className="text-sm font-extrabold text-gray-900 truncate leading-tight">
                     {p.name}
                   </p>
-                  <p className="text-[9px] text-gray-500 mt-0.5">
+                  <p className="text-[11px] text-gray-500 font-medium mt-0.5">
                     {p.age} yrs • {p.height}
                   </p>
-                  <p className="text-[9px] text-[#c0174c] font-semibold mt-0.5 truncate">
+                  <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-[#c0174c] bg-[#fde4ec] px-2.5 py-0.5 rounded-full">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
                     {p.city}
-                  </p>
+                  </span>
                 </div>
               </button>
             );

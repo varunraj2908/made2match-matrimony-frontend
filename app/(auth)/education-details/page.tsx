@@ -98,7 +98,7 @@ function InputField({ label, highlight, placeholder, value, onChange, icon }: In
             : "border-slate-200 hover:border-slate-300 hover:bg-white"
           }`}
       >
-        <span className="pl-4 pr-2 shrink-0">{icon}</span>
+        <span className="pl-4 pr-2.5 shrink-0">{icon}</span>
         <input
           type="text"
           value={value}
@@ -106,7 +106,7 @@ function InputField({ label, highlight, placeholder, value, onChange, icon }: In
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           placeholder={placeholder}
-          className="w-full py-3 pr-4 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
+          className="w-full py-3.5 pr-4 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
         />
         {value && (
           <button
@@ -158,11 +158,11 @@ const router = useRouter();
   };
 
   return (
-    <div className=" flex h-full items-center  font-sans flex-col" style={{
+    <div className="flex h-full items-center font-sans flex-col px-4 py-2 sm:p-4" style={{
           background:
             "linear-gradient(160deg, #fff8f0 0%, #fff0f5 40%, #fdf4ff 100%)",
         }}>
-        <div className="flex items-center justify-between px-12 py-5 max-w-2xl mt-5 mx-auto w-full">
+        <div className="flex items-center justify-between py-5 max-w-2xl mt-5 mx-auto w-full">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
@@ -183,7 +183,7 @@ const router = useRouter();
           Skip for now ›
         </button>
       </div>
-      <div className="w-full max-w-xl bg-white rounded-3xl border border-[#eeb5c6] shadow-lg p-8 relative overflow-hidden">
+      <div className="w-full max-w-2xl mx-auto bg-white rounded-3xl border border-[#eeb5c6] shadow-lg p-4 sm:p-8 relative overflow-hidden">
 
         {/* Background decorations */}
        

@@ -9,6 +9,7 @@ import {
   fetchForMenu,
   recordProfileView,
   shortlistProfile,
+  sendInterest,
   type CardProfile,
   type MatchFilters,
   type SidebarLabel,
@@ -649,110 +650,129 @@ const ProfileCardGrid = ({
   profile,
   onOpen,
   onShortlist,
+  onInterest,
 }: {
   profile: CardProfile;
   onOpen: (p: CardProfile) => void;
   onShortlist: (p: CardProfile) => void;
+  onInterest: (p: CardProfile) => void;
 }) => {
   const [imgError, setImgError] = useState(false);
+  const tags = [profile.profession, profile.education, profile.religion, profile.height].filter(Boolean).slice(0, 4) as string[];
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 group flex flex-col">
-      <div className="flex flex-col md:flex-row gap-2 md:gap-2.5 p-2 md:p-2.5 flex-1">
-        <button
-          type="button"
-          onClick={() => onOpen(profile)}
-          className="shrink-0 text-left cursor-pointer"
+    <div className="rounded-[28px] bg-white border border-gray-200 p-3 group shadow-[0_10px_30px_-12px_rgba(0,0,0,0.18)] hover:shadow-[0_16px_42px_-12px_rgba(192,23,76,0.25)] hover:border-[#f0c6d2] transition-all">
+      {/* Photo (click to open) */}
+      <div
+        onClick={() => onOpen(profile)}
+        className="relative w-full aspect-[3/4] overflow-hidden rounded-[22px] bg-gray-900 cursor-pointer"
+      >
+        {imgError || !profile.photo ? (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center text-6xl">👤</div>
+        ) : (
+          <img
+            src={profile.photo}
+            alt={profile.name}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={() => setImgError(true)}
+          />
+        )}
+
+        {/* Bottom darken for panel legibility */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(0,0,0,0.55) 4%, rgba(0,0,0,0) 42%)" }} />
+
+        {/* Ready-for-relationship pill */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/30 backdrop-blur-md border border-white/15 text-white text-[11px] font-medium px-3 py-1.5 rounded-full">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#ff2d6f"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+          Ready for relationship
+        </div>
+
+        {/* Shortlist heart */}
+        <span
+          role="button"
+          onClick={(e) => { e.stopPropagation(); onShortlist(profile); }}
+          className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/30 backdrop-blur-md border border-white/15 flex items-center justify-center text-white hover:bg-[#c0174c] transition-colors cursor-pointer"
         >
-          <div className="w-full h-36 md:w-24 md:h-28 rounded-md overflow-hidden border-2 border-[#f5d0d7]">
-            {imgError || !profile.photo ? (
-              <div className="w-full h-full bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center text-2xl">
-                👤
-              </div>
-            ) : (
-              <img
-                src={profile.photo}
-                alt={profile.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={() => setImgError(true)}
-              />
-            )}
-          </div>
-        </button>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+        </span>
 
-        <div className="flex-1 min-w-0 flex flex-col justify-between">
-          <button
-            type="button"
-            onClick={() => onOpen(profile)}
-            className="min-w-0 text-left cursor-pointer"
-          >
-            <p className="text-[9px] text-gray-400 font-mono truncate">
-              ID: {profile.id}
+        {/* Frosted info panel */}
+        <div className="absolute inset-x-3 bottom-3 rounded-[20px] bg-white/10 backdrop-blur-xl border border-white/15 px-4 py-3.5 text-white">
+          {profile.location && (
+            <p className="flex items-center gap-1.5 text-xs text-white/80">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+              <span className="truncate">{profile.location}</span>
             </p>
-            <h3 className="text-sm font-bold text-gray-800 truncate leading-tight group-hover:text-[#b22234] transition-colors">
-              {profile.name}
+          )}
+          <div className="flex items-center gap-2 mt-1">
+            <h3 className="text-2xl font-bold leading-tight truncate">
+              {profile.name}{profile.age != null && <>, {profile.age}</>}
             </h3>
-
-            <div className="text-[11px] md:text-[10px] text-gray-600 space-y-0.5 mt-1">
-              <p className="truncate">
-                {profile.age != null && (
-                  <span className="text-[#b22234] font-semibold">
-                    {profile.age}Y
-                  </span>
-                )}
-                {profile.height && <> • {profile.height}</>}
-                {profile.religion && <> • {profile.religion}</>}
-              </p>
-              {profile.location && (
-                <p className="truncate">📍 {profile.location}</p>
-              )}
-              {profile.education && (
-                <p className="truncate">🎓 {profile.education}</p>
-              )}
-              {profile.profession && (
-                <p className="truncate">💼 {profile.profession}</p>
-              )}
-              {profile.income && (
-                <p className="hidden md:block truncate text-[9px] text-gray-400">
-                  💰 {profile.income}
-                </p>
-              )}
-            </div>
-
-            {profile.about && (
-              <p className="hidden md:block text-[10px] text-gray-500 line-clamp-2 mt-1 leading-relaxed">
-                {profile.about}
-              </p>
-            )}
-          </button>
-
-          <div className="flex gap-1 mt-2">
-            <button
-              type="button"
-              onClick={() => onShortlist(profile)}
-              className="flex-1 bg-[#b22234] hover:bg-[#9a1d2b] text-white text-[10px] font-bold py-1.5 rounded transition-colors truncate"
-            >
-              ⭐ Shortlist
-            </button>
-            <button
-              type="button"
-              onClick={() => onOpen(profile)}
-              className="flex-1 border border-[#b22234] text-[#b22234] hover:bg-[#b22234] hover:text-white text-[10px] font-bold py-1.5 rounded transition-colors truncate"
-            >
-              View profile
-            </button>
+            <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "#ff2d6f" }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </span>
           </div>
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2.5">
+              {tags.map((t, i) => (
+                <span key={i} className="bg-white/[0.12] border border-white/15 text-white/90 text-[11px] font-medium px-3 py-1 rounded-full truncate max-w-[150px]">
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="border-t border-gray-100 px-2.5 py-1.5 bg-gray-50 shrink-0">
+      {/* About Me */}
+      <div className="mt-2 rounded-[16px] bg-[#fdf3f6] border border-[#f5dbe3] px-3.5 py-2">
+        <p className="text-[12px] font-bold text-gray-800 mb-0.5">About Me</p>
+        <p className="text-[12px] text-gray-500 leading-snug line-clamp-2">
+          {profile.about ||
+            `${profile.profession || "Professional"}${profile.location ? ` from ${profile.location.split(",")[0]}` : ""}${profile.education ? ` · ${profile.education}` : ""}. Looking for a meaningful, lasting connection.`}
+        </p>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 pt-2">
+        <button
+          type="button"
+          onClick={() => onInterest(profile)}
+          className="flex-1 flex items-center justify-center gap-2 text-white text-sm font-bold py-2.5 rounded-full cursor-pointer transition-transform active:scale-95 hover:scale-[1.02]"
+          style={{ background: "linear-gradient(135deg,#ff5d8f,#c0174c)", boxShadow: "0 8px 22px rgba(192,23,76,0.45)" }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+          Express Interest
+        </button>
+        <button
+          type="button"
+          onClick={() => onShortlist(profile)}
+          aria-label="Shortlist"
+          className="w-10 h-10 rounded-full bg-[#fdeef2] border border-[#f3c6d4] flex items-center justify-center text-[#c0174c] cursor-pointer hover:bg-[#fbdce6] active:scale-95 transition-all"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+        </button>
         <button
           type="button"
           onClick={() => onOpen(profile)}
-          className="text-[10px] text-[#b22234] font-bold hover:underline flex items-center gap-1 w-full justify-center"
+          aria-label="Call"
+          className="w-10 h-10 rounded-full bg-[#fdeef2] border border-[#f3c6d4] flex items-center justify-center text-[#c0174c] cursor-pointer hover:bg-[#fbdce6] active:scale-95 transition-all"
         >
-          📞 CONTACT NOW!
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
         </button>
       </div>
+
+      {/* View full profile */}
+      <button
+        type="button"
+        onClick={() => onOpen(profile)}
+        className="w-full mt-1.5 py-1.5 rounded-full text-sm font-bold text-gray-500 hover:text-[#c0174c] transition-colors cursor-pointer flex items-center justify-center gap-1"
+      >
+        View full profile
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
     </div>
   );
 };
@@ -762,21 +782,37 @@ const ProfileCardList = ({
   profile,
   onOpen,
   onShortlist,
+  onInterest,
 }: {
   profile: CardProfile;
   onOpen: (p: CardProfile) => void;
   onShortlist: (p: CardProfile) => void;
+  onInterest: (p: CardProfile) => void;
 }) => {
   const [imgError, setImgError] = useState(false);
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col">
-      <div className="flex gap-3 p-3">
+    <div className="relative bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col min-h-[186px]">
+      {/* WhatsApp — top-right corner */}
+      <a
+        href="https://wa.me/919999999999"
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        aria-label="Chat on WhatsApp"
+        className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-[#25D366] flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+        </svg>
+      </a>
+
+      <div className="flex gap-3 px-3 py-2 flex-1">
         <button
           type="button"
           onClick={() => onOpen(profile)}
-          className="shrink-0 cursor-pointer flex self-stretch"
+          className="shrink-0 cursor-pointer"
         >
-          <div className="w-32 h-full min-h-[120px] rounded-md overflow-hidden border-2 border-[#f5d0d7]">
+          <div className="w-32 h-32 rounded-md overflow-hidden border-2 border-[#f5d0d7]">
             {imgError || !profile.photo ? (
               <div className="w-full h-full bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center text-xl">
                 👤
@@ -796,43 +832,54 @@ const ProfileCardList = ({
           <button
             type="button"
             onClick={() => onOpen(profile)}
-            className="min-w-0 text-left cursor-pointer"
+            className="min-w-0 text-left cursor-pointer pr-8"
           >
-            <h3 className="text-sm font-bold text-gray-800 truncate">
-              {profile.name}
-            </h3>
-            <p className="text-[9px] text-gray-400 font-mono truncate">
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-lg font-bold text-gray-800 truncate">
+                {profile.name}
+              </h3>
+              {profile.isPremium ? (
+                <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
+                  ✓ Verified
+                </span>
+              ) : (
+                <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                  Not Verified
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-400 font-mono truncate">
               {profile.id}
             </p>
             <div className="flex flex-wrap gap-1 mt-1">
               {profile.age != null && (
-                <span className="text-[10px] bg-[#fdf2f3] text-[#b22234] font-semibold px-1.5 py-0.5 rounded-full">
+                <span className="text-xs bg-[#fdf2f3] text-[#b22234] font-semibold px-2 py-0.5 rounded-full">
                   {profile.age} Yrs
                 </span>
               )}
               {profile.height && (
-                <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                   {profile.height}
                 </span>
               )}
               {profile.religion && (
-                <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full truncate max-w-[80px]">
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full truncate max-w-[80px]">
                   {profile.religion}
                 </span>
               )}
             </div>
             {profile.location && (
-              <p className="text-[10px] text-gray-500 mt-1 truncate">
+              <p className="text-[13px] text-gray-600 mt-1 truncate">
                 📍 {profile.location}
               </p>
             )}
             {profile.education && (
-              <p className="text-[10px] text-gray-500 truncate">
+              <p className="text-[13px] text-gray-600 truncate">
                 🎓 {profile.education}
               </p>
             )}
             {profile.profession && (
-              <p className="text-[10px] text-gray-500 truncate">
+              <p className="text-[13px] text-gray-600 truncate">
                 💼 {profile.profession}
               </p>
             )}
@@ -844,22 +891,29 @@ const ProfileCardList = ({
       <div className="flex items-stretch gap-1.5 px-3 pb-3 pt-0 mt-auto">
         <button
           type="button"
+          onClick={() => onInterest(profile)}
+          className="flex-1 bg-[#b22234] text-white text-[11px] font-bold py-2.5 rounded cursor-pointer transition-colors hover:bg-[#9a1d2b]"
+        >
+          ❤ Interest
+        </button>
+        <button
+          type="button"
           onClick={() => onShortlist(profile)}
-          className="flex-1 bg-[#b22234] text-white text-[10px] font-bold py-2 rounded transition-colors"
+          className="flex-1 border border-[#b22234] text-[#b22234] text-[11px] font-bold py-2.5 rounded cursor-pointer transition-colors hover:bg-[#fdeef2]"
         >
           ⭐ Shortlist
         </button>
         <button
           type="button"
           onClick={() => onOpen(profile)}
-          className="flex-1 border border-[#b22234] text-[#b22234] text-[10px] font-bold py-2 rounded transition-colors"
+          className="flex-1 border border-[#b22234] text-[#b22234] text-[11px] font-bold py-2.5 rounded cursor-pointer transition-colors hover:bg-[#fdeef2]"
         >
           View
         </button>
         <button
           type="button"
           onClick={() => onOpen(profile)}
-          className="px-3 text-[10px] text-[#b22234] font-bold border border-[#b22234] rounded transition-colors"
+          className="px-3 text-xs text-[#b22234] font-bold border border-[#b22234] rounded cursor-pointer transition-colors hover:bg-[#fdeef2]"
         >
           📞
         </button>
@@ -920,9 +974,44 @@ export default function ProfileCards() {
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string>("");
   const [shortlistMsg, setShortlistMsg] = useState<string>("");
   const [filterState, setFilterState] = useState<FilterState>(EMPTY_FILTERS);
+
+  // Infinite scroll — load the next page when nearing the bottom.
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const appendModeRef = useRef(false); // true → append (scroll), false → replace (page click)
+  const onProfilesScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (
+      !loading &&
+      !loadingMore &&
+      currentPage < totalPages &&
+      el.scrollTop + el.clientHeight >= el.scrollHeight - 320
+    ) {
+      appendModeRef.current = true;
+      setCurrentPage((p) => p + 1);
+    }
+  };
+
+  // Lock the page scroll on mobile so only the profiles list scrolls.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const html = document.documentElement;
+    const apply = () => {
+      const v = mq.matches ? "hidden" : "";
+      html.style.overflow = v;
+      document.body.style.overflow = v;
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => {
+      mq.removeEventListener("change", apply);
+      html.style.overflow = "";
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   // Stable serialised key — reruns the fetch effect when any filter changes
   // without forcing the consumer to do its own deep-equal.
@@ -930,13 +1019,17 @@ export default function ProfileCards() {
 
   // Reset to page 1 when menu or filter changes
   useEffect(() => {
+    appendModeRef.current = false;
     setCurrentPage(1);
   }, [activeMenu, filterKey]);
 
   // Fetch profiles whenever menu, page or filters change
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    const append = appendModeRef.current; // captured for this run
+    appendModeRef.current = false;
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     setError("");
 
     const matchFilters = buildMatchFilters(filterState);
@@ -944,7 +1037,8 @@ export default function ProfileCards() {
     fetchForMenu(activeMenu as SidebarLabel, currentPage - 1, PAGE_SIZE, matchFilters)
       .then((result) => {
         if (cancelled) return;
-        setItems(result.items);
+        // Append for infinite scroll, replace for fresh loads / page clicks.
+        setItems((prev) => (append ? [...prev, ...result.items] : result.items));
         setTotalElements(result.totalElements);
         setTotalPages(result.totalPages);
       })
@@ -954,13 +1048,18 @@ export default function ProfileCards() {
           ex?.response?.data?.message ||
           ex?.message ||
           "Could not load profiles.";
-        setError(msg);
-        setItems([]);
-        setTotalElements(0);
-        setTotalPages(0);
+        if (!append) {
+          setError(msg);
+          setItems([]);
+          setTotalElements(0);
+          setTotalPages(0);
+        }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       });
 
     return () => {
@@ -987,8 +1086,21 @@ export default function ProfileCards() {
     }
   };
 
+  const handleInterest = async (p: CardProfile) => {
+    try {
+      await sendInterest(p.numericId);
+      setShortlistMsg(`Interest sent to ${p.name}`);
+      window.setTimeout(() => setShortlistMsg(""), 2500);
+    } catch (ex: any) {
+      setShortlistMsg(
+        ex?.response?.data?.message || "Could not send interest.",
+      );
+      window.setTimeout(() => setShortlistMsg(""), 2500);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="bg-white lg:min-h-screen overflow-hidden lg:overflow-visible">
       <CoastHeaderBar />
 
       {shortlistMsg && (
@@ -997,13 +1109,15 @@ export default function ProfileCards() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-1 pb-4 sm:py-6">
         <div className="flex gap-4 sm:gap-6">
           {/* Desktop Sidebar */}
           <LeftSidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
 
           {/* Main Content */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 flex flex-col h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-4rem)]">
+            {/* Fixed top section: menu, view toggle, filters */}
+            <div className="shrink-0 bg-white pt-[10px]">
             <div className="flex gap-1 justify-center items-center">
               <MobileMenuDropdown
                 activeMenu={activeMenu}
@@ -1039,7 +1153,7 @@ export default function ProfileCards() {
               </div>
             </div>
 
-            <div className="flex-1 min-w-0 pb-2 mt-2 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex-1 min-w-0 pb-2 pt-2 mt-2 flex items-center justify-between flex-wrap gap-2">
               <FilterBar value={filterState} onChange={setFilterState} />
               {!loading && !error && (
                 <span className="text-xs text-gray-500">
@@ -1049,7 +1163,15 @@ export default function ProfileCards() {
                 </span>
               )}
             </div>
+            </div>
+            {/* end fixed top section */}
 
+            {/* Scrollable profiles */}
+            <div
+              ref={scrollContainerRef}
+              onScroll={onProfilesScroll}
+              className="flex-1 overflow-y-auto pt-2"
+            >
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
                 {error}
@@ -1075,14 +1197,15 @@ export default function ProfileCards() {
               </div>
             ) : (
               <>
-                {/* ── Desktop: always 2-col grid ── */}
+                {/* ── Desktop: detailed list cards (grid view is mobile-only) ── */}
                 <div className="hidden md:grid grid-cols-2 gap-4">
                   {items.map((profile, i) => (
-                    <ProfileCardGrid
+                    <ProfileCardList
                       key={`${profile.id}-${i}`}
                       profile={profile}
                       onOpen={handleOpen}
                       onShortlist={handleShortlist}
+                      onInterest={handleInterest}
                     />
                   ))}
                 </div>
@@ -1090,25 +1213,52 @@ export default function ProfileCards() {
                 {/* ── Mobile: grid toggle ── */}
                 <div className="md:hidden">
                   {mobileViewMode === "grid" ? (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-3">
                       {items.map((profile, i) => (
                         <ProfileCardGrid
                           key={`${profile.id}-${i}`}
                           profile={profile}
                           onOpen={handleOpen}
                           onShortlist={handleShortlist}
+                          onInterest={handleInterest}
                         />
                       ))}
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2">
                       {items.map((profile, i) => (
-                        <ProfileCardList
-                          key={`${profile.id}-${i}`}
-                          profile={profile}
-                          onOpen={handleOpen}
-                          onShortlist={handleShortlist}
-                        />
+                        <div key={`${profile.id}-${i}`} className="contents">
+                          <ProfileCardList
+                            profile={profile}
+                            onOpen={handleOpen}
+                            onShortlist={handleShortlist}
+                            onInterest={handleInterest}
+                          />
+                          {/* Membership promo: first after 3 profiles, then every 10 */}
+                          {i >= 2 && (i - 2) % 10 === 0 && (
+                            <div
+                              className="rounded-xl p-4 text-white text-center shadow-md"
+                              style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
+                            >
+                              <p className="text-sm font-bold">✨ Unlock Premium Matches</p>
+                              <p className="text-[11px] text-white/85 mt-0.5">
+                                Subscribe to a plan and connect with matches faster.
+                              </p>
+                              <button
+                                onClick={() => router.push("/specialoffer")}
+                                className="mt-2.5 bg-white text-[#c0174c] text-xs font-bold px-5 py-1.5 rounded-full hover:bg-pink-50 transition-colors"
+                              >
+                                View Plans
+                              </button>
+                              <div className="mt-3 pt-2.5 border-t border-white/20 text-[11px] text-white/90">
+                                Need help?{" "}
+                                <a href="tel:8075067058" className="font-bold underline">
+                                  📞 8075067058
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}
@@ -1116,13 +1266,27 @@ export default function ProfileCards() {
               </>
             )}
 
-            {totalPages > 1 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
+            {/* Loading-more spinner (infinite scroll) */}
+            {loadingMore && (
+              <div className="flex justify-center py-5">
+                <svg className="animate-spin w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#b22234" strokeWidth="2.5">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+              </div>
             )}
+
+            {/* Pagination — desktop only (mobile uses infinite scroll) */}
+            {totalPages > 1 && (
+              <div className="hidden lg:block">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
+            </div>
+            {/* end scrollable profiles */}
           </div>
         </div>
       </div>
