@@ -14,9 +14,9 @@ export default function StatusBar() {
             label: "SECURITY",
           },
           {
-            icon: "❤️",
-            value: "25",
-            label: "YEARS OF EXPERIENCE",
+            icon: "🤖",
+            value: "AI",
+            label: "POWERED MATCHING",
           },
           {
             icon: "🕐",

@@ -17,7 +17,12 @@ export default function MainLayout({
     <>
       <Navbar />
       {children}
-      {!pathname.startsWith("/chat") && <Footer />}
+      {!pathname.startsWith("/chat") && (
+        // Footer hidden on mobile only for the profiles list screen.
+        <div className={pathname === "/profiles" ? "hidden md:block" : ""}>
+          <Footer />
+        </div>
+      )}
       <ChatAssistant />
       <MatchCelebration />
       <WelcomeCelebration />

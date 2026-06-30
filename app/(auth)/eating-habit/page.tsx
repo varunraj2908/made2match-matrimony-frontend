@@ -113,11 +113,11 @@ export default function EatingHabitForm() {
   };
 
   return (
-    <div className=" flex h-full items-center  font-sans flex-col" style={{
+    <div className="flex h-full items-center font-sans flex-col px-4 py-2 sm:p-4" style={{
           background:
             "linear-gradient(160deg, #fff8f0 0%, #fff0f5 40%, #fdf4ff 100%)",
         }}>
-      <div className="flex items-center justify-between px-12 py-5 h-20 max-w-2xl mt-5 mx-auto w-full">
+      <div className="flex items-center justify-between py-5 h-20 max-w-2xl mt-5 mx-auto w-full">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
@@ -152,7 +152,7 @@ export default function EatingHabitForm() {
           Skip for now ›
         </button>
       </div>
-      <div className="w-full max-w-xl bg-white rounded-3xl border border-[#eeb5c6] shadow-lg p-8 relative overflow-hidden">
+      <div className="w-full max-w-2xl mx-auto bg-white rounded-3xl border border-[#eeb5c6] shadow-lg p-4 sm:p-8 relative overflow-hidden">
         {/* Background decoration */}
        
         <div className="absolute -bottom-20 -left-16 w-48 h-48 rounded-full bg-indigo-50 pointer-events-none z-30" />

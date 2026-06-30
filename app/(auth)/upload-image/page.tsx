@@ -90,7 +90,7 @@ export default function AddPhotoPage(): JSX.Element {
       <div className="max-w-5xl mx-auto mt-5">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-5 pr-8">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl border border-[#efc6d5] bg-white flex items-center justify-center text-[#d4145a] text-sm">
               +
@@ -204,8 +204,8 @@ export default function AddPhotoPage(): JSX.Element {
             )}
           </div>
 
-          {/* Right Card */}
-          <div className="rounded-[28px] w-full md:w-120 border border-[#efc6d5] bg-white p-5 md:p-10 shadow-sm">
+          {/* Right Card — hidden on mobile */}
+          <div className="hidden md:block rounded-[28px] w-full md:w-120 border border-[#efc6d5] bg-white p-5 md:p-10 shadow-sm">
 
             <h2 className="text-xl font-black text-[#111827] leading-tight">
               Add a photo for
