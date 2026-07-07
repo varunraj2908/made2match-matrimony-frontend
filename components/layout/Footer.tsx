@@ -102,7 +102,7 @@ export default function Footer() {
                 <Link
                   key={link.label}
                   href={link.href}
-                  className="text-white/80 hover:text-white text-xs transition border-b border-white/20 pb-1"
+                  className="text-white/80 hover:text-white text-sm transition border-b border-white/20 pb-1"
                 >
                   {link.label}
                 </Link>
@@ -114,7 +114,7 @@ export default function Footer() {
                 <Link
                   key={link.label}
                   href={link.href}
-                  className="text-white/80 hover:text-white text-xs transition border-b border-white/20 pb-1"
+                  className="text-white/80 hover:text-white text-sm transition border-b border-white/20 pb-1"
                 >
                   {link.label}
                 </Link>
@@ -134,7 +134,7 @@ export default function Footer() {
               <div className="w-8 h-8 rounded-full border border-white/50 flex items-center justify-center text-sm shrink-0">
                 📞
               </div>
-              <span className="text-white/80 group-hover:text-white text-xs transition">
+              <span className="text-white/80 group-hover:text-white text-sm transition">
                 {SUPPORT_PHONE}
               </span>
             </a>
@@ -143,7 +143,7 @@ export default function Footer() {
               <div className="w-8 h-8 rounded-full border border-white/50 flex items-center justify-center text-sm shrink-0">
                 📱
               </div>
-              <span className="text-white/80 group-hover:text-white text-xs transition">
+              <span className="text-white/80 group-hover:text-white text-sm transition">
                 {SUPPORT_PHONE} (WhatsApp)
               </span>
             </a>
@@ -154,11 +154,11 @@ export default function Footer() {
               </div>
 
               <div>
-                <p className="text-white/80 group-hover:text-white text-xs transition">
+                <p className="text-white/80 group-hover:text-white text-sm transition">
                   {SUPPORT_EMAIL}
                 </p>
 
-                <p className="text-white/60 text-xs">
+                <p className="text-white/60 text-sm">
                   (And we will respond you right away)
                 </p>
               </div>
@@ -179,7 +179,7 @@ export default function Footer() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="bg-white/20 border border-white/30 rounded px-3 py-2 text-white placeholder-white/60 text-xs focus:outline-none focus:bg-white/30"
+              className="bg-white/20 border border-white/30 rounded px-3 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:bg-white/30"
             />
 
             <input
@@ -188,7 +188,7 @@ export default function Footer() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="bg-white/20 border border-white/30 rounded px-3 py-2 text-white placeholder-white/60 text-xs focus:outline-none focus:bg-white/30"
+              className="bg-white/20 border border-white/30 rounded px-3 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:bg-white/30"
             />
 
             <input
@@ -196,7 +196,7 @@ export default function Footer() {
               placeholder="Phone number (optional)"
               value={mobile}
               onChange={(e) => setMobile(e.target.value)}
-              className="bg-white/20 border border-white/30 rounded px-3 py-2 text-white placeholder-white/60 text-xs focus:outline-none focus:bg-white/30"
+              className="bg-white/20 border border-white/30 rounded px-3 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:bg-white/30"
             />
 
             <textarea
@@ -205,19 +205,19 @@ export default function Footer() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               required
-              className="bg-white/20 border border-white/30 rounded px-3 py-2 text-white placeholder-white/60 text-xs focus:outline-none focus:bg-white/30 resize-none"
+              className="bg-white/20 border border-white/30 rounded px-3 py-2 text-white placeholder-white/60 text-sm focus:outline-none focus:bg-white/30 resize-none"
             />
 
             <button
               type="submit"
               disabled={submitting}
-              className="self-start bg-[#8b1a3a] hover:bg-[#6e1430] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold px-8 py-2 rounded text-xs tracking-widest uppercase transition"
+              className="self-start bg-[#8b1a3a] hover:bg-[#6e1430] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold px-8 py-2 rounded text-sm tracking-widest uppercase transition"
             >
               {submitting ? "Sending..." : "Submit"}
             </button>
 
             {status && (
-              <p className={`text-xs mt-1 ${status.ok ? "text-green-100" : "text-yellow-100"}`}>
+              <p className={`text-sm mt-1 ${status.ok ? "text-green-100" : "text-yellow-100"}`}>
                 {status.text}
               </p>
             )}
@@ -227,23 +227,23 @@ export default function Footer() {
 
       {/* BOTTOM */}
       <div className="mt-6 pt-4 border-t border-white/20 flex flex-col md:flex-row items-center justify-between gap-4">
-        <p className="text-white/60 text-xs text-center md:text-left">
+        <p className="text-white/60 text-sm text-center md:text-left">
           © Made2Match, all rights are reserved
         </p>
 
         <div className="flex gap-2">
           <button
             onClick={openJourney}
-            className="bg-white/15 hover:bg-white/30 text-white text-xs font-bold px-4 py-1.5 rounded flex items-center gap-1.5 transition"
+            className="bg-white/15 hover:bg-white/30 text-white text-sm font-bold px-4 py-1.5 rounded flex items-center gap-1.5 transition"
           >
             🗺️ User Journey
           </button>
 
-          <button className="bg-[#3b5998] hover:bg-[#2d4373] text-white text-xs font-bold px-4 py-1.5 rounded flex items-center gap-1.5 transition">
+          <button className="bg-[#3b5998] hover:bg-[#2d4373] text-white text-sm font-bold px-4 py-1.5 rounded flex items-center gap-1.5 transition">
             f Share
           </button>
 
-          <button className="bg-[#1da1f2] hover:bg-[#0c85d0] text-white text-xs font-bold px-4 py-1.5 rounded flex items-center gap-1.5 transition">
+          <button className="bg-[#1da1f2] hover:bg-[#0c85d0] text-white text-sm font-bold px-4 py-1.5 rounded flex items-center gap-1.5 transition">
             🐦 Tweet
           </button>
         </div>

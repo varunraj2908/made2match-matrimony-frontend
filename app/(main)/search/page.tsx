@@ -10,6 +10,7 @@ import {
   type SearchCriteria,
   type SearchResult,
 } from "@/services/searchService";
+import { getMyPreferences } from "@/services/profileService";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -206,6 +207,36 @@ export default function SearchPage() {
   const heights = ["4'0\"","4'6\"","4'8\"","4'10\"","5'0\"","5'2\"","5'4\"","5'6\"","5'8\"","5'10\"","6'0\"","6'2\""];
   const incomeOptions = ["Any","1L","2L","3L","5L","7L","10L","15L","20L","25L+"];
 
+  // ─── Helper: cm → closest height label ─────────────────────────
+  const cmToHeightLabel = (cm: number): string => {
+    const totalInches = Math.round(cm / 2.54);
+    const ft = Math.floor(totalInches / 12);
+    const inch = totalInches % 12;
+    const label = `${ft}'${inch}"`;
+    // snap to closest option in the heights array
+    const available = ["4'0\"","4'6\"","4'8\"","4'10\"","5'0\"","5'2\"","5'4\"","5'6\"","5'8\"","5'10\"","6'0\"","6'2\""];
+    return available.includes(label) ? label : (available.find(h => heightToCm(h) >= cm) ?? available[available.length - 1]);
+  };
+
+  // Map backend marital status enum → UI label
+  const REVERSE_MARITAL: Record<string, string> = {
+    NEVER_MARRIED: "Never Married",
+    DIVORCED: "Divorced",
+    WIDOWED: "Widowed",
+    AWAITING_DIVORCE: "Awaiting Divorce",
+  };
+
+  // Map backend religion string → UI label (religion is stored as plain string)
+  const REVERSE_PCB: Record<string, string> = {
+    SELF: "Self",
+    FRIEND: "Friends",
+    SON: "Any",
+    DAUGHTER: "Any",
+    BROTHER: "Any",
+    SISTER: "Any",
+    RELATIVE: "Any",
+  };
+
   // ─── Search API wiring ──────────────────────────────────────────
   const router = useRouter();
   const [results, setResults] = useState<SearchResult | null>(null);
@@ -269,11 +300,30 @@ export default function SearchPage() {
     else setSearchErr("Please enter a valid Profile ID (e.g. GM002341).");
   };
 
-  // Initial match count for the bottom bar (no filters).
+  // Load partner preferences as default search criteria + initial match count
   useEffect(() => {
+    // Initial count (no filters)
     searchProfiles({}, 0, 1)
       .then((r) => setTotalCount(r.totalElements))
       .catch(() => {});
+
+    // Load partner preferences and pre-fill form
+    getMyPreferences()
+      .then((pref) => {
+        if (!pref) return;
+        if (pref.minAge) setAgeFrom(String(pref.minAge));
+        if (pref.maxAge) setAgeTo(String(pref.maxAge));
+        if (pref.minHeightCm) setHeightFrom(cmToHeightLabel(pref.minHeightCm));
+        if (pref.maxHeightCm) setHeightTo(cmToHeightLabel(pref.maxHeightCm));
+        if (pref.preferredReligion) setReligion(pref.preferredReligion);
+        if (pref.preferredMaritalStatus && REVERSE_MARITAL[pref.preferredMaritalStatus]) {
+          setMaritalStatus(REVERSE_MARITAL[pref.preferredMaritalStatus]);
+        }
+        if (pref.preferredEducation) setEducation(pref.preferredEducation);
+        if (pref.preferredCaste) setCaste(pref.preferredCaste);
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

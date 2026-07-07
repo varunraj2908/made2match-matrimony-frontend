@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   fetchNotifications,
+  persistReadIds,
   type AppNotification,
 } from "@/services/notificationService";
 
@@ -13,6 +14,7 @@ const NOTIF_ICONS: Record<string, { icon: string; bg: string }> = {
   shortlist: { icon: "⭐", bg: "#fff7df" },
   message:   { icon: "💬", bg: "#fff8e1" },
   match:     { icon: "❤️", bg: "#ffeaea" },
+  report:    { icon: "!", bg: "#fff0f4" },
 };
 
 export default function NotificationsPage() {
@@ -33,10 +35,13 @@ export default function NotificationsPage() {
   const unreadCount = items.filter((n) => n.unread).length;
   const shown = tab === "unread" ? items.filter((n) => n.unread) : items;
 
-  const markAllRead = () =>
+  const markAllRead = () => {
+    persistReadIds(items.map((item) => item.id));
     setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
+  };
 
   const open = (n: AppNotification) => {
+    persistReadIds([n.id]);
     setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, unread: false } : x)));
     if (n.profileId) router.push(`/profiles/${n.profileId}`);
   };

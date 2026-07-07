@@ -1,3 +1,4 @@
+import axiosInstance from "@/api/axiosInstance";
 import { getReceivedInterests } from "@/services/matchesService";
 import {
   getWhoViewedMe,
@@ -11,7 +12,8 @@ export type NotificationType =
   | "view"
   | "shortlist"
   | "match"
-  | "message";
+  | "message"
+  | "report";
 
 export interface AppNotification {
   id: string;
@@ -19,12 +21,102 @@ export interface AppNotification {
   name: string;
   photo?: string;
   message: string;
-  time: string; // human-readable relative time
-  timestamp: number; // epoch ms, for sorting (0 = undated)
+  time: string;       // human-readable relative time
+  timestamp: number;  // epoch ms, for sorting (0 = undated)
   profileId?: number; // for navigation
   unread: boolean;
 }
 
+// ── localStorage key for persisting read notification IDs ──────────
+const LS_KEY = "m2m_read_notif_ids";
+const REPORT_LS_KEY = "m2m_report_notifs";
+
+interface StoredReportNotification {
+  id: string;
+  reportedProfileId: number;
+  reportedProfileName: string;
+  createdAt: string;
+}
+
+const getReadIds = (): Set<string> => {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const saveReadIds = (ids: Set<string>) => {
+  if (typeof window === "undefined") return;
+  try {
+    // Keep only the most recent 500 IDs to avoid bloat
+    const arr = Array.from(ids).slice(-500);
+    localStorage.setItem(LS_KEY, JSON.stringify(arr));
+  } catch { /* storage full — ignore */ }
+};
+
+/**
+ * Mark all supplied notification IDs as read in localStorage.
+ * Returns the updated set.
+ */
+export const persistReadIds = (ids: string[]): void => {
+  const current = getReadIds();
+  ids.forEach((id) => current.add(id));
+  saveReadIds(current);
+};
+
+const getStoredReportNotifications = (): StoredReportNotification[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(REPORT_LS_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? (parsed as StoredReportNotification[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveStoredReportNotifications = (items: StoredReportNotification[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(REPORT_LS_KEY, JSON.stringify(items.slice(-50)));
+  } catch { /* storage full - ignore */ }
+};
+
+export const addReportNotification = ({
+  reportId,
+  reportedProfileId,
+  reportedProfileName,
+  createdAt,
+}: {
+  reportId: number;
+  reportedProfileId: number;
+  reportedProfileName: string;
+  createdAt: string;
+}): void => {
+  if (typeof window === "undefined") return;
+  const id = `report-${reportId}`;
+  const next = [
+    ...getStoredReportNotifications().filter((item) => item.id !== id),
+    { id, reportedProfileId, reportedProfileName, createdAt },
+  ];
+  saveStoredReportNotifications(next);
+  window.dispatchEvent(new CustomEvent("notifications:refresh"));
+};
+
+/**
+ * Call backend to mark all received interests as read.
+ * Best-effort — failure is silent.
+ */
+export const markInterestsReadOnServer = async (): Promise<void> => {
+  try {
+    await axiosInstance.patch("/interests/mark-read");
+  } catch { /* best effort */ }
+};
+
+// ── Helpers ────────────────────────────────────────────────────────
 const fallbackPhoto = (name?: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "?")}&background=b22234&color=fff&size=120`;
 
@@ -48,16 +140,15 @@ const relTime = (iso?: string): { label: string; ts: number } => {
   return { label, ts };
 };
 
-// "unread" = happened within the last 2 days (no server-side read flag yet).
-const RECENT_MS = 2 * 24 * 60 * 60 * 1000;
-const isRecent = (ts: number) => ts > 0 && Date.now() - ts < RECENT_MS;
-
 /**
  * Build the notification feed from existing activity endpoints.
- * Each source is fetched independently — one failing source won't blank
- * out the others.
+ * Unread state:
+ *   - interests: use backend readAt field (null = unread)
+ *   - views/shortlists/matches: use localStorage read IDs
  */
 export const fetchNotifications = async (): Promise<AppNotification[]> => {
+  const readIds = getReadIds();
+
   const [interests, views, shortlists, matches] = await Promise.allSettled([
     getReceivedInterests(0, 30),
     getWhoViewedMe(0, 20),
@@ -79,8 +170,11 @@ export const fetchNotifications = async (): Promise<AppNotification[]> => {
           : it.status === "REJECTED"
             ? "declined your interest"
             : "sent you an interest";
+      const notifId = `interest-${it.id}`;
+      // unread = readAt is null/missing on the server AND not in localStorage
+      const unread = !it.readAt && !readIds.has(notifId);
       out.push({
-        id: `interest-${it.id}`,
+        id: notifId,
         type: "interest",
         name,
         photo: s.profilePhotoUrl || fallbackPhoto(name),
@@ -88,7 +182,7 @@ export const fetchNotifications = async (): Promise<AppNotification[]> => {
         time: when.label,
         timestamp: when.ts,
         profileId: s.id,
-        unread: it.status === "PENDING" || isRecent(when.ts),
+        unread,
       });
     }
   }
@@ -97,8 +191,9 @@ export const fetchNotifications = async (): Promise<AppNotification[]> => {
   if (views.status === "fulfilled") {
     for (const a of views.value.content ?? []) {
       const when = relTime(a.activityDate);
+      const notifId = `view-${a.profileId}-${when.ts}`;
       out.push({
-        id: `view-${a.profileId}-${when.ts}`,
+        id: notifId,
         type: "view",
         name: a.fullName || "Someone",
         photo: a.profilePhotoUrl || fallbackPhoto(a.fullName),
@@ -106,7 +201,7 @@ export const fetchNotifications = async (): Promise<AppNotification[]> => {
         time: when.label,
         timestamp: when.ts,
         profileId: a.profileId,
-        unread: isRecent(when.ts),
+        unread: !readIds.has(notifId),
       });
     }
   }
@@ -115,8 +210,9 @@ export const fetchNotifications = async (): Promise<AppNotification[]> => {
   if (shortlists.status === "fulfilled") {
     for (const a of shortlists.value.content ?? []) {
       const when = relTime(a.activityDate);
+      const notifId = `shortlist-${a.profileId}-${when.ts}`;
       out.push({
-        id: `shortlist-${a.profileId}-${when.ts}`,
+        id: notifId,
         type: "shortlist",
         name: a.fullName || "Someone",
         photo: a.profilePhotoUrl || fallbackPhoto(a.fullName),
@@ -124,17 +220,18 @@ export const fetchNotifications = async (): Promise<AppNotification[]> => {
         time: when.label,
         timestamp: when.ts,
         profileId: a.profileId,
-        unread: isRecent(when.ts),
+        unread: !readIds.has(notifId),
       });
     }
   }
 
-  // ── New matches (no activity date — shown as recent) ──
+  // ── New matches ──
   if (matches.status === "fulfilled") {
     for (const m of matches.value.content ?? []) {
       const name = m.fullName || [m.firstName, m.lastName].filter(Boolean).join(" ") || "Someone";
+      const notifId = `match-${m.profileId}`;
       out.push({
-        id: `match-${m.profileId}`,
+        id: notifId,
         type: "match",
         name,
         photo: m.profilePhotoUrl || fallbackPhoto(name),
@@ -142,12 +239,27 @@ export const fetchNotifications = async (): Promise<AppNotification[]> => {
         time: "New match",
         timestamp: 0,
         profileId: m.profileId,
-        unread: true,
+        unread: !readIds.has(notifId),
       });
     }
   }
 
-  // Newest first; undated (ts 0, e.g. matches) sink to the bottom.
+  for (const report of getStoredReportNotifications()) {
+    const when = relTime(report.createdAt);
+    out.push({
+      id: report.id,
+      type: "report",
+      name: "Made2Match",
+      photo: fallbackPhoto("Made2Match"),
+      message: `received your report for ${report.reportedProfileName}`,
+      time: when.label,
+      timestamp: when.ts,
+      profileId: report.reportedProfileId,
+      unread: !readIds.has(report.id),
+    });
+  }
+
+  // Newest first; undated items (matches) sink to the bottom.
   out.sort((a, b) => b.timestamp - a.timestamp);
   return out;
 };

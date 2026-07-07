@@ -193,6 +193,8 @@ export const updateMyPreferences = async (
 export interface FullProfile {
   id: number;
   userId: number;
+  email?: string;
+  phoneNumber?: string;
   firstName?: string;
   lastName?: string;
   dateOfBirth?: string;
@@ -332,16 +334,54 @@ export const updateMyProfile = async (payload: ProfileUpdatePayload) => {
   return res.data.data;
 };
 
-// ── Profile photo upload (multipart) ───────────────────────────
-export const uploadProfilePhoto = async (file: File) => {
+// ── Profile photo upload (primary — replaces profilePhotoUrl) ──────────────
+export const uploadProfilePhoto = async (file: File): Promise<string> => {
   const fd = new FormData();
   fd.append("file", file);
-  const response = await axiosInstance.post<ApiEnvelope<Record<string, unknown>>>(
+  const response = await axiosInstance.post<ApiEnvelope<{ photoUrl: string }>>(
     "/profiles/photos/upload",
     fd,
     { headers: { "Content-Type": "multipart/form-data" } },
   );
-  return response.data;
+  return response.data.data.photoUrl;
+};
+
+// ── Additional (gallery) photo upload ──────────────────────────────────────
+export const uploadAdditionalPhoto = async (file: File): Promise<string> => {
+  const fd = new FormData();
+  fd.append("file", file);
+  const response = await axiosInstance.post<ApiEnvelope<{ photoUrl: string }>>(
+    "/profiles/photos/upload/additional",
+    fd,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return response.data.data.photoUrl;
+};
+
+// ── Delete a photo by URL ───────────────────────────────────────────────────
+export const deleteProfilePhoto = async (photoUrl: string): Promise<void> => {
+  await axiosInstance.delete("/profiles/photos/delete", {
+    params: { photoUrl },
+  });
+};
+
+// ── List all gallery photos for current user ────────────────────────────────
+export interface ProfilePhotoItem {
+  photoUrl: string;
+  isPrimary: boolean;
+  displayOrder: number;
+}
+
+export const getMyPhotos = async (): Promise<ProfilePhotoItem[]> => {
+  const res = await axiosInstance.get<ApiEnvelope<ProfilePhotoItem[]>>("/profiles/photos");
+  return res.data.data ?? [];
+};
+
+// ── Set a photo as primary ──────────────────────────────────────────────────
+export const setPrimaryPhoto = async (photoUrl: string): Promise<void> => {
+  await axiosInstance.put("/profiles/photos/set-primary", null, {
+    params: { photoUrl },
+  });
 };
 
 // ── Hobbies & Interests ────────────────────────────────────────

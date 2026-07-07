@@ -75,21 +75,19 @@ const CollegeIcon = () => (
 
 interface InputFieldProps {
   label: string;
-  highlight: string;
   placeholder: string;
   value: string;
   onChange: (val: string) => void;
   icon: React.ReactNode;
 }
 
-function InputField({ label, highlight, placeholder, value, onChange, icon }: InputFieldProps) {
+function InputField({ label, placeholder, value, onChange, icon }: InputFieldProps) {
   const [focused, setFocused] = useState(false);
 
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-sm text-slate-600 font-medium leading-snug">
-        {label}{" "}
-        <span className="text-sky-500 font-semibold">{highlight}</span>
+        {label}
       </label>
       <div
         className={`relative flex items-center rounded-xl border bg-slate-50 transition-all duration-200
@@ -129,10 +127,6 @@ const router = useRouter();
   const [organization, setOrganization] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  // These would typically come from props or a global state/context
-  const educationField = "Aeronautical Engineering";
-  const professionField = "Software Professional";
 
   const isValid = institution.trim().length > 0 || organization.trim().length > 0;
 
@@ -221,7 +215,6 @@ const router = useRouter();
         <div className="flex flex-col gap-4 mb-6">
           <InputField
             label="College where you studied"
-            highlight={educationField}
             placeholder="Enter institution name"
             value={institution}
             onChange={setInstitution}
@@ -229,7 +222,6 @@ const router = useRouter();
           />
           <InputField
             label="Organization where you work"
-            highlight={professionField}
             placeholder="Enter organization name"
             value={organization}
             onChange={setOrganization}

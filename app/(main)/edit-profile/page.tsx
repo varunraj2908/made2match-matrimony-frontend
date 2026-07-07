@@ -6,6 +6,11 @@ import SlideModal from "@/components/modals/SlideModal";
 import {
   getMyProfileFull,
   updateMyProfile,
+  uploadProfilePhoto,
+  uploadAdditionalPhoto,
+  deleteProfilePhoto,
+  getMyPhotos,
+  setPrimaryPhoto,
   type FullProfile,
   type ProfileUpdatePayload,
 } from "@/services/profileService";
@@ -120,10 +125,12 @@ const ShieldIcon = () => (
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UploadedPhoto {
   id: string;
-  url: string;
+  url: string;       // blob URL (preview) or server URL
   name: string;
   size: number;
   isPrimary: boolean;
+  file?: File;       // present when newly picked — not yet uploaded
+  serverUrl?: string;// present when photo already exists on the server
 }
 
 const formatSize = (b: number) =>
@@ -308,15 +315,54 @@ const EditMobileModal = ({
 
 // ─── Photo Upload Modal ───────────────────────────────────────────────────────
 const PhotoUploadModal = ({
-  isOpen, onClose, photos, onPhotosChange,
+  isOpen, onClose, photos, onPhotosChange, onSaved,
 }: {
-  isOpen: boolean; onClose: () => void; photos: UploadedPhoto[]; onPhotosChange: (p: UploadedPhoto[]) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  photos: UploadedPhoto[];
+  onPhotosChange: (p: UploadedPhoto[]) => void;
+  /** Called after all uploads/deletes are committed to the backend */
+  onSaved: (primaryUrl: string | null, allUrls: string[]) => void;
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const inputRef  = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging]   = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+  const [saving, setSaving]       = useState(false);
+  const [loading, setLoading]     = useState(false);
+  // Track which server photos were removed during this session so we can delete them on Save
+  const [deletedServerUrls, setDeletedServerUrls] = useState<string[]>([]);
+  // Track the original primary URL at open time so we know if it changed
+  const originalPrimaryRef = useRef<string | null>(null);
   const MAX_FILES = 8;
   const MAX_SIZE  = 5 * 1024 * 1024;
+
+  // Load existing server photos + reset state whenever the modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    setDeletedServerUrls([]);
+    setError(null);
+    setLoading(true);
+    getMyPhotos()
+      .then((items) => {
+        const sorted = [...items].sort((a, b) => a.displayOrder - b.displayOrder);
+        const loaded: UploadedPhoto[] = sorted.map((item) => ({
+          id: `server-${item.photoUrl}`,
+          url: item.photoUrl,
+          name: item.photoUrl.split("/").pop() ?? "photo",
+          size: 0,
+          isPrimary: item.isPrimary,
+          serverUrl: item.photoUrl,
+        }));
+        onPhotosChange(loaded);
+        const primary = loaded.find((p) => p.isPrimary);
+        originalPrimaryRef.current = primary?.serverUrl ?? null;
+      })
+      .catch(() => {
+        // If fetch fails keep any photos already in state
+      })
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const processFiles = useCallback((files: FileList | null) => {
     if (!files) return;
@@ -326,19 +372,100 @@ const PhotoUploadModal = ({
     Array.from(files).slice(0, remaining).forEach((file) => {
       if (!file.type.startsWith("image/")) { setError("Only image files (JPG, PNG, WEBP) are allowed."); return; }
       if (file.size > MAX_SIZE) { setError(`"${file.name}" exceeds the 5 MB size limit.`); return; }
-      added.push({ id: `${Date.now()}-${Math.random()}`, url: URL.createObjectURL(file), name: file.name, size: file.size, isPrimary: photos.length === 0 && added.length === 0 });
+      added.push({
+        id: `${Date.now()}-${Math.random()}`,
+        url: URL.createObjectURL(file),
+        name: file.name,
+        size: file.size,
+        isPrimary: photos.length === 0 && added.length === 0,
+        file,           // keep raw File so we can upload on Save
+      });
     });
     if (added.length) onPhotosChange([...photos, ...added]);
   }, [photos, onPhotosChange]);
 
-  const handleDrop     = (e: React.DragEvent) => { e.preventDefault(); setDragging(false); processFiles(e.dataTransfer.files); };
-  const handleDelete   = (id: string) => { const u = photos.filter(p => p.id !== id); if (u.length && !u.some(p => p.isPrimary)) u[0].isPrimary = true; onPhotosChange(u); };
-  const handleSetPrimary = (id: string) => onPhotosChange(photos.map(p => ({ ...p, isPrimary: p.id === id })));
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setDragging(false); processFiles(e.dataTransfer.files); };
+
+  const handleDelete = (id: string) => {
+    const photo = photos.find(p => p.id === id);
+    if (photo?.serverUrl) {
+      setDeletedServerUrls(prev => [...prev, photo.serverUrl!]);
+    }
+    const remaining = photos.filter(p => p.id !== id);
+    if (remaining.length && photo?.isPrimary) remaining[0].isPrimary = true;
+    onPhotosChange(remaining);
+  };
+
+  const handleSetPrimary = async (id: string) => {
+    const target = photos.find(p => p.id === id);
+    // Optimistically update UI
+    onPhotosChange(photos.map(p => ({ ...p, isPrimary: p.id === id })));
+    // If it's already on the server, call set-primary immediately and update the navbar avatar
+    if (target?.serverUrl) {
+      try {
+        await setPrimaryPhoto(target.serverUrl);
+        // Update navbar avatar in real-time
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("profile:updated", { detail: { profilePhotoUrl: target.serverUrl } })
+          );
+        }
+      } catch { /* will retry on Save */ }
+    }
+  };
+
+  // ── Save: upload new files, delete removed server photos, set primary ───────
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      // 1. Delete removed server photos
+      for (const url of deletedServerUrls) {
+        try { await deleteProfilePhoto(url); } catch { /* best effort */ }
+      }
+
+      // 2. Upload new (pending) photos and collect their server URLs
+      const uploadedMap = new Map<string, string>(); // blobUrl → serverUrl
+      for (const photo of photos) {
+        if (photo.file) {
+          const serverUrl = photo.isPrimary
+            ? await uploadProfilePhoto(photo.file)
+            : await uploadAdditionalPhoto(photo.file);
+          uploadedMap.set(photo.url, serverUrl);
+        }
+      }
+
+      // 3. Build final photo list with real server URLs
+      const finalPhotos: UploadedPhoto[] = photos.map(p => ({
+        ...p,
+        url: uploadedMap.get(p.url) ?? p.serverUrl ?? p.url,
+        serverUrl: uploadedMap.get(p.url) ?? p.serverUrl,
+        file: undefined,
+      }));
+      onPhotosChange(finalPhotos);
+
+      // 4. Always sync the primary photo to the backend
+      const primary = finalPhotos.find(p => p.isPrimary);
+      const primaryUrl = primary?.serverUrl ?? null;
+
+      if (primaryUrl) {
+        // Always call set-primary so the backend stays in sync.
+        // The endpoint is idempotent — safe to call even when unchanged.
+        try { await setPrimaryPhoto(primaryUrl); } catch { /* best effort */ }
+      }
+
+      const allUrls = finalPhotos.map(p => p.serverUrl).filter(Boolean) as string[];
+      onSaved(primaryUrl, allUrls);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || "Upload failed. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
-    /* Mobile: bottom sheet. Desktop: centered modal */
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl flex flex-col overflow-hidden" style={{ maxHeight: "92dvh" }}>
@@ -352,7 +479,17 @@ const PhotoUploadModal = ({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
-          <label htmlFor="photo-upload-input"
+          {/* Loading skeleton while fetching existing photos */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
+              <svg className="animate-spin w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="#c0174c" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+              <p className="text-xs font-medium">Loading your photos…</p>
+            </div>
+          ) : (
+          <>
+            <label htmlFor="photo-upload-input"
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
@@ -383,21 +520,23 @@ const PhotoUploadModal = ({
           {photos.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Uploaded ({photos.length}/{MAX_FILES})</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Photos ({photos.length}/{MAX_FILES})</p>
                 <p className="text-[10px] text-gray-400 hidden sm:block">Hover a photo to set primary or delete</p>
               </div>
-              {/* 3 cols on mobile, 4 on sm+ */}
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
                 {photos.map(photo => (
                   <div key={photo.id} className="relative group aspect-square rounded-xl overflow-hidden border-2 transition-all"
                     style={{ borderColor: photo.isPrimary ? "#c0174c" : "#e5e7eb" }}>
                     <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                    {/* NEW badge for un-uploaded photos */}
+                    {photo.file && !photo.isPrimary && (
+                      <div className="absolute top-1 right-1 bg-blue-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">NEW</div>
+                    )}
                     {photo.isPrimary && (
                       <div className="absolute top-1 left-1 flex items-center gap-0.5 text-amber-900 text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-amber-400">
                         <StarBadge /> Primary
                       </div>
                     )}
-                    {/* On mobile: always show actions. On desktop: show on hover */}
                     <div className="absolute inset-0 bg-black/55 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1.5">
                       {!photo.isPrimary && (
                         <button onClick={() => handleSetPrimary(photo.id)}
@@ -426,7 +565,10 @@ const PhotoUploadModal = ({
                     <img src={photo.url} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-gray-700 truncate">{photo.name}</p>
-                      <p className="text-[10px] text-gray-400">{formatSize(photo.size)}</p>
+                      {photo.file
+                        ? <p className="text-[10px] text-blue-500 font-medium">Pending upload · {formatSize(photo.size)}</p>
+                        : <p className="text-[10px] text-green-600 font-medium">Saved on server</p>
+                      }
                     </div>
                     {photo.isPrimary && <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">PRIMARY</span>}
                     <button onClick={() => handleDelete(photo.id)} className="text-gray-300 hover:text-red-500 transition-colors shrink-0"><TrashIcon /></button>
@@ -435,17 +577,27 @@ const PhotoUploadModal = ({
               </div>
             </div>
           )}
+          </>
+          )} {/* end loading conditional */}
         </div>
 
         <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-gray-50 shrink-0">
-          <p className="text-xs text-gray-400">{photos.length > 0 ? `${photos.length} photo${photos.length > 1 ? "s" : ""} ready` : "No photos uploaded yet"}</p>
+          <p className="text-xs text-gray-400">
+            {photos.filter(p => p.file).length > 0
+              ? `${photos.filter(p => p.file).length} photo(s) pending upload`
+              : photos.length > 0 ? `${photos.length} photo(s)` : "No photos yet"}
+          </p>
           <div className="flex gap-2 sm:gap-3">
-            <button onClick={onClose} className="px-4 sm:px-5 py-2 text-sm font-semibold text-gray-600 border border-gray-300 rounded-full bg-gray-100">Cancel</button>
-            <button onClick={onClose} className="px-5 sm:px-6 py-2 text-sm font-bold text-white rounded-full transition-all shadow-sm"
+            <button onClick={onClose} disabled={saving} className="px-4 sm:px-5 py-2 text-sm font-semibold text-gray-600 border border-gray-300 rounded-full bg-gray-100 disabled:opacity-50">Cancel</button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-5 sm:px-6 py-2 text-sm font-bold text-white rounded-full transition-all shadow-sm flex items-center gap-2 disabled:opacity-60"
               style={{ backgroundColor: "#c0174c" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#8b1a3a"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#c0174c"; }}>
-              Save Photos
+              onMouseEnter={e => { if (!saving) (e.currentTarget as HTMLElement).style.backgroundColor = "#8b1a3a"; }}
+              onMouseLeave={e => { if (!saving) (e.currentTarget as HTMLElement).style.backgroundColor = "#c0174c"; }}>
+              {saving && <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>}
+              {saving ? "Saving…" : "Save Photos"}
             </button>
           </div>
         </div>
@@ -681,6 +833,106 @@ const HobbiesForm = () => (
   </p>
 );
 
+// ─── Contact / Feedback Banner ───────────────────────────────────────────────
+function AcademicBanner({ onSkip, senderName }: { onSkip: () => void; senderName: string }) {
+  const [email, setEmail]       = useState("");
+  const [message, setMessage]   = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult]     = useState<{ ok: boolean; text: string } | null>(null);
+  const [emailErr, setEmailErr] = useState("");
+
+  const validate = () => {
+    if (!email.trim()) { setEmailErr("Email is required."); return false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setEmailErr("Enter a valid email."); return false; }
+    setEmailErr(""); return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    if (!message.trim()) return;
+    setSubmitting(true);
+    setResult(null);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/contact/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: senderName || "Profile User",
+          email: email.trim(),
+          message: message.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setResult({ ok: true, text: json.data?.message || "Message sent successfully!" });
+        setTimeout(onSkip, 2000);
+      } else {
+        setResult({ ok: false, text: json.message || "Something went wrong. Please try again." });
+      }
+    } catch {
+      setResult({ ok: false, text: "Network error. Please try again." });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg p-4 sm:p-5" style={{ backgroundColor: "#c0174c" }}>
+      <p className="text-white font-semibold text-sm sm:text-base mb-3">
+        Get in touch — share your email and message with us.
+      </p>
+
+      {/* Email */}
+      <div className="mb-2">
+        <input
+          type="email"
+          placeholder="Your email address"
+          value={email}
+          onChange={e => { setEmail(e.target.value); setEmailErr(""); }}
+          className="w-full px-3 py-2 rounded text-sm border-0 focus:outline-none focus:ring-2 focus:ring-white/60"
+          style={{ backgroundColor: "rgba(255,255,255,0.95)" }}
+        />
+        {emailErr && <p className="text-white/80 text-xs mt-1">{emailErr}</p>}
+      </div>
+
+      {/* Message */}
+      <textarea
+        placeholder="Write your message here…"
+        value={message}
+        onChange={e => setMessage(e.target.value)}
+        rows={3}
+        className="w-full px-3 py-2 rounded text-sm border-0 focus:outline-none focus:ring-2 focus:ring-white/60 resize-none mb-3"
+        style={{ backgroundColor: "rgba(255,255,255,0.95)" }}
+      />
+
+      {result && (
+        <p className={`text-xs mb-2 font-semibold ${result.ok ? "text-green-200" : "text-yellow-200"}`}>
+          {result.text}
+        </p>
+      )}
+
+      <div className="flex gap-3">
+        <button
+          onClick={onSkip}
+          className="text-white text-sm font-semibold px-4 py-1.5 rounded hover:bg-white/10 transition-colors"
+        >
+          Skip
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={submitting || !email || !message}
+          className="text-white text-sm font-bold px-5 py-1.5 rounded transition-all disabled:opacity-60"
+          style={{ backgroundColor: "#e67e22" }}
+          onMouseEnter={e => { if (!submitting) (e.currentTarget as HTMLElement).style.backgroundColor = "#ca6f1e"; }}
+          onMouseLeave={e => { if (!submitting) (e.currentTarget as HTMLElement).style.backgroundColor = "#e67e22"; }}
+        >
+          {submitting ? "Sending…" : "Submit"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Profile Page ────────────────────────────────────────────────────────
 export default function MyProfilePage() {
   const router   = useRouter();
@@ -692,7 +944,6 @@ export default function MyProfilePage() {
   const [showMobileModal, setShowMobileModal] = useState(false);
   const [imgFallback, setImgFallback]         = useState(false);
   const [showAcademicInput, setShowAcademicInput] = useState(true);
-  const [academicInput, setAcademicInput]     = useState("");
   const [openModal, setOpenModal]             = useState<string | null>(null);
   const [mobileNumber, setMobileNumber]       = useState("+91-8075067058");
   const [profile, setProfile]                 = useState<FullProfile | null>(null);
@@ -701,10 +952,24 @@ export default function MyProfilePage() {
   const draftRef = useRef<ProfileUpdatePayload>({});
   const setDraft = useCallback((p: ProfileUpdatePayload) => { draftRef.current = p; }, []);
 
-  // Load the logged-in user's real profile from the database.
+  // Load the logged-in user's real profile + existing photos on mount.
   useEffect(() => {
     getMyProfileFull()
       .then(setProfile)
+      .catch(() => undefined);
+
+    getMyPhotos()
+      .then((items) => {
+        const sorted = [...items].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+        setPhotos(sorted.map((item) => ({
+          id: `server-${item.photoUrl}`,
+          url: item.photoUrl,
+          name: item.photoUrl.split("/").pop() ?? "photo",
+          size: 0,
+          isPrimary: item.isPrimary,
+          serverUrl: item.photoUrl,
+        })));
+      })
       .catch(() => undefined);
   }, []);
 
@@ -763,17 +1028,6 @@ export default function MyProfilePage() {
 
       <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4">
 
-        {/* ── Back nav ── */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-[#c0174c] transition-colors cursor-pointer"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Back
-        </button>
-
         {/* ── Hero / Profile Header ── */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 sm:p-5">
 
@@ -784,8 +1038,8 @@ export default function MyProfilePage() {
             <div className="flex items-start gap-3 sm:hidden mb-3">
               {/* Photo */}
               <div className="shrink-0">
-                <div className="relative w-24 h-28 rounded-lg overflow-hidden border-2 mb-2 group cursor-pointer"
-                  style={{ borderColor: "#e0e0e0" }} onClick={() => setShowPhotoModal(true)}>
+                <div className="relative w-24 h-[118px] rounded-lg overflow-hidden border-2 mb-2 group cursor-pointer"
+                  style={{ borderColor: "#c0174c" }} onClick={() => setShowPhotoModal(true)}>
                   {!imgFallback ? (
                     <img src={displayPhoto} alt={displayName} className="w-full h-full object-cover object-top" onError={() => setImgFallback(true)} />
                   ) : (
@@ -847,8 +1101,8 @@ export default function MyProfilePage() {
             {/* ── Desktop layout (unchanged, hidden on mobile) ── */}
             {/* Photo */}
             <div className="shrink-0 text-center hidden sm:block">
-              <div className="relative w-36 h-40 rounded-lg overflow-hidden border-2 mb-2.5 group cursor-pointer"
-                style={{ borderColor: "#e0e0e0" }} onClick={() => setShowPhotoModal(true)}>
+              <div className="relative w-36 h-36 rounded-xl overflow-hidden border-2 mb-2.5 group cursor-pointer"
+                style={{ borderColor: "#c0174c" }} onClick={() => setShowPhotoModal(true)}>
                 {!imgFallback ? (
                   <img src={displayPhoto} alt={displayName} className="w-full h-full object-cover object-top" onError={() => setImgFallback(true)} />
                 ) : (
@@ -914,20 +1168,12 @@ export default function MyProfilePage() {
           </div>
         </div>
 
-        {/* ── Academic Details Banner ── */}
+        {/* ── Contact / Feedback Banner ── */}
         {showAcademicInput && (
-          <div className="rounded-lg p-4 sm:p-5" style={{ backgroundColor: "#c0174c" }}>
-            <p className="text-white font-semibold text-sm sm:text-base mb-3">Share your academic details for better match search.</p>
-            <input type="text" placeholder="Enter Here" value={academicInput} onChange={e => setAcademicInput(e.target.value)}
-              className="w-full sm:w-72 px-3 py-2 rounded text-sm border-0 focus:outline-none mb-3 block"
-              style={{ backgroundColor: "rgba(255,255,255,0.95)" }} />
-            <div className="flex gap-3">
-              <button onClick={() => setShowAcademicInput(false)} className="text-white text-sm font-semibold px-4 py-1.5 rounded hover:bg-white/10 transition-colors">Skip</button>
-              <button className="text-white text-sm font-bold px-5 py-1.5 rounded transition-all" style={{ backgroundColor: "#e67e22" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#ca6f1e"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#e67e22"; }}>Submit</button>
-            </div>
-          </div>
+          <AcademicBanner
+            onSkip={() => setShowAcademicInput(false)}
+            senderName={displayName}
+          />
         )}
 
         <h2 className="text-lg sm:text-xl font-bold pt-1 sm:pt-2" style={{ color: "#c0174c" }}>Personal Information</h2>
@@ -1037,7 +1283,25 @@ export default function MyProfilePage() {
 
       </div>
 
-      <PhotoUploadModal isOpen={showPhotoModal} onClose={() => setShowPhotoModal(false)} photos={photos} onPhotosChange={setPhotos} />
+      <PhotoUploadModal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        photos={photos}
+        onPhotosChange={setPhotos}
+        onSaved={(primaryUrl, allUrls) => {
+          if (primaryUrl) {
+            setProfile((prev) => prev ? { ...prev, profilePhotoUrl: primaryUrl } : prev);
+            // Tell the navbar to refresh its avatar immediately
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("profile:updated", { detail: { profilePhotoUrl: primaryUrl } })
+              );
+            }
+          }
+          setShowPhotoModal(false);
+          showToast("Photos saved successfully");
+        }}
+      />
 
       <EditMobileModal isOpen={showMobileModal} onClose={() => setShowMobileModal(false)} currentNumber={displayMobile}
         onSave={num => { setMobileNumber(num); setShowMobileModal(false); }} />

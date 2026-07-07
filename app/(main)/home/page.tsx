@@ -21,7 +21,6 @@ import {
   type ProfileActivity,
 } from "@/services/homeService";
 import { uploadProfilePhoto } from "@/services/profileService";
-import ProfileBookModal from "@/components/sections/ProfileBookModal";
 import { downloadBiodata } from "@/lib/biodata";
 import { celebrateMatch } from "@/lib/celebrate";
 
@@ -148,7 +147,7 @@ const ChatIconSvg = () => (
 
 // ─── Profile Card ─────────────────────────────────────────────────
 const ProfileCard = ({ profile, subText }: { profile: CardProfile; subText?: string }) => (
-  <div className="shrink-0 w-24 sm:w-28 lg:w-32 cursor-pointer group">
+  <div className="shrink-0 w-24 sm:w-28 lg:w-32 group">
     <div className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-lg overflow-hidden mb-1.5 border border-gray-200 group-hover:border-[#ea580c] transition-colors">
       <img
         src={profile.photo}
@@ -202,7 +201,13 @@ const SectionRow = ({
   profiles: CardProfile[];
   subTextKey?: "viewedOn" | "shortlistedOn";
   loading?: boolean;
-}) => (
+}) => {
+  const router = useRouter();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollLeft = () => scrollRef.current?.scrollBy({ left: -300, behavior: "smooth" });
+  const scrollRight = () => scrollRef.current?.scrollBy({ left: 300, behavior: "smooth" });
+
+  return (
   <div>
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#b22234] p-3 sm:p-4">
       <div>
@@ -214,16 +219,24 @@ const SectionRow = ({
         </h2>
         <p className="text-[10px] sm:text-xs text-white/80 mt-0.5">{subtitle}</p>
       </div>
-      <button className="self-start sm:self-auto flex items-center gap-1 text-xs text-white font-semibold border border-white px-3 py-1.5 rounded-full hover:bg-white hover:text-[#b22234] transition-colors shrink-0">
-        View all <ChevronRight />
-      </button>
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <button onClick={scrollLeft} className="cursor-pointer w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#ea580c] hover:text-[#ea580c] bg-white shadow-sm cursor-pointer">
+          <ChevronLeft />
+        </button>
+        <button onClick={scrollRight} className="cursor-pointer w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#ea580c] hover:text-[#ea580c] bg-white shadow-sm cursor-pointer">
+          <ChevronRight />
+        </button>
+        <button onClick={() => router.push("/profiles")} className="cursor-pointer flex items-center gap-1 text-xs text-white font-semibold border border-white px-3 py-1.5 rounded-full hover:bg-white hover:text-[#b22234] transition-colors shrink-0">
+          View all <ChevronRight />
+        </button>
+      </div>
     </div>
     {loading ? (
       <SectionScrollerSkeleton />
     ) : profiles.length === 0 ? (
       <EmptyRow message="Nothing here yet." />
     ) : (
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide p-3 sm:p-4">
+      <div ref={scrollRef} className="flex gap-2 sm:gap-3 overflow-hidden scroll-smooth p-3 sm:p-4">
         {profiles.map((p) => (
           <ProfileCard
             key={p.id}
@@ -237,22 +250,45 @@ const SectionRow = ({
             }
           />
         ))}
-        <div className="shrink-0 w-8 flex items-center justify-center">
-          <button className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#ea580c] hover:text-[#ea580c] transition-colors bg-white shadow-sm">
-            <ChevronRight />
-          </button>
-        </div>
       </div>
     )}
   </div>
-);
+  );
+};
 
-const Timer = () => (
-  <div className="hidden sm:flex items-center gap-1 bg-gray-800 text-white text-[10px] px-2.5 py-1.5 rounded-full font-mono">
-    <ClockIcon />
-    <span>13:03:56s</span>
-  </div>
-);
+const getSecondsUntilMidnight = () => {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return Math.max(0, Math.floor((midnight.getTime() - now.getTime()) / 1000));
+};
+
+const formatCountdown = (totalSeconds: number) => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+};
+
+const Timer = () => {
+  const [secondsLeft, setSecondsLeft] = useState(getSecondsUntilMidnight);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setSecondsLeft(getSecondsUntilMidnight());
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="hidden sm:flex items-center justify-center gap-1 bg-gray-800 text-white text-[10px] px-2.5 py-1.5 rounded-full font-mono tabular-nums w-[82px] shrink-0">
+      <ClockIcon />
+      <span>{formatCountdown(secondsLeft)}s</span>
+    </div>
+  );
+};
 
 // ─── Hero Carousel (large screens only) ──────────────────────────
 interface CarouselSlide {
@@ -351,7 +387,7 @@ const HeroCarousel = ({ onCta }: { onCta?: () => void }) => {
         <div>
           <button
             onClick={onCta}
-            className="bg-white text-[#b22234] text-xs font-bold px-5 py-2.5 rounded-full hover:bg-orange-50 transition-colors"
+            className="cursor-pointer bg-white text-[#b22234] text-xs font-bold px-5 py-2.5 rounded-full hover:bg-orange-50 transition-colors cursor-pointer"
           >
             {slide.cta} →
           </button>
@@ -362,7 +398,7 @@ const HeroCarousel = ({ onCta }: { onCta?: () => void }) => {
       <button
         onClick={goPrev}
         aria-label="Previous slide"
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/30 hover:bg-white/55 text-white flex items-center justify-center backdrop-blur-sm transition-colors"
+        className="cursor-pointer absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/30 hover:bg-white/55 text-white flex items-center justify-center backdrop-blur-sm transition-colors cursor-pointer"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
@@ -371,7 +407,7 @@ const HeroCarousel = ({ onCta }: { onCta?: () => void }) => {
       <button
         onClick={goNext}
         aria-label="Next slide"
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/30 hover:bg-white/55 text-white flex items-center justify-center backdrop-blur-sm transition-colors"
+        className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/30 hover:bg-white/55 text-white flex items-center justify-center backdrop-blur-sm transition-colors cursor-pointer"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 18 15 12 9 6" />
@@ -385,7 +421,7 @@ const HeroCarousel = ({ onCta }: { onCta?: () => void }) => {
             key={i}
             onClick={() => setIdx(i)}
             aria-label={`Go to slide ${i + 1}`}
-            className="h-1.5 rounded-full transition-all"
+            className="cursor-pointer h-1.5 rounded-full transition-all"
             style={{
               width: i === idx ? 24 : 8,
               background: i === idx ? "white" : "rgba(255,255,255,0.55)",
@@ -572,7 +608,12 @@ export default function HomePage() {
     setIsUploading(true);
     try {
       const res = await uploadProfilePhoto(file);
-      const photoUrl = (res?.data as { photoUrl?: string } | undefined)?.photoUrl;
+      // uploadProfilePhoto may return either a string (direct URL) or an
+      // object with a `data.photoUrl` property depending on the API wrapper.
+      const photoUrl =
+        typeof res === "string"
+          ? res
+          : (res as any)?.data?.photoUrl ?? (res as any)?.photoUrl;
       // Cache-bust so the browser shows the new image immediately (not the
       // previously cached avatar) without needing a page refresh.
       const freshUrl = photoUrl ? `${photoUrl}?t=${Date.now()}` : undefined;
@@ -602,9 +643,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Profile flip-book popup overlay */}
-      <ProfileBookModal />
-
       {/* ── Mobile Profile Banner ── */}
       <div className="lg:hidden bg-white border border-gray-200 px-4 py-3 mx-3 mt-3 lg:mt-0 rounded-xl lg:rounded-none">
         <div className="flex items-center gap-3">
@@ -620,7 +658,7 @@ export default function HomePage() {
             <button
               onClick={handlePhotoClick}
               disabled={isUploading}
-              className="absolute inset-0 rounded-full flex items-end justify-center pb-0.5 bg-black/0 hover:bg-black/30 transition-all"
+              className="cursor-pointer absolute inset-0 rounded-full flex items-end justify-center pb-0.5 bg-black/0 hover:bg-black/30 transition-all cursor-pointer"
             >
               <span className="opacity-0 hover:opacity-100 bg-black/60 rounded-full p-0.5">
                 {isUploading ? (
@@ -657,7 +695,7 @@ export default function HomePage() {
           {!isPremium && (
             <button
               onClick={() => router.push("/specialoffer")}
-              className="shrink-0 bg-[#b22234] text-white text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-red-700 transition-colors"
+              className="cursor-pointer shrink-0 bg-[#b22234] text-white text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-red-700 transition-colors"
             >
               Upgrade
             </button>
@@ -679,13 +717,13 @@ export default function HomePage() {
         <button
           onClick={handleDownloadBiodata}
           disabled={!me || downloadingBiodata}
-          className="mt-3 w-full flex items-center justify-center gap-2 border border-[#b22234] text-[#b22234] text-xs font-bold py-2 rounded-full hover:bg-[#b22234] hover:text-white transition-colors disabled:opacity-50"
+          className="cursor-pointer mt-3 w-full flex items-center justify-center gap-2 border border-[#b22234] text-[#b22234] text-xs font-bold py-2 rounded-full hover:bg-[#b22234] hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
         >
           {downloadingBiodata ? "Preparing…" : (<><DownloadIcon /> Download Biodata</>)}
         </button>
         <button
           onClick={previewMatch}
-          className="mt-2 w-full text-xs font-bold py-2 rounded-full text-white transition-opacity hover:opacity-90"
+          className="cursor-pointer mt-2 w-full text-xs font-bold py-2 rounded-full text-white transition-opacity hover:opacity-90 cursor-pointer"
           style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
         >
           🎉 Preview Match
@@ -707,7 +745,7 @@ export default function HomePage() {
               />
               <div
                 onClick={handlePhotoClick}
-                className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full cursor-pointer border-2 border-white flex items-center justify-center"
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="none">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -717,7 +755,7 @@ export default function HomePage() {
               <button
                 onClick={handlePhotoClick}
                 disabled={isUploading}
-                className="absolute inset-0 rounded-full flex items-end justify-center pb-1 bg-black/0 hover:bg-black/35 transition-all group/cam focus:outline-none"
+                className="cursor-pointer absolute inset-0 rounded-full flex items-end justify-center pb-1 bg-black/0 hover:bg-black/35 transition-all group/cam focus:outline-none cursor-pointer"
               >
                 <span className="opacity-0 group-hover/cam:opacity-100 transition-opacity bg-black/60 rounded-full p-1">
                   {isUploading ? (
@@ -762,7 +800,7 @@ export default function HomePage() {
                 </p>
                 <button
                   onClick={() => router.push("/specialoffer")}
-                  className="bg-[#b22234] text-white text-[10px] font-bold px-4 py-1.5 rounded-full w-full hover:bg-red-700 transition-colors"
+                  className="cursor-pointer bg-[#b22234] text-white text-[10px] font-bold px-4 py-1.5 rounded-full w-full hover:bg-red-700 transition-colors"
                 >
                   Upgrade now
                 </button>
@@ -779,15 +817,13 @@ export default function HomePage() {
                 <div className="bg-[#ea580c] h-1.5 rounded-full" style={{ width: `${completionPct}%` }} />
               </div>
               <button
-                onClick={() => router.push("/onboarding/horoscope")}
-                className="w-full flex items-center justify-center gap-1.5 border border-[#ea580c] bg-white text-[#ea580c] text-[10px] font-semibold py-1.5 rounded-full hover:bg-[#ea580c] hover:text-white transition-colors"
+                onClick={() => router.push("/edit-profile")}
+                className="cursor-pointer w-full flex items-center justify-center gap-1.5 border border-[#ea580c] bg-white text-[#ea580c] text-[10px] font-semibold py-1.5 rounded-full hover:bg-[#ea580c] hover:text-white transition-colors"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="16" />
-                  <line x1="8" y1="12" x2="16" y2="12" />
+                  <path d="M20 6 9 17l-5-5" />
                 </svg>
-                Add Horoscope
+                Complete Profiles
               </button>
             </div>
 
@@ -797,13 +833,13 @@ export default function HomePage() {
             <button
               onClick={handleDownloadBiodata}
               disabled={!me || downloadingBiodata}
-              className="mt-3 w-full flex items-center justify-center gap-2 border border-[#b22234] text-[#b22234] text-xs font-bold py-2 rounded-full hover:bg-[#b22234] hover:text-white transition-colors disabled:opacity-50"
+              className="cursor-pointer mt-3 w-full flex items-center justify-center gap-2 border border-[#b22234] text-[#b22234] text-xs font-bold py-2 rounded-full hover:bg-[#b22234] hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
             >
               {downloadingBiodata ? "Preparing…" : (<><DownloadIcon /> Download Biodata</>)}
             </button>
             <button
               onClick={previewMatch}
-              className="mt-2 w-full text-xs font-bold py-2 rounded-full text-white transition-opacity hover:opacity-90"
+              className="cursor-pointer mt-2 w-full text-xs font-bold py-2 rounded-full text-white transition-opacity hover:opacity-90 cursor-pointer"
               style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
             >
               🎉 Preview Match
@@ -818,7 +854,7 @@ export default function HomePage() {
               <button
                 key={item.label}
                 onClick={() => router.push(item.href)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#ea580c] transition-colors border-b border-gray-50 last:border-0 cursor-pointer"
+                className="cursor-pointer w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#ea580c] transition-colors border-b border-gray-50 last:border-0"
               >
                 <span className="text-gray-400">{item.icon}</span>
                 {item.label}
@@ -839,7 +875,7 @@ export default function HomePage() {
               <button
                 key={item.label}
                 onClick={() => router.push(item.href)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#ea580c] transition-colors border-b border-gray-50 last:border-0 cursor-pointer"
+                className="cursor-pointer w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#ea580c] transition-colors border-b border-gray-50 last:border-0"
               >
                 <span className="text-gray-400">{item.icon}</span>
                 {item.label}
@@ -847,17 +883,7 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <p className="text-[11px] text-gray-400 font-semibold mb-2 uppercase tracking-wider">
-              Matrimony.com - Other Services
-            </p>
-            {["AstroFreeChat.com", "WeddingBazaar.com", "Mandap.com"].map((s) => (
-              <a key={s} href="#" className="flex items-center gap-2 text-xs text-[#ea580c] hover:underline py-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c]" />
-                {s}
-              </a>
-            ))}
-          </div>
+
         </aside>
 
         {/* ── Main Content ── */}
@@ -878,13 +904,13 @@ export default function HomePage() {
                 Now check compatibility with AI
               </h3>
               <p className="text-[11px] sm:text-xs text-white/80 mt-0.5 max-w-md">
-                Open any profile and tap <span className="font-semibold text-amber-200">Ask AI</span> to score
+                Open any profile and tap <span className="font-semibold text-amber-200">Ask AI </span> to score
                 facial harmony, horoscope, family, education &amp; lifestyle — in real time.
               </p>
             </div>
             <button
               onClick={() => router.push("/profiles")}
-              className="relative z-10 shrink-0 flex items-center gap-2 bg-white text-sm font-bold px-4 sm:px-5 py-2.5 rounded-full hover:scale-105 transition-transform"
+              className="cursor-pointer relative z-10 shrink-0 flex items-center gap-2 bg-white text-sm font-bold px-4 sm:px-5 py-2.5 rounded-full hover:scale-105 transition-transform"
               style={{ color: "#c0174c" }}
             >
               ✨ Explore matches
@@ -912,7 +938,7 @@ export default function HomePage() {
               </div>
               <button
                 onClick={() => router.push("/onboarding/basic-details")}
-                className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-full"
+                className="cursor-pointer shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-full"
               >
                 Complete profile
               </button>
@@ -927,14 +953,14 @@ export default function HomePage() {
                 <p className="text-[10px] sm:text-xs text-white/80 mt-0.5">Recommended matches for today</p>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <button onClick={scrollLeft} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#ea580c] hover:text-[#ea580c] bg-white shadow-sm">
+                <button onClick={scrollLeft} className="cursor-pointer w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#ea580c] hover:text-[#ea580c] bg-white shadow-sm cursor-pointer">
                   <ChevronLeft />
                 </button>
-                <button onClick={scrollRight} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#ea580c] hover:text-[#ea580c] bg-white shadow-sm">
+                <button onClick={scrollRight} className="cursor-pointer w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-[#ea580c] hover:text-[#ea580c] bg-white shadow-sm cursor-pointer">
                   <ChevronRight />
                 </button>
                 <Timer />
-                <button className="flex items-center gap-1 text-xs text-white font-semibold border border-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full hover:bg-white hover:text-[#b22234] transition-colors">
+                <button className="cursor-pointer flex items-center gap-1 text-xs text-white font-semibold border border-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full hover:bg-white hover:text-[#b22234] transition-colors cursor-pointer">
                   View all <ChevronRight />
                 </button>
               </div>
@@ -975,47 +1001,57 @@ export default function HomePage() {
           </div>
 
           {/* Assisted Service Banner (static promo) */}
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 sm:p-5 flex items-start sm:items-center justify-between gap-3">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-7 h-7 bg-[#ea580c] rounded-full flex items-center justify-center shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          <div
+            className="relative overflow-hidden rounded-xl p-5 sm:p-6 flex items-start sm:items-center justify-between gap-3 shadow-sm"
+            style={{ background: "linear-gradient(135deg, #2D1B35, #b22234 50%, #c0174c)" }}
+          >
+            <div className="relative z-10 flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-amber-300 rounded-full flex items-center justify-center shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#2D1B35">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                   </svg>
                 </div>
-                <span className="text-xs text-[#ea580c] font-semibold">Assisted service</span>
+                <span className="text-sm text-amber-300 font-bold tracking-wide">Made2Match Assisted Service</span>
               </div>
-              <p className="text-xs text-gray-500 mb-1">Personalised matchmaking service</p>
-              <h3 className="text-sm sm:text-base font-bold text-gray-800 mb-1 sm:mb-2">
-                Find your match <span className="text-[#ea580c]">10x faster</span>
+              <p className="text-xs sm:text-sm text-white/70 mb-1">Dedicated matchmaking support from our experts</p>
+              <h3 className="text-base sm:text-lg font-bold text-white mb-1 sm:mb-2">
+                Find your perfect match <span className="text-amber-300">with personal guidance</span>
               </h3>
-              <p className="text-xs text-gray-600 mb-2 sm:mb-3">
-                Personalized matchmaking service through expert Relationship Manager
+              <p className="text-sm text-white/80 mb-2 sm:mb-3 max-w-md">
+                Get a dedicated Relationship Manager who handpicks compatible matches, coordinates with families, and guides you through every step of your matrimony journey.
               </p>
-              <div className="space-y-1 mb-3 sm:mb-4">
-                {["Guaranteed matches", "Better response", "Save time & effort"].map((f) => (
-                  <div key={f} className="flex items-center gap-2 text-xs text-gray-700">
-                    <CheckCircle />{f}
+              <div className="space-y-1.5 mb-3 sm:mb-4">
+                {["Handpicked matches as per your preference", "Family coordination & communication support", "Priority assistance & personalised guidance"].map((f) => (
+                  <div key={f} className="flex items-center gap-2 text-sm text-white/90">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    {f}
                   </div>
                 ))}
               </div>
-              <button className="bg-[#ea580c] text-white text-xs font-bold px-4 sm:px-5 py-2 rounded-full hover:bg-orange-600 transition-colors">
-                Know more
-              </button>
+              <a
+                href="tel:+918075067058"
+                className="inline-flex items-center gap-2 bg-white text-[#b22234] text-sm font-bold px-6 py-2.5 rounded-full hover:bg-amber-50 transition-colors shadow-sm"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+                Call 8075067058
+              </a>
             </div>
-            <div className="w-20 sm:w-28 shrink-0">
+            <div className="w-24 sm:w-32 shrink-0 relative z-10">
               <img
-                src="https://picsum.photos/seed/assisted/112/140"
-                alt="Assisted Service"
-                className="w-full h-28 sm:h-36 object-cover rounded-lg"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = FALLBACK_PHOTO("A");
-                }}
+                src="/golden-hearts.png"
+                alt="Made2Match Assisted Service"
+                className="w-full h-32 sm:h-40 object-contain rounded-lg drop-shadow-lg"
               />
             </div>
+            {/* decorative sparkles */}
+            <span className="absolute -right-2 -top-2 text-6xl opacity-10 select-none">💕</span>
+            <span className="absolute left-1/2 bottom-1 text-3xl opacity-10 select-none">✨</span>
           </div>
 
           {/* Who Viewed You */}
@@ -1046,7 +1082,7 @@ export default function HomePage() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-4">
             <h2 className="text-sm sm:text-base font-bold text-gray-800 mb-1">Photo/Horoscope Requests</h2>
             <div className="flex gap-4 border-b border-gray-200 mb-3 sm:mb-4">
-              <button className="text-xs font-semibold text-[#ea580c] border-b-2 border-[#ea580c] pb-2 px-1">
+              <button className="cursor-pointer text-xs font-semibold text-[#ea580c] border-b-2 border-[#ea580c] pb-2 px-1 cursor-pointer">
                 Requests received ({counts.horoscopeRequestsCount ?? horoscopeRequests.length})
               </button>
             </div>
@@ -1074,8 +1110,11 @@ export default function HomePage() {
                   <p className="text-[10px] text-gray-500 mb-2">
                     {counts.horoscopeRequestsCount ?? horoscopeRequests.length} members have requested you to add Horoscope
                   </p>
-                  <button className="bg-[#ea580c] text-white text-xs font-bold px-4 py-1.5 rounded-full hover:bg-orange-600 transition-colors">
-                    Add Horoscope
+                  <button
+                    onClick={() => router.push("/edit-profile")}
+                    className="cursor-pointer bg-[#ea580c] text-white text-xs font-bold px-4 py-1.5 rounded-full hover:bg-orange-600 transition-colors cursor-pointer"
+                  >
+                    Complete Profiles
                   </button>
                 </div>
               </div>
@@ -1114,71 +1153,31 @@ export default function HomePage() {
                   Profiles Marked As "Don't show" ({counts.dontShowCount ?? 0})
                 </p>
               </div>
-              <button className="self-start sm:self-auto flex items-center gap-1 text-xs text-[#ea580c] font-semibold border border-[#ea580c] px-3 py-1.5 rounded-full hover:bg-orange-50 transition-colors">
+              <button className="cursor-pointer self-start sm:self-auto flex items-center gap-1 text-xs text-[#ea580c] font-semibold border border-[#ea580c] px-3 py-1.5 rounded-full hover:bg-orange-50 transition-colors cursor-pointer">
                 View all <ChevronRight />
+              </button>
+            </div>
+            {/* Advertisement box */}
+            <div
+              className="mt-3 rounded-xl p-4 flex items-center justify-between gap-3 overflow-hidden"
+              style={{ background: "linear-gradient(135deg, #fef3c7, #fde68a, #fef3c7)" }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#b22234] flex items-center justify-center shrink-0 shadow-sm">
+                  <span className="text-lg font-bold text-white">₹</span>
+                </div>
+                <div>
+                  <p className="text-sm sm:text-base font-bold text-gray-800">Unlock unlimited messages &amp; see who liked you!</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Upgrade to Premium — get up to 65% off + verified badge</p>
+                </div>
+              </div>
+              <button onClick={() => router.push("/specialoffer")} className="cursor-pointer shrink-0 bg-[#b22234] text-white text-sm font-bold px-5 py-2.5 rounded-full hover:bg-red-700 transition-colors shadow-sm">
+                Claim now
               </button>
             </div>
           </div>
 
-          {/* Other Services (static) */}
-          <div className="pb-2">
-            <h2 className="text-sm sm:text-base font-bold text-gray-800 mb-3">Matrimony.com - Other Services</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {[
-                {
-                  name: "AstroFreeChat",
-                  sub: "From Matrimony.com Group",
-                  desc: "Looking for astrology guidance in love, relationships, career, or health?",
-                  features: ["Instant Astrology Insights", "Chat Anytime, Anywhere", "First 5 Minutes FREE"],
-                  cta: "Download AstroFreeChat",
-                  color: "bg-orange-50 border-orange-200",
-                },
-                {
-                  name: "weddingbazaar",
-                  sub: "from Matrimony.com group",
-                  desc: "India's Largest Wedding Planning Platform",
-                  features: [
-                    "Photographers, Makeup artists, Caterers and more",
-                    "Trusted wedding marketplace from matrimony.com group",
-                    "2.8 Lakh+ trusted vendors across 40+ cities",
-                  ],
-                  cta: "Know more",
-                  color: "bg-purple-50 border-purple-200",
-                },
-                {
-                  name: "mandap",
-                  sub: "from Matrimony.com group",
-                  desc: "India's Largest Mandap Platform",
-                  features: ["Free listings", "100% verified", "40,000+ mandaps", "Services across India"],
-                  cta: "Know more",
-                  color: "bg-blue-50 border-blue-200",
-                },
-              ].map((svc) => (
-                <div key={svc.name} className={`border rounded-xl p-4 ${svc.color}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-gray-200">
-                      <span className="text-[10px] font-bold text-[#ea580c]">{svc.name.charAt(0).toUpperCase()}</span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-800">{svc.name}</p>
-                      <p className="text-[9px] text-gray-500">{svc.sub}</p>
-                    </div>
-                  </div>
-                  <p className="text-xs font-semibold text-gray-700 mb-2 leading-tight">{svc.desc}</p>
-                  <div className="space-y-1 mb-3">
-                    {svc.features.map((f) => (
-                      <div key={f} className="flex items-start gap-1.5 text-[10px] text-gray-600">
-                        <CheckCircle /><span className="leading-snug">{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <button className="w-full bg-[#ea580c] text-white text-[10px] font-bold py-2 rounded-full hover:bg-orange-600 transition-colors">
-                    {svc.cta}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -1186,16 +1185,24 @@ export default function HomePage() {
       <div className="bg-white border-t border-gray-200 py-3 sm:py-4 px-4">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <p className="text-xs sm:text-sm font-semibold text-gray-700">Need help in using KeralaMatrimony?</p>
+            <p className="text-xs sm:text-sm font-semibold text-gray-700">Need help in using Made2Match?</p>
             <p className="text-[10px] sm:text-xs text-gray-500">Reach out to us on this number or chat with us</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <button className="flex items-center gap-2 border border-gray-300 text-gray-700 text-xs font-semibold px-3 sm:px-4 py-2 rounded-full hover:border-[#ea580c] hover:text-[#ea580c] transition-colors">
+            <a
+              href="tel:+918075067058"
+              className="flex items-center gap-2 border border-gray-300 text-gray-700 text-xs font-semibold px-3 sm:px-4 py-2 rounded-full hover:border-[#ea580c] hover:text-[#ea580c] transition-colors"
+            >
               <PhoneIcon /> Call now
-            </button>
-            <button className="flex items-center gap-2 bg-[#ea580c] text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-full hover:bg-orange-600 transition-colors">
+            </a>
+            <a
+              href="https://wa.me/918075067058"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-[#ea580c] text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-full hover:bg-orange-600 transition-colors"
+            >
               <ChatIconSvg /> Chat with us
-            </button>
+            </a>
           </div>
         </div>
       </div>
