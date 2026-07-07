@@ -7,7 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { getMyProfile, type MyProfile } from "@/services/homeService";
-import { fetchNotifications, type AppNotification } from "@/services/notificationService";
+import { fetchNotifications, persistReadIds, markInterestsReadOnServer, type AppNotification } from "@/services/notificationService";
 import { setAppBadge } from "@/lib/appBadge";
 
 // ─── Nav Items (notification removed) ────────────────────────────────────────
@@ -83,6 +83,7 @@ const NOTIF_ICONS: Record<string, { icon: string; color: string; bg: string }> =
     shortlist: { icon: "⭐", color: "#e0a800", bg: "#fff7df" },
     message:   { icon: "💬", color: "#f0a500", bg: "#fff8e1" },
     match:     { icon: "❤️", color: "#b22234", bg: "#ffeaea" },
+    report:    { icon: "!", color: "#c0174c", bg: "#fff0f4" },
   };
 
 export default function Navbar() {
@@ -94,8 +95,10 @@ export default function Navbar() {
     pathname === href || pathname.startsWith(href + "/");
   // Top-level routes show the logo; everything deeper is an "inner page" that
   // shows a back button (mobile) in the logo's place.
-  const MAIN_ROUTES = ["/", "/home", "/profiles", "/interests", "/chat", "/search"];
+  const MAIN_ROUTES = ["/", "/home", "/profiles", "/interests", "/chat", "/search", "/edit-profile"];
   const isInnerPage = !MAIN_ROUTES.includes(pathname);
+  const isProfileDetailPage = /^\/profiles\/[^/]+$/.test(pathname);
+  const isSettingsPage = pathname === "/settings";
   const [activeNav, setActiveNav] = useState("home");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [, setShowSwitchMenu] = useState(false);
@@ -139,11 +142,19 @@ export default function Navbar() {
   // Load notifications (aggregated from interests / views / shortlists / matches).
   useEffect(() => {
     let cancelled = false;
-    fetchNotifications()
-      .then((list) => { if (!cancelled) setNotifications(list); })
-      .catch(() => undefined)
-      .finally(() => { if (!cancelled) setNotifLoading(false); });
-    return () => { cancelled = true; };
+    const loadNotifications = () => {
+      setNotifLoading(true);
+      fetchNotifications()
+        .then((list) => { if (!cancelled) setNotifications(list); })
+        .catch(() => undefined)
+        .finally(() => { if (!cancelled) setNotifLoading(false); });
+    };
+    loadNotifications();
+    window.addEventListener("notifications:refresh", loadNotifications);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("notifications:refresh", loadNotifications);
+    };
   }, []);
 
   useEffect(() => {
@@ -177,12 +188,25 @@ export default function Navbar() {
     setAppBadge(unreadCount);
   }, [unreadCount]);
 
-  const markAllRead = () =>
+  const markAllRead = () => {
+    // 1. Optimistically update UI
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
-  const markRead = (id: string) =>
+    // 2. Persist all IDs to localStorage so they stay read on re-fetch
+    persistReadIds(notifications.map((n) => n.id));
+    // 3. Tell backend to mark interests as read (best-effort)
+    markInterestsReadOnServer();
+  };
+  const markRead = (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, unread: false } : n)),
     );
+    // Persist to localStorage
+    persistReadIds([id]);
+    // If it's an interest notification, mark on backend too
+    if (id.startsWith("interest-")) {
+      markInterestsReadOnServer();
+    }
+  };
 
   // Click a notification → mark read, close panel, go to the related profile.
   const handleNotifClick = (n: AppNotification) => {
@@ -203,7 +227,7 @@ export default function Navbar() {
     (NAV_ITEMS.find((i) => i.id === "interests")?.badge || 0);
 
   /* ── Shared Notification Panel ── */
-  const NotificationPanel = () => (
+  const notificationPanel = (
     <div
   className="fixed left-0 right-0 top-16 lg:absolute lg:left-auto lg:right-0 lg:top-full mt-0 lg:mt-3.5 bg-white lg:w-90 w-full shadow-2xl z-50 overflow-hidden"
   style={{ border: "1px solid #fce4ec" }}
@@ -318,24 +342,24 @@ export default function Navbar() {
   );
 
   return (
-    <header className="w-full bg-gray-100 shadow-sm sticky top-0 z-50">
+    <header className="w-full bg-gray-100 shadow-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 relative">
         <div className="flex items-center justify-between h-16">
 
           {/* ─────────────────────────────────────────────────
               LEFT — Back button (mobile inner pages) or Logo
           ───────────────────────────────────────────────── */}
-          <div className="flex items-center shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
             {/* Mobile back button — only on inner pages */}
             {isInnerPage && (
               <button
                 onClick={() => router.back()}
-                className="flex lg:hidden w-10 h-10 items-center justify-center rounded-full bg-red-50 border border-[#f5d0d7] text-[#b22234] hover:bg-[#b22234] hover:text-white hover:border-[#b22234] transition-colors shrink-0 shadow-sm"
+                className={`${isProfileDetailPage ? "flex bg-white w-8 h-8" : isSettingsPage ? "flex bg-white w-9 h-9" : "flex lg:hidden bg-red-50 w-10 h-10"} items-center justify-center rounded-full border border-[#fecdd3] text-[#c0174c] hover:bg-[#fff0f4] hover:border-[#f5a6b8] transition-colors shrink-0 shadow-sm`}
                 aria-label="Go back"
               >
                 <svg
-                  width="24"
-                  height="24"
+                  width={isSettingsPage ? "20" : isProfileDetailPage ? "18" : "24"}
+                  height={isSettingsPage ? "20" : isProfileDetailPage ? "18" : "24"}
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -349,9 +373,23 @@ export default function Navbar() {
             )}
 
             {/* Logo — left aligned; hidden on mobile inner pages (back button takes its place) */}
+            {isSettingsPage && (
+              <Link href="/home" className="flex items-baseline gap-0.5 shrink-0">
+                <span className="text-2xl font-black" style={{ color: "#b22234", fontFamily: "Georgia, serif" }}>
+                  Made
+                </span>
+                <span className="text-2xl font-bold" style={{ color: "#f3e228" }}>
+                  2
+                </span>
+                <span className="text-2xl font-black" style={{ color: "#b22234", fontFamily: "Georgia, serif" }}>
+                  Match
+                </span>
+              </Link>
+            )}
+
             <Link
               href="/"
-              className={`items-center gap-1.5 shrink-0 ${isInnerPage ? "hidden lg:flex" : "flex"}`}
+              className={`items-center gap-1.5 shrink-0 ${isSettingsPage ? "hidden" : isInnerPage && !isProfileDetailPage ? "hidden lg:flex" : "flex"}`}
             >
               <Image
                 src="/golden-hearts.png"
@@ -359,7 +397,7 @@ export default function Navbar() {
                 width={84}
                 height={56}
                 priority
-                className="h-14 w-auto object-contain -ml-5 sm:-ml-6"
+                className={`h-14 w-auto object-contain -ml-5 sm:-ml-6 ${isProfileDetailPage ? "hidden" : ""}`}
               />
               <div className="flex flex-col leading-none">
                 <div className="flex items-baseline gap-0.5">
@@ -451,7 +489,7 @@ export default function Navbar() {
                   </button>
 
                   {/* Notification dropdown panel */}
-                  {showNotifications && <NotificationPanel />}
+                  {showNotifications && notificationPanel}
                 </div>
 
                 {/* ── Profile Avatar (mobile + desktop) ── */}
@@ -610,7 +648,7 @@ export default function Navbar() {
 
       {/* ── Mobile curved bottom navigation with center FAB ── */}
       {isLoggedIn && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
           {/* Pink bar */}
           <div
             className="relative h-16 shadow-[0_-4px_16px_rgba(0,0,0,0.12)]"

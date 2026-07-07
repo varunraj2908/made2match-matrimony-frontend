@@ -46,6 +46,7 @@ export interface MatchProfile {
   isNewProfile?: boolean;
   isPremium?: boolean;
   recommendationType?: string;
+  createdAt?: string;           // ISO date-time for "today" badge
 }
 
 export interface ProfileActivity {

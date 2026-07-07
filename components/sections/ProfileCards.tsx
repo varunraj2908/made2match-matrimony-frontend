@@ -14,31 +14,43 @@ import {
   type MatchFilters,
   type SidebarLabel,
 } from "@/services/matchesService";
+import { getBlockedProfiles } from "@/services/blockedProfilesService";
 
 const PAGE_SIZE = 10;
 
 // Maps the UI-level FilterBar state to backend query params.
-const PROFILE_CREATED_BY_MAP: Record<string, string> = {
-  self: "SELF",
-  parents: "PARENT",
-  sibling: "SIBLING",
-  friends: "FRIEND",
-};
-
 const buildMatchFilters = (state: FilterState): MatchFilters => {
   const sortFromToggle = state.toggles.newly_joined ? "newly_joined" : undefined;
   const pcb = state.dropdowns.profile_created_by ?? undefined;
   return {
-    sortBy: state.dropdowns.sort ?? sortFromToggle,
-    city: state.dropdowns.location ?? undefined,
-    withPhotos: state.toggles.profiles_with_photo || undefined,
-    withHoroscope: state.toggles.profiles_with_horoscope || undefined,
-    notSeen: state.toggles.not_seen || undefined,
-    profileCreatedBy: pcb ? (PROFILE_CREATED_BY_MAP[pcb] ?? pcb.toUpperCase()) : undefined,
+    sortBy:          state.dropdowns.sort ?? sortFromToggle,
+    city:            state.dropdowns.location ?? undefined,
+    withPhotos:      state.toggles.profiles_with_photo  || undefined,
+    withHoroscope:   state.toggles.profiles_with_horoscope || undefined,
+    notSeen:         state.toggles.not_seen || undefined,
+    // Profile Created By values are already backend enum strings (SELF, SON, etc.)
+    profileCreatedBy: pcb ?? undefined,
+    mutualMatches:   state.toggles.mutual_matches || undefined,
+    mutualHobbies:   state.dropdowns.mutual_hobbies ?? undefined,
   };
 };
 
+const hasActiveFilters = (
+  state: FilterState,
+): boolean =>
+  Object.values(state.toggles).some(Boolean) ||
+  Object.values(state.dropdowns).some((value) => value !== null && value !== undefined);
+
 const EMPTY_FILTERS: FilterState = { toggles: {}, dropdowns: {} };
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === "object" && error !== null) {
+    const maybeAxios = error as { response?: { data?: { message?: unknown } }; message?: unknown };
+    if (typeof maybeAxios.response?.data?.message === "string") return maybeAxios.response.data.message;
+    if (typeof maybeAxios.message === "string") return maybeAxios.message;
+  }
+  return fallback;
+};
 
 
 // ─── Sidebar data ─────────────────────────────────────────────────────────────
@@ -512,7 +524,7 @@ const LeftSidebar = ({
           </p>
         )}
         {section.items.map((item) => {
-          const isActive = activeMenu === item.label || (item as any).highlight;
+          const isActive = activeMenu === item.label;
           return (
             <button
               key={item.label}
@@ -661,11 +673,12 @@ const ProfileCardGrid = ({
   const tags = [profile.profession, profile.education, profile.religion, profile.height].filter(Boolean).slice(0, 4) as string[];
 
   return (
-    <div className="rounded-[28px] bg-white border border-gray-200 p-3 group shadow-[0_10px_30px_-12px_rgba(0,0,0,0.18)] hover:shadow-[0_16px_42px_-12px_rgba(192,23,76,0.25)] hover:border-[#f0c6d2] transition-all">
+    <div className="rounded-2xl bg-white border border-gray-200 p-2.5 group shadow-[0_10px_30px_-12px_rgba(0,0,0,0.18)] hover:shadow-[0_16px_42px_-12px_rgba(192,23,76,0.25)] hover:border-[#f0c6d2] transition-all">
       {/* Photo (click to open) */}
       <div
         onClick={() => onOpen(profile)}
-        className="relative w-full aspect-[3/4] overflow-hidden rounded-[22px] bg-gray-900 cursor-pointer"
+        className="relative w-full overflow-hidden rounded-xl bg-gray-900 cursor-pointer"
+        style={{ aspectRatio: "3 / 2.6" }}
       >
         {imgError || !profile.photo ? (
           <div className="absolute inset-0 bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center text-6xl">👤</div>
@@ -681,8 +694,26 @@ const ProfileCardGrid = ({
         {/* Bottom darken for panel legibility */}
         <div className="absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(0,0,0,0.55) 4%, rgba(0,0,0,0) 42%)" }} />
 
+        {/* NEWLY JOINED diagonal ribbon — today only */}
+        {profile.isNew && (
+          <div className="absolute top-0 left-0 overflow-hidden w-24 h-24 pointer-events-none">
+            <div
+              className="absolute text-white text-[9px] font-black tracking-wider text-center leading-tight py-1 shadow-md"
+              style={{
+                background: "linear-gradient(135deg,#ff2d6f,#c0174c)",
+                width: "110px",
+                top: "18px",
+                left: "-22px",
+                transform: "rotate(-45deg)",
+              }}
+            >
+              NEWLY<br />JOINED
+            </div>
+          </div>
+        )}
+
         {/* Ready-for-relationship pill */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/30 backdrop-blur-md border border-white/15 text-white text-[11px] font-medium px-3 py-1.5 rounded-full">
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/30 backdrop-blur-md border border-white/15 text-white text-xs font-medium px-3 py-1.5 rounded-full">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="#ff2d6f"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
           Ready for relationship
         </div>
@@ -697,14 +728,14 @@ const ProfileCardGrid = ({
         </span>
 
         {/* Frosted info panel */}
-        <div className="absolute inset-x-3 bottom-3 rounded-[20px] bg-white/10 backdrop-blur-xl border border-white/15 px-4 py-3.5 text-white">
+        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-white/10 backdrop-blur-xl border border-white/15 px-3 py-2.5 text-white">
           {profile.location && (
-            <p className="flex items-center gap-1.5 text-xs text-white/80">
+            <p className="flex items-center gap-1.5 text-sm text-white/80">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
               <span className="truncate">{profile.location}</span>
             </p>
           )}
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-0.5">
             <h3 className="text-2xl font-bold leading-tight truncate">
               {profile.name}{profile.age != null && <>, {profile.age}</>}
             </h3>
@@ -713,9 +744,9 @@ const ProfileCardGrid = ({
             </span>
           </div>
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2.5">
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {tags.map((t, i) => (
-                <span key={i} className="bg-white/[0.12] border border-white/15 text-white/90 text-[11px] font-medium px-3 py-1 rounded-full truncate max-w-[150px]">
+                <span key={i} className="bg-white/[0.12] border border-white/15 text-white/90 text-xs font-medium px-2.5 py-0.5 rounded-full truncate max-w-[150px]">
                   {t}
                 </span>
               ))}
@@ -725,9 +756,9 @@ const ProfileCardGrid = ({
       </div>
 
       {/* About Me */}
-      <div className="mt-2 rounded-[16px] bg-[#fdf3f6] border border-[#f5dbe3] px-3.5 py-2">
-        <p className="text-[12px] font-bold text-gray-800 mb-0.5">About Me</p>
-        <p className="text-[12px] text-gray-500 leading-snug line-clamp-2">
+      <div className="mt-2 rounded-lg bg-[#fdf3f6] border border-[#f5dbe3] px-3 py-1.5">
+        <p className="text-sm font-bold text-gray-800 mb-0.5">About Me</p>
+        <p className="text-sm text-gray-500 leading-snug line-clamp-1">
           {profile.about ||
             `${profile.profession || "Professional"}${profile.location ? ` from ${profile.location.split(",")[0]}` : ""}${profile.education ? ` · ${profile.education}` : ""}. Looking for a meaningful, lasting connection.`}
         </p>
@@ -738,7 +769,7 @@ const ProfileCardGrid = ({
         <button
           type="button"
           onClick={() => onInterest(profile)}
-          className="flex-1 flex items-center justify-center gap-2 text-white text-sm font-bold py-2.5 rounded-full cursor-pointer transition-transform active:scale-95 hover:scale-[1.02]"
+          className="flex-1 flex items-center justify-center gap-2 text-white text-base font-bold py-2.5 rounded-full cursor-pointer transition-transform active:scale-95 hover:scale-[1.02]"
           style={{ background: "linear-gradient(135deg,#ff5d8f,#c0174c)", boxShadow: "0 8px 22px rgba(192,23,76,0.45)" }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
@@ -766,7 +797,7 @@ const ProfileCardGrid = ({
       <button
         type="button"
         onClick={() => onOpen(profile)}
-        className="w-full mt-1.5 py-1.5 rounded-full text-sm font-bold text-gray-500 hover:text-[#c0174c] transition-colors cursor-pointer flex items-center justify-center gap-1"
+        className="w-full mt-1 py-1 rounded-full text-sm font-bold text-gray-500 hover:text-[#c0174c] transition-colors cursor-pointer flex items-center justify-center gap-1"
       >
         View full profile
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -812,7 +843,7 @@ const ProfileCardList = ({
           onClick={() => onOpen(profile)}
           className="shrink-0 cursor-pointer"
         >
-          <div className="w-32 h-32 rounded-md overflow-hidden border-2 border-[#f5d0d7]">
+          <div className="relative w-32 h-32 rounded-md overflow-hidden border-2 border-[#f5d0d7]">
             {imgError || !profile.photo ? (
               <div className="w-full h-full bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center text-xl">
                 👤
@@ -824,6 +855,23 @@ const ProfileCardList = ({
                 className="w-full h-full object-cover object-top"
                 onError={() => setImgError(true)}
               />
+            )}
+            {/* NEWLY JOINED diagonal ribbon — today only */}
+            {profile.isNew && (
+              <div className="absolute top-0 left-0 overflow-hidden w-20 h-20 pointer-events-none">
+                <div
+                  className="absolute text-white text-[8px] font-black tracking-wider text-center leading-tight py-1 shadow-md"
+                  style={{
+                    background: "linear-gradient(135deg,#ff2d6f,#c0174c)",
+                    width: "90px",
+                    top: "14px",
+                    left: "-18px",
+                    transform: "rotate(-45deg)",
+                  }}
+                >
+                  NEWLY<br />JOINED
+                </div>
+              </div>
             )}
           </div>
         </button>
@@ -978,49 +1026,101 @@ export default function ProfileCards() {
   const [error, setError] = useState<string>("");
   const [shortlistMsg, setShortlistMsg] = useState<string>("");
   const [filterState, setFilterState] = useState<FilterState>(EMPTY_FILTERS);
+  const [blockedProfileIds, setBlockedProfileIds] = useState<Set<number>>(new Set());
 
-  // Infinite scroll — load the next page when nearing the bottom.
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const appendModeRef = useRef(false); // true → append (scroll), false → replace (page click)
-  const onProfilesScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    if (
-      !loading &&
-      !loadingMore &&
-      currentPage < totalPages &&
-      el.scrollTop + el.clientHeight >= el.scrollHeight - 320
-    ) {
-      appendModeRef.current = true;
-      setCurrentPage((p) => p + 1);
-    }
-  };
+  // appendModeRef tracks whether the next fetch should append or replace items
+  const appendModeRef  = useRef(false);
+  // isFetchingRef is set synchronously to prevent double-firing the scroll trigger
+  const isFetchingRef  = useRef(false);
+  const currentPageRef = useRef(1);
+  const totalPagesRef  = useRef(0);
 
-  // Lock the page scroll on mobile so only the profiles list scrolls.
+  // Keep page/total refs in sync with state
+  useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
+  useEffect(() => { totalPagesRef.current  = totalPages;  }, [totalPages]);
+
+  // Fetch blocked profile IDs on mount
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1023px)");
-    const html = document.documentElement;
-    const apply = () => {
-      const v = mq.matches ? "hidden" : "";
-      html.style.overflow = v;
-      document.body.style.overflow = v;
+    const loadBlockedProfiles = () => {
+      getBlockedProfiles()
+        .then((blocked) => {
+          const ids = new Set(blocked.map(b => b.profileId));
+          setBlockedProfileIds(ids);
+        })
+        .catch(() => {
+          // Silently fail - if we can't get blocked profiles, just show all profiles
+          console.warn('Could not fetch blocked profiles');
+        });
     };
-    apply();
-    mq.addEventListener("change", apply);
+    
+    loadBlockedProfiles();
+    
+    // Listen for block/unblock events
+    const handleProfileBlocked = (e: Event) => {
+      const profileId = (e as CustomEvent).detail?.profileId;
+      if (profileId) {
+        setBlockedProfileIds(prev => new Set([...prev, profileId]));
+      }
+    };
+    
+    const handleProfileUnblocked = (e: Event) => {
+      const profileId = (e as CustomEvent).detail?.profileId;
+      if (profileId) {
+        setBlockedProfileIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(profileId);
+          return newSet;
+        });
+      }
+    };
+    
+    window.addEventListener('profile-blocked', handleProfileBlocked);
+    window.addEventListener('profile-unblocked', handleProfileUnblocked);
+    
     return () => {
-      mq.removeEventListener("change", apply);
-      html.style.overflow = "";
-      document.body.style.overflow = "";
+      window.removeEventListener('profile-blocked', handleProfileBlocked);
+      window.removeEventListener('profile-unblocked', handleProfileUnblocked);
     };
+  }, []);
+
+  // Window scroll — fires load-more when near the bottom of the page (mobile only)
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.innerWidth >= 1024) return;
+      if (isFetchingRef.current) return;
+      if (currentPageRef.current >= totalPagesRef.current) return;
+      const nearBottom =
+        window.scrollY + window.innerHeight >= document.body.scrollHeight - 400;
+      if (nearBottom) {
+        isFetchingRef.current = true;          // block re-entry immediately
+        appendModeRef.current = true;
+        setCurrentPage((p) => p + 1);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   // Stable serialised key — reruns the fetch effect when any filter changes
   // without forcing the consumer to do its own deep-equal.
   const filterKey = JSON.stringify(filterState);
 
-  // Reset to page 1 when menu or filter changes
+  const handleMenuChange = (menu: string) => {
+    setActiveMenu(menu);
+    setFilterState(EMPTY_FILTERS);
+  };
+
+  const handleFilterChange = (next: FilterState) => {
+    setFilterState(next);
+    setActiveMenu(hasActiveFilters(next) ? "" : "Your Matches");
+  };
+
+  // Reset to page 1 when menu or filter changes.
   useEffect(() => {
-    appendModeRef.current = false;
+    appendModeRef.current  = false;
+    isFetchingRef.current  = false;
     setCurrentPage(1);
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
   }, [activeMenu, filterKey]);
 
   // Fetch profiles whenever menu, page or filters change
@@ -1034,20 +1134,21 @@ export default function ProfileCards() {
 
     const matchFilters = buildMatchFilters(filterState);
 
-    fetchForMenu(activeMenu as SidebarLabel, currentPage - 1, PAGE_SIZE, matchFilters)
+    fetchForMenu((activeMenu || "Your Matches") as SidebarLabel, currentPage - 1, PAGE_SIZE, matchFilters)
       .then((result) => {
         if (cancelled) return;
+        
+        // Filter out blocked profiles
+        const filteredItems = result.items.filter(item => !blockedProfileIds.has(item.numericId));
+        
         // Append for infinite scroll, replace for fresh loads / page clicks.
-        setItems((prev) => (append ? [...prev, ...result.items] : result.items));
+        setItems((prev) => (append ? [...prev, ...filteredItems] : filteredItems));
         setTotalElements(result.totalElements);
         setTotalPages(result.totalPages);
       })
-      .catch((ex: any) => {
+      .catch((ex: unknown) => {
         if (cancelled) return;
-        const msg =
-          ex?.response?.data?.message ||
-          ex?.message ||
-          "Could not load profiles.";
+        const msg = getErrorMessage(ex, "Could not load profiles.");
         if (!append) {
           setError(msg);
           setItems([]);
@@ -1059,6 +1160,7 @@ export default function ProfileCards() {
         if (!cancelled) {
           setLoading(false);
           setLoadingMore(false);
+          isFetchingRef.current = false;   // allow next scroll trigger
         }
       });
 
@@ -1066,7 +1168,7 @@ export default function ProfileCards() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeMenu, currentPage, filterKey]);
+  }, [activeMenu, currentPage, filterKey, blockedProfileIds]);
 
   const handleOpen = (p: CardProfile) => {
     recordProfileView(p.numericId).catch(() => undefined);
@@ -1078,9 +1180,9 @@ export default function ProfileCards() {
       await shortlistProfile(p.numericId);
       setShortlistMsg(`${p.name} added to your shortlist`);
       window.setTimeout(() => setShortlistMsg(""), 2500);
-    } catch (ex: any) {
+    } catch (ex: unknown) {
       setShortlistMsg(
-        ex?.response?.data?.message || "Could not shortlist this profile.",
+        getErrorMessage(ex, "Could not shortlist this profile."),
       );
       window.setTimeout(() => setShortlistMsg(""), 2500);
     }
@@ -1091,16 +1193,16 @@ export default function ProfileCards() {
       await sendInterest(p.numericId);
       setShortlistMsg(`Interest sent to ${p.name}`);
       window.setTimeout(() => setShortlistMsg(""), 2500);
-    } catch (ex: any) {
+    } catch (ex: unknown) {
       setShortlistMsg(
-        ex?.response?.data?.message || "Could not send interest.",
+        getErrorMessage(ex, "Could not send interest."),
       );
       window.setTimeout(() => setShortlistMsg(""), 2500);
     }
   };
 
   return (
-    <div className="bg-white lg:min-h-screen overflow-hidden lg:overflow-visible">
+    <div className="bg-gray-50 lg:min-h-screen">
       <CoastHeaderBar />
 
       {shortlistMsg && (
@@ -1109,69 +1211,84 @@ export default function ProfileCards() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-1 pb-4 sm:py-6">
-        <div className="flex gap-4 sm:gap-6">
-          {/* Desktop Sidebar */}
-          <LeftSidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
-
-          {/* Main Content */}
-          <div className="flex-1 min-w-0 flex flex-col h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-4rem)]">
-            {/* Fixed top section: menu, view toggle, filters */}
-            <div className="shrink-0 bg-white pt-[10px]">
-            <div className="flex gap-1 justify-center items-center">
-              <MobileMenuDropdown
-                activeMenu={activeMenu}
-                setActiveMenu={setActiveMenu}
-              />
-
-              <div className="flex items-center gap-2  ">
-                <div className="flex lg:hidden items-center border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
-                  <button
-                    onClick={() => setMobileViewMode("grid")}
-                    title="Grid view"
-                    className={`w-10 h-10 flex items-center justify-center transition-colors ${
-                      mobileViewMode === "grid"
-                        ? "bg-[#b22234] text-white"
-                        : "text-gray-400 hover:text-[#b22234]"
-                    }`}
-                  >
-                    <GridViewIcon />
-                  </button>
-                  <div className="w-px h-5 bg-gray-200" />
-                  <button
-                    onClick={() => setMobileViewMode("list")}
-                    title="List view"
-                    className={`w-10 h-10 flex items-center justify-center transition-colors ${
-                      mobileViewMode === "list"
-                        ? "bg-[#b22234] text-white"
-                        : "text-gray-400 hover:text-[#b22234]"
-                    }`}
-                  >
-                    <ListViewIcon />
-                  </button>
-                </div>
+      {/* Filter bar — sticky + full-width on mobile only; on desktop flows inside the content area */}
+      <div className="sticky top-16 z-20 bg-white will-change-transform lg:hidden">
+        <div className="px-3 sm:px-4 py-[10px] flex flex-col gap-[10px]">
+          {/* Mobile: menu dropdown + view toggle row */}
+          <div className="flex gap-[10px] justify-center items-center">
+            <MobileMenuDropdown
+              activeMenu={activeMenu}
+              setActiveMenu={handleMenuChange}
+            />
+            <div className="flex items-center">
+              <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white shrink-0">
+                <button
+                  onClick={() => setMobileViewMode("grid")}
+                  title="Grid view"
+                  className={`w-10 h-10 flex items-center justify-center transition-colors ${
+                    mobileViewMode === "grid"
+                      ? "bg-[#b22234] text-white"
+                      : "text-gray-400 hover:text-[#b22234]"
+                  }`}
+                >
+                  <GridViewIcon />
+                </button>
+                <div className="w-px h-5 bg-gray-200" />
+                <button
+                  onClick={() => setMobileViewMode("list")}
+                  title="List view"
+                  className={`w-10 h-10 flex items-center justify-center transition-colors ${
+                    mobileViewMode === "list"
+                      ? "bg-[#b22234] text-white"
+                      : "text-gray-400 hover:text-[#b22234]"
+                  }`}
+                >
+                  <ListViewIcon />
+                </button>
               </div>
             </div>
+          </div>
+          {/* Filter carousel */}
+          <div className="border border-gray-200 rounded-xl bg-white px-[10px] py-[10px]">
+            <FilterBar value={filterState} onChange={handleFilterChange} />
+          </div>
+          {/* Count */}
+          {!loading && !error && (
+            <p className="text-xs text-gray-500">
+              Showing <span className="font-semibold text-gray-800">{items.length}</span> of{" "}
+              <span className="font-semibold text-gray-800">{totalElements.toLocaleString()}</span>{" "}
+              profiles
+            </p>
+          )}
+        </div>
+        <div className="h-px bg-gray-200" />
+      </div>
+      {/* end mobile filter bar */}
 
-            <div className="flex-1 min-w-0 pb-2 pt-2 mt-2 flex items-center justify-between flex-wrap gap-2">
-              <FilterBar value={filterState} onChange={setFilterState} />
+      <div className="max-w-7xl mx-auto w-full px-3 sm:px-4 pb-20 lg:pb-6 lg:py-6">
+
+        <div className="flex gap-4 sm:gap-6">
+          {/* Desktop Sidebar */}
+          <LeftSidebar activeMenu={activeMenu} setActiveMenu={handleMenuChange} />
+
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+
+            {/* Desktop filter bar — above profiles, constrained to this column, with border */}
+            <div className="hidden lg:block mb-1 pt-4 -mt-[15px]">
+              <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 flex items-center gap-2">
+                <FilterBar value={filterState} onChange={handleFilterChange} />
+              </div>
               {!loading && !error && (
-                <span className="text-xs text-gray-500">
-                  Showing <span className="font-semibold text-gray-800">{items.length}</span> of{" "}
+                <p className="text-xs text-gray-500 mt-1.5 px-1">
+                  Showing{" "}
+                  <span className="font-semibold text-gray-800">{items.length}</span> of{" "}
                   <span className="font-semibold text-gray-800">{totalElements.toLocaleString()}</span>{" "}
                   profiles
-                </span>
+                </p>
               )}
             </div>
-            </div>
-            {/* end fixed top section */}
-
-            {/* Scrollable profiles */}
-            <div
-              ref={scrollContainerRef}
-              onScroll={onProfilesScroll}
-              className="flex-1 overflow-y-auto pt-2"
-            >
+            <div className="pt-2">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
                 {error}
@@ -1234,30 +1351,6 @@ export default function ProfileCards() {
                             onShortlist={handleShortlist}
                             onInterest={handleInterest}
                           />
-                          {/* Membership promo: first after 3 profiles, then every 10 */}
-                          {i >= 2 && (i - 2) % 10 === 0 && (
-                            <div
-                              className="rounded-xl p-4 text-white text-center shadow-md"
-                              style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
-                            >
-                              <p className="text-sm font-bold">✨ Unlock Premium Matches</p>
-                              <p className="text-[11px] text-white/85 mt-0.5">
-                                Subscribe to a plan and connect with matches faster.
-                              </p>
-                              <button
-                                onClick={() => router.push("/specialoffer")}
-                                className="mt-2.5 bg-white text-[#c0174c] text-xs font-bold px-5 py-1.5 rounded-full hover:bg-pink-50 transition-colors"
-                              >
-                                View Plans
-                              </button>
-                              <div className="mt-3 pt-2.5 border-t border-white/20 text-[11px] text-white/90">
-                                Need help?{" "}
-                                <a href="tel:8075067058" className="font-bold underline">
-                                  📞 8075067058
-                                </a>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -1285,9 +1378,11 @@ export default function ProfileCards() {
                 />
               </div>
             )}
+            {/* Infinite scroll sentinel — observed by IntersectionObserver on mobile */}
             </div>
-            {/* end scrollable profiles */}
+            {/* end profiles scroll container */}
           </div>
+          {/* end main content */}
         </div>
       </div>
     </div>

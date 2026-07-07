@@ -9,8 +9,8 @@ import type {
 // ─── Unified card shape ────────────────────────────────────────
 // Whatever endpoint returned the row, the UI cares about the same fields.
 export interface CardProfile {
-  id: string;          // profileId (string for stable React keys)
-  numericId: number;   // profileId (number) — for navigation/actions
+  id: string;
+  numericId: number;
   name: string;
   age?: number;
   height?: string;
@@ -24,10 +24,23 @@ export interface CardProfile {
   photo?: string;
   isPremium?: boolean;
   gender?: "bride" | "groom";
+  isNew?: boolean;        // joined today
+  createdAt?: string;     // ISO string from backend
 }
 
 const fallbackPhoto = (name?: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "?")}&background=ea580c&color=fff&size=200`;
+
+const isJoinedToday = (iso?: string): boolean => {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+};
 
 const fromMatch = (m: MatchProfile): CardProfile => ({
   id: String(m.profileId),
@@ -44,6 +57,8 @@ const fromMatch = (m: MatchProfile): CardProfile => ({
   about: m.bio,
   photo: m.profilePhotoUrl || fallbackPhoto(m.fullName),
   isPremium: m.isPremium,
+  isNew: isJoinedToday(m.createdAt),
+  createdAt: m.createdAt,
 });
 
 const fromActivity = (a: ProfileActivity): CardProfile => ({
@@ -76,6 +91,8 @@ export interface MatchFilters {
   withHoroscope?: boolean;
   notSeen?: boolean;
   profileCreatedBy?: string;  // SELF | PARENT | SIBLING | FRIEND
+  mutualMatches?: boolean;    // route to /matches/mutual
+  mutualHobbies?: string;     // hobby value — route to /matches/similar-hobbies
 }
 
 const buildFilterParams = (f?: MatchFilters): Record<string, unknown> => {
@@ -87,6 +104,8 @@ const buildFilterParams = (f?: MatchFilters): Record<string, unknown> => {
   if (f.withHoroscope) params.withHoroscope = true;
   if (f.notSeen) params.notSeen = true;
   if (f.profileCreatedBy) params.profileCreatedBy = f.profileCreatedBy;
+  // mutualMatches + mutualHobbies are handled by switching the active menu
+  // in fetchForMenu, not as query params — no extra params needed here.
   return params;
 };
 

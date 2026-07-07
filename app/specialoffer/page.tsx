@@ -7,56 +7,117 @@ import { useState } from "react";
 
 const specialPlans = [
   {
+    id: "silver",
+    name: "Silver",
+    subBadges: [
+      {
+        label: "Silver",
+        description: "Everything you need to start your search.",
+        discountPct: "40% OFF",
+        badgeLabel: "Best Value",
+        originalPrice: "₹2,499",
+        price: "₹1,499",
+        duration: "1 month",
+        features: [
+          { icon: "📞", text: "View up to 20 contact numbers", available: true },
+          { icon: "👁️", text: "Browse unlimited profiles", available: true },
+          { icon: "💌", text: "Send unlimited interests/day", available: true },
+          { icon: "🔍", text: "AI-powered compatibility score for every match", available: false },
+        ],
+      },
+    ],
+    highlight: false,
+    popular: false,
+    tierColor: "#6b7280",
+    tierBg: "#f3f4f6",
+    badgeColor: "#16a34a",
+    btnLabel: "Choose Silver",
+  },
+  {
     id: "gold",
     name: "Gold",
-    discount: "31% OFF!",
-    originalPrice: "₹5,500",
-    price: "₹3,800",
-    perMonth: "₹1267 per month",
-    features: [
-      { text: "Valid for 3 months", ok: true },
-      { text: "View 40 Phone Nos", ok: true },
-      { text: "Send unlimited messages", ok: true },
-      { text: "Unlimited horoscope views", ok: true },
-      { text: "View verified profiles with photos", ok: false },
-    ],
-    highlight: false,
-    badge: null,
-  },
-  {
-    id: "prime-gold",
-    name: "Prime Gold",
-    discount: "42% OFF!",
-    originalPrice: "₹7,900",
-    price: "₹4,600",
-    perMonth: "₹1533 per month",
-    features: [
-      { text: "Valid for 3 months", ok: true },
-      { text: "View unlimited Phone Nos*", ok: true },
-      { text: "Send unlimited messages", ok: true },
-      { text: "Unlimited horoscope views", ok: true },
-      { text: "View verified profiles with photos", ok: true },
-    ],
-    highlight: false,
-    badge: null,
-  },
-  {
-    id: "prime-tum",
-    name: "Prime - Till U Marry",
-    discount: "58% OFF!",
-    originalPrice: "₹23,700",
-    price: "₹9,900",
-    perMonth: "₹825 per month",
-    features: [
-      { text: "Longest validity plan", ok: true },
-      { text: "View unlimited Phone Nos*", ok: true },
-      { text: "Send unlimited messages", ok: true },
-      { text: "Unlimited horoscope views", ok: true },
-      { text: "View verified profiles with photos", ok: true },
+    subBadges: [
+      {
+        label: "Gold",
+        description: "Perfect for serious seekers — maximum visibility.",
+        discountPct: "45% OFF",
+        badgeLabel: "Best Offer",
+        originalPrice: "₹4,540",
+        price: "₹2,499",
+        duration: "3 months",
+        features: [
+          { icon: "📞", text: "View up to 80 contact numbers", available: true },
+          { icon: "🔍", text: "AI-powered compatibility score for every match", available: true },
+          { icon: "👁️", text: "Unlimited profile views", available: true },
+          { icon: "💬", text: "Direct messaging", available: true },
+        ],
+      },
+      {
+        label: "Gold Plus",
+        description: "Everything in Gold, plus boosted reach and priority listing.",
+        discountPct: "50% OFF",
+        badgeLabel: "Best Offer",
+        originalPrice: "₹5,800",
+        price: "₹2,899",
+        duration: "3 months",
+        features: [
+          { icon: "📞", text: "View up to 120 contact numbers", available: true },
+          { icon: "🔍", text: "AI-powered compatibility score for every match", available: true },
+          { icon: "👁️", text: "Unlimited profile views", available: true },
+          { icon: "💬", text: "Direct messaging", available: true },
+          { icon: "🚀", text: "Priority profile listing", available: true },
+        ],
+      },
     ],
     highlight: true,
-    badge: "Best Seller",
-    knowMore: true,
+    popular: true,
+    tierColor: "#92400e",
+    tierBg: "#fef3c7",
+    badgeColor: "#c0174c",
+    btnLabel: "Choose Gold",
+  },
+  {
+    id: "platinum",
+    name: "Platinum",
+    subBadges: [
+      {
+        label: "Platinum",
+        description: "Complete package with dedicated matchmaker support.",
+        discountPct: "60% OFF",
+        badgeLabel: "Best Offer",
+        originalPrice: "₹8,750",
+        price: "₹3,499",
+        duration: "6 months",
+        features: [
+          { icon: "📞", text: "View up to 200 contact numbers", available: true },
+          { icon: "🔍", text: "AI-powered compatibility score for every match", available: true },
+          { icon: "👑", text: "Personal matchmaker", available: true },
+          { icon: "⭐", text: "Weekly profile boost", available: true },
+        ],
+      },
+      {
+        label: "Platinum Plus",
+        description: "Our most exclusive plan with VIP matchmaking and full support.",
+        discountPct: "60% OFF",
+        badgeLabel: "Best Offer",
+        originalPrice: "₹11,500",
+        price: "₹4,599",
+        duration: "6 months",
+        features: [
+          { icon: "📞", text: "Unlimited contact numbers", available: true },
+          { icon: "🔍", text: "AI-powered compatibility score for every match", available: true },
+          { icon: "👑", text: "Dedicated VIP matchmaker", available: true },
+          { icon: "⭐", text: "Daily profile boost", available: true },
+          { icon: "📸", text: "Professional profile review", available: true },
+        ],
+      },
+    ],
+    highlight: false,
+    popular: false,
+    tierColor: "#374151",
+    tierBg: "#f1f5f9",
+    badgeColor: "#c0174c",
+    btnLabel: "Choose Platinum",
   },
 ];
 
@@ -122,13 +183,176 @@ const whyBenefits = [
 ];
 
 const assistedBenefits = [
-  "We offer a wider choice of matches from both KeralaMatrimony and EzhavaMatrimony",
-  "Increased profile visibility in both KeralaMatrimony and EzhavaMatrimony along with profile enhancements to get more responses",
+  "We offer a wider choice of matches from across Made2Match's extensive member network",
+  "Increased profile visibility on Made2Match along with profile enhancements to get more responses",
   "Dedicated Relationship Manager from your region, who understands your cultural nuances & speaks the language you are comfortable with",
   "Relationship Manager shortlists and contacts prospects, schedules and facilitates video calls/direct meetings with them",
   "First level of horoscope matching with prospective matches while shortlisting their profiles",
   "Service Guarantee! — We are quite confident of bringing the right matches to you. However, if you are not happy with our service, we will give your money back. No questions asked!",
 ];
+
+// ─── Plan Card (sub-badge tabs) ──────────────────────────────────────────────
+
+type SubBadge = {
+  label: string;
+  description: string;
+  discountPct: string;
+  badgeLabel: string;
+  originalPrice: string;
+  price: string;
+  duration: string;
+  features: { icon: string; text: string; available: boolean }[];
+};
+
+type PlanData = {
+  id: string;
+  name: string;
+  subBadges: SubBadge[];
+  highlight: boolean;
+  popular: boolean;
+  tierColor: string;
+  tierBg: string;
+  badgeColor: string;
+  btnLabel: string;
+};
+
+function PlanCard({ plan }: { plan: PlanData }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const active = plan.subBadges[activeIdx];
+
+  return (
+    <div
+      className="relative bg-white rounded-2xl flex flex-col"
+      style={{
+        border: plan.highlight ? "2px solid #c0174c" : "1.5px solid #e5e7eb",
+        boxShadow: plan.highlight
+          ? "0 8px 32px rgba(192,23,76,0.18)"
+          : "0 2px 12px rgba(0,0,0,0.06)",
+      }}
+    >
+      {/* Popular badge */}
+      {plan.popular && (
+        <div
+          className="absolute -top-3 right-4 px-3 py-1 rounded-full text-xs font-bold text-white shadow"
+          style={{ background: "#c0174c" }}
+        >
+          Popular
+        </div>
+      )}
+
+      <div className="p-5 sm:p-6 flex flex-col flex-1">
+
+        {/* ── Tier name badge ── */}
+        <div className="mb-3">
+          <span
+            className="inline-block px-4 py-1 rounded-lg text-base font-black tracking-wide"
+            style={{
+              background: plan.tierBg,
+              color: plan.tierColor,
+              border: `1.5px solid ${plan.tierColor}22`,
+            }}
+          >
+            {plan.name}
+          </span>
+        </div>
+
+        {/* ── Sub-badge tabs (clickable) ── */}
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {plan.subBadges.map((b, i) => {
+            const isActive = i === activeIdx;
+            return (
+              <button
+                key={b.label}
+                type="button"
+                onClick={() => setActiveIdx(i)}
+                className="px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer hover:opacity-80"
+                style={{
+                  background: isActive
+                    ? (plan.highlight ? "#c0174c" : plan.tierColor)
+                    : plan.tierBg,
+                  color: isActive ? "white" : plan.tierColor,
+                  border: `1.5px solid ${isActive
+                    ? (plan.highlight ? "#c0174c" : plan.tierColor)
+                    : plan.tierColor + "55"}`,
+                  boxShadow: isActive ? "0 1px 6px rgba(0,0,0,0.15)" : "none",
+                }}
+              >
+                {b.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Description ── */}
+        <p className="text-sm text-gray-500 mb-4 leading-relaxed min-h-[2.5rem]">
+          {active.description}
+        </p>
+
+        {/* ── Price row ── */}
+        <div className="flex items-baseline gap-2 mb-1">
+          <span className="text-gray-400 line-through text-sm">{active.originalPrice}</span>
+          <span className="text-2xl sm:text-3xl font-black text-gray-900">{active.price}</span>
+          <span
+            className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{ background: "#fce7f3", color: "#c0174c" }}
+          >
+            {active.duration}
+          </span>
+        </div>
+
+        {/* ── Discount + badge row ── */}
+        <div className="flex items-center gap-2 mb-5">
+          <span
+            className="text-xs font-bold px-2 py-0.5 rounded"
+            style={{ background: "#fee2e2", color: "#dc2626" }}
+          >
+            {active.discountPct}
+          </span>
+          <span
+            className="text-xs font-bold px-2 py-0.5 rounded"
+            style={{ background: plan.badgeColor + "18", color: plan.badgeColor }}
+          >
+            {active.badgeLabel}
+          </span>
+        </div>
+
+        {/* ── Choose button ── */}
+        <button
+          className="w-full py-3 rounded-xl text-sm font-bold tracking-wide transition-all hover:opacity-90 hover:-translate-y-0.5 active:scale-95 mb-5"
+          style={
+            plan.highlight
+              ? { background: "linear-gradient(135deg,#c0174c,#e8305e)", color: "white" }
+              : { background: "white", color: "#c0174c", border: "2px solid #c0174c" }
+          }
+        >
+          {activeIdx === 0 ? plan.btnLabel : `Choose ${active.label}`}
+        </button>
+
+        {/* ── Feature list ── */}
+        <ul className="space-y-2.5 flex-1">
+          {active.features.map((f, fi) => (
+            <li
+              key={fi}
+              className="flex items-center gap-2.5"
+              style={{ opacity: f.available ? 1 : 0.45 }}
+            >
+              <span className="text-base leading-none shrink-0">{f.icon}</span>
+              <span
+                className="text-sm"
+                style={{
+                  color: f.available ? "#374151" : "#9ca3af",
+                  textDecoration: f.available ? "none" : "line-through",
+                }}
+              >
+                {f.text}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 // ─── Shared Components ───────────────────────────────────────────────────────
 
@@ -151,7 +375,7 @@ function Header({ onUpgrade }: { onUpgrade: () => void }) {
               <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           </div>
-          <span className="font-bold text-base sm:text-lg tracking-wide truncate">MatriMatch</span>
+          <span className="font-bold text-base sm:text-lg tracking-wide truncate">Made2Match</span>
         </div>
 
         <button
@@ -207,7 +431,7 @@ function HomePage({ onUpgrade }: { onUpgrade: () => void }) {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header onUpgrade={onUpgrade} />
       <div className="flex-1 flex items-center justify-center flex-col gap-4">
-        <p className="text-gray-400 text-base">Welcome to MatriMatch</p>
+        <p className="text-gray-400 text-base">Welcome to Made2Match</p>
         <button
           onClick={onUpgrade}
           className="px-8 py-3 rounded-full text-white font-bold text-sm shadow-lg transition hover:opacity-90"
@@ -284,7 +508,7 @@ function SpecialOfferPage({
             </svg>
           </div>
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-1 flex-wrap text-sm sm:text-base">
-            <span className="text-gray-800 font-semibold">Save upto 58%</span>
+            <span className="text-gray-800 font-semibold">Save upto 60%</span>
             <span className="text-gray-400 text-lg">+</span>
             <span className="font-bold" style={{ color: "#c0174c" }}>
               21 Days Money Back Guarantee!
@@ -294,103 +518,9 @@ function SpecialOfferPage({
         </div>
 
         {/* Cards */}
-        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 items-start">
           {specialPlans.map((plan) => (
-            <div
-              key={plan.id}
-              className="relative bg-white rounded-2xl flex flex-col"
-              style={{
-                border: plan.highlight
-                  ? "2px solid #c0174c"
-                  : "1px solid #e5e7eb",
-                boxShadow: plan.highlight
-                  ? "0 8px 32px rgba(192,23,76,0.15)"
-                  : "0 2px 12px rgba(0,0,0,0.06)",
-              }}
-            >
-              {plan.badge && (
-                <div
-                  className="absolute -top-3 right-4 px-3 py-1 rounded-full text-xs font-bold text-white shadow"
-                  style={{ background: "#c0174c" }}
-                >
-                  {plan.badge}
-                </div>
-              )}
-              <div className="p-6 flex flex-col flex-1">
-                <h2 className="text-center font-bold text-gray-900 text-lg mb-4 pb-4 border-b border-gray-100">
-                  {plan.name}
-                </h2>
-                <div className="text-center mb-4">
-                  <p
-                    className="text-sm font-semibold mb-1"
-                    style={{ color: "#c0174c" }}
-                  >
-                    {plan.discount}{" "}
-                    <span className="text-gray-400 font-normal">
-                      Valid for today
-                    </span>
-                  </p>
-                  <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-gray-400 line-through text-sm">
-                      {plan.originalPrice}
-                    </span>
-                    <span className="text-3xl font-black text-gray-900">
-                      {plan.price}
-                    </span>
-                  </div>
-                  <div
-                    className="inline-block mt-2 px-3 py-0.5 rounded-full text-xs font-medium text-gray-500"
-                    style={{ background: "#f3f4f6" }}
-                  >
-                    {plan.perMonth}
-                  </div>
-                </div>
-                <ul className="space-y-2.5 mb-6 flex-1">
-                  {plan.features.map((f, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span style={{ color: f.ok ? "#c0174c" : "#ccc" }}>
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          className="w-4 h-4 mt-0.5"
-                        >
-                          <path d="M5 13l4 4L19 7" />
-                        </svg>
-                      </span>
-                      <span
-                        className="text-sm"
-                        style={{
-                          color: f.ok ? "#374151" : "#9ca3af",
-                          textDecoration: f.ok ? "none" : "line-through",
-                        }}
-                      >
-                        {f.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                {plan.knowMore && (
-                  <button
-                    className="flex items-center justify-center gap-1 text-sm font-semibold mb-4 hover:opacity-75 transition"
-                    style={{ color: "#f97316" }}
-                  >
-                    Know More{" "}
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      className="w-3.5 h-3.5"
-                    >
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                  </button>
-                )}
-                <PayNowBtn />
-              </div>
-            </div>
+            <PlanCard key={plan.id} plan={plan} />
           ))}
         </div>
 
@@ -444,28 +574,13 @@ function SpecialOfferPage({
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#c0174c"
-                strokeWidth="2"
-                className="w-4 h-4"
-              >
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-              </svg>
-              Chat with us
-            </button>
-            <button
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full border text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              style={{ borderColor: "#d1d5db" }}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
                 stroke="#374151"
                 strokeWidth="2"
                 className="w-4 h-4"
               >
                 <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
-              9597337974
+              8075067058
             </button>
           </div>
           <p className="text-xs text-gray-400">
@@ -541,9 +656,9 @@ function AllPackagesPage({
         {/* Top Banner */}
         <div className="text-center mb-4">
           <p className="text-sm font-semibold" style={{ color: "#c0174c" }}>
-            Get a flat Rs.13800 on TUM Prime
+            Get up to 60% OFF on Made2Match Premium plans
             <span className="text-gray-500 font-normal ml-2">
-              - Valid till 05-Apr-2026
+              — Limited time offer
             </span>
           </p>
         </div>
@@ -721,7 +836,7 @@ function AllPackagesPage({
             </div>
             <PayNowBtn />
             <p className="text-center text-xs text-gray-400 mt-2">
-              Offer valid till 05-Apr-2026
+              Limited time offer
             </p>
           </div>
 
@@ -751,8 +866,8 @@ function AllPackagesPage({
                 [
                   "🌐",
                   <span>
-                    Get <strong>more matches</strong> across Matrimony.com group
-                    of sites
+                    Get <strong>more matches</strong> across Made2Match's
+                    full member network
                   </span>,
                 ],
                 [
@@ -792,7 +907,7 @@ function AllPackagesPage({
             </div>
             <PayNowBtn />
             <p className="text-center text-xs text-gray-400 mt-2">
-              Offer valid till 05-Apr-2026
+              Limited time offer
             </p>
           </div>
         </div>
@@ -843,10 +958,10 @@ function AllPackagesPage({
               Assisted Service
             </h2>
             <p className="text-sm text-gray-500 mb-3">
-              A personalised matchmaking service Powered by KeralaMatrimony
+              A personalised matchmaking service Powered by Made2Match
             </p>
             <p className="text-sm font-semibold text-gray-800">
-              Only KeralaMatrimony offers these{" "}
+              Only Made2Match offers these{" "}
               <span style={{ color: "#c0174c" }} className="font-black">
                 EXCLUSIVE
               </span>{" "}
@@ -901,8 +1016,7 @@ function AllPackagesPage({
         {/* Success Stories */}
         <div className="rounded-2xl p-4 sm:p-8 mb-6" style={{ background: "#f9fafb" }}>
           <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-1">
-            Featured in Limca Book of World Records for highest number of
-            documented marriages online
+            Trusted by thousands of families across India
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mb-6">
             Some of our recent success stories

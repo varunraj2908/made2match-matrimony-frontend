@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   getProfileById,
@@ -15,6 +15,9 @@ import {
   sendInterest,
   type InterestStatus,
 } from "@/services/matchesService";
+import { blockProfile } from "@/services/blockedProfilesService";
+import { submitProfileReport, type ProfileReportRequest } from "@/services/profileReportService";
+import { addReportNotification } from "@/services/notificationService";
 import AiMatchModal, { type MatchPerson } from "./AiMatchModal";
 
 // ── Display helpers ─────────────────────────────────────────────
@@ -72,6 +75,12 @@ const formatDate = (iso?: string): string => {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 };
 
+const getAsyncErrorMessage = (errorValue: unknown, fallback: string) =>
+  (errorValue as { response?: { data?: { message?: string } }; message?: string })
+    ?.response?.data?.message ||
+  (errorValue as { message?: string })?.message ||
+  fallback;
+
 // Maps a fetched FullProfile to the AI modal's MatchPerson shape.
 const toMatchPerson = (p: FullProfile): MatchPerson => {
   const name = [p.firstName, p.lastName].filter(Boolean).join(" ") || "—";
@@ -91,6 +100,194 @@ const toMatchPerson = (p: FullProfile): MatchPerson => {
     horoscope: friendly(p.shudhajathakam) !== "—" ? friendly(p.shudhajathakam) : "—",
   };
 };
+
+const REPORT_CATEGORIES = [
+  "Fake profile",
+  "Inappropriate message",
+  "Misleading photo",
+  "Harassment",
+  "Advertisement or solicitation",
+  "Other",
+];
+
+function ReportViolationModal({
+  profileId,
+  profileName,
+  onClose,
+  onSubmit,
+  submitting,
+}: {
+  profileId: string;
+  profileName: string;
+  onClose: () => void;
+  onSubmit: (payload: ProfileReportRequest) => Promise<void>;
+  submitting: boolean;
+}) {
+  const [category, setCategory] = useState("");
+  const [subject, setSubject] = useState("");
+  const [details, setDetails] = useState("");
+  const [evidence, setEvidence] = useState("");
+  const [matrimonyId, setMatrimonyId] = useState(`GM${profileId.padStart(6, "0")}`);
+
+  const reset = () => {
+    setCategory("");
+    setSubject("");
+    setDetails("");
+    setEvidence("");
+    setMatrimonyId(`GM${profileId.padStart(6, "0")}`);
+  };
+
+  const submit = () => {
+    if (!category || !subject.trim() || !details.trim()) return;
+    onSubmit({
+      reportedProfileId: Number(profileId),
+      category,
+      subject: subject.trim(),
+      complaintDetails: details.trim(),
+      evidence: evidence.trim() || undefined,
+      matrimonyId: matrimonyId.trim() || undefined,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-sm">
+      <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl border border-rose-100">
+        <div
+          className="flex items-center justify-between px-5 py-4"
+          style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
+        >
+          <h3 className="text-xl sm:text-2xl font-bold text-white" style={{ fontFamily: "Georgia, serif" }}>
+            Report Violation
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/15 border border-white/30 text-white hover:bg-white hover:text-[#c0174c] transition-colors"
+            aria-label="Close report form"
+          >
+            x
+          </button>
+        </div>
+
+        <div className="bg-white px-5 sm:px-6 py-5 max-h-[78vh] overflow-y-auto">
+          <div className="rounded-xl border border-rose-100 bg-rose-50/45 p-4 text-sm text-gray-800 leading-relaxed space-y-3">
+            <p>
+              We work with our trust and safety team to take action against people
+              who misuse Made2Match. You can reach us at{" "}
+              <a href="tel:+918075067058" className="font-semibold text-[#c0174c] hover:underline">
+                +91-8075067058
+              </a>{" "}
+              or email{" "}
+              <a
+                href="mailto:support@made2match.com"
+                className="font-semibold text-[#c0174c] hover:underline"
+              >
+                support@made2match.com
+              </a>
+              , and we will review the necessary action.
+            </p>
+            <p className="font-bold text-[#8b0f38]">
+              Note: We will not disclose your identity to the reported member.
+            </p>
+            <div>
+              <p className="font-bold text-gray-900 mb-2">Some examples of violation:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>If a member sends obscene or inappropriate messages.</li>
+                <li>If you suspect a member&apos;s profile is fake or fraudulent.</li>
+                <li>If a member is sending harassing messages.</li>
+                <li>If you suspect a member&apos;s photograph is not real.</li>
+                <li>If you notice business or solicitation material.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+            <label className="block">
+              <span className="font-bold text-gray-900">Abuse Category</span>
+              <span className="text-red-500 text-xs ml-1">* Select abuse category.</span>
+              <select
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                className="mt-1 w-full h-10 rounded-lg border border-rose-100 bg-white px-3 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
+              >
+                <option value="">- select -</option>
+                {REPORT_CATEGORIES.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="font-bold text-gray-900">Subject</span>
+              <span className="text-red-500 text-xs ml-1">* Enter your subject.</span>
+              <input
+                value={subject}
+                onChange={(event) => setSubject(event.target.value)}
+                className="mt-1 w-full h-10 rounded-lg border border-rose-100 bg-white px-3 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
+              />
+            </label>
+
+            <label className="block">
+              <span className="font-bold text-gray-900">Complaint Details</span>
+              <span className="text-red-500 text-xs ml-1">
+                * Enter your complaint details.
+              </span>
+              <textarea
+                value={details}
+                onChange={(event) => setDetails(event.target.value)}
+                rows={4}
+                className="mt-1 w-full rounded-lg border border-rose-100 bg-white px-3 py-2 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
+              />
+            </label>
+
+            <label className="block">
+              <span className="font-bold text-gray-900">Paste Evidence, if Any</span>
+              <textarea
+                value={evidence}
+                onChange={(event) => setEvidence(event.target.value)}
+                rows={4}
+                className="mt-1 w-full rounded-lg border border-rose-100 bg-white px-3 py-2 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
+              />
+            </label>
+
+            <label className="block">
+              <span className="font-bold text-gray-900">Complaint against Made2Match ID</span>
+              <input
+                value={matrimonyId}
+                onChange={(event) => setMatrimonyId(event.target.value)}
+                className="mt-1 w-full h-10 rounded-lg border border-rose-100 bg-white px-3 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
+              />
+              <span className="block text-xs font-semibold text-gray-400 mt-0.5">
+                Reporting {profileName}. Furnish Made2Match ID if relevant.
+              </span>
+            </label>
+          </div>
+
+          <div className="mt-6 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={submit}
+              disabled={submitting}
+              className="px-5 py-2.5 rounded-lg bg-[#c0174c] text-white text-sm font-bold shadow hover:bg-[#9a123b] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {submitting ? "Submitting..." : "Submit"}
+            </button>
+            <button
+              type="button"
+              onClick={reset}
+              disabled={submitting}
+              className="px-5 py-2.5 rounded-lg border border-rose-200 bg-white text-[#c0174c] text-sm font-bold hover:bg-rose-50 transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ProfileData {
@@ -137,6 +334,7 @@ interface ProfileData {
   raasi: string;
   gothram: string;
   dosh: string;
+  completionPct?: number;        // from backend profileCompletionPct
   socialLinks: { icon: string; color: string }[];
   partnerPreferences: {
     ageFrom: number;
@@ -266,8 +464,26 @@ const PhotoSlider = ({ photos, name }: { photos: string[]; name: string }) => {
   const [thumbStart, setThumbStart] = useState(0);
   const THUMB_VISIBLE = 5;
 
-  const prev = useCallback(() => setActive((i) => (i - 1 + photos.length) % photos.length), [photos.length]);
-  const next = useCallback(() => setActive((i) => (i + 1) % photos.length), [photos.length]);
+  const ensureThumbVisible = useCallback((idx: number) => {
+    setThumbStart((start) => {
+      if (idx < start) return idx;
+      if (idx >= start + THUMB_VISIBLE) return idx - THUMB_VISIBLE + 1;
+      return start;
+    });
+  }, []);
+
+  const goToPhoto = useCallback((idx: number) => {
+    setActive(idx);
+    ensureThumbVisible(idx);
+  }, [ensureThumbVisible]);
+
+  const prev = useCallback(() => {
+    goToPhoto((active - 1 + photos.length) % photos.length);
+  }, [active, goToPhoto, photos.length]);
+
+  const next = useCallback(() => {
+    goToPhoto((active + 1) % photos.length);
+  }, [active, goToPhoto, photos.length]);
 
   useEffect(() => {
     if (!lightbox) return;
@@ -279,11 +495,6 @@ const PhotoSlider = ({ photos, name }: { photos: string[]; name: string }) => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [lightbox, prev, next]);
-
-  useEffect(() => {
-    if (active < thumbStart) setThumbStart(active);
-    if (active >= thumbStart + THUMB_VISIBLE) setThumbStart(active - THUMB_VISIBLE + 1);
-  }, [active, thumbStart]);
 
   const visibleThumbs = photos.slice(thumbStart, thumbStart + THUMB_VISIBLE);
 
@@ -331,7 +542,7 @@ const PhotoSlider = ({ photos, name }: { photos: string[]; name: string }) => {
                 return (
                   <button
                     key={realIdx}
-                    onClick={() => setActive(realIdx)}
+                    onClick={() => goToPhoto(realIdx)}
                     className={`w-8 h-8 rounded overflow-hidden border-2 transition-all shrink-0 ${
                       active === realIdx
                         ? "border-[#b22234] scale-110 shadow-md"
@@ -427,12 +638,34 @@ const SectionHeader = ({ icon, title }: { icon: string; title: string }) => (
 );
 
 // ─── Detail Row ───────────────────────────────────────────────────────────────
-const DetailRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex gap-2 py-1.5 border-b border-gray-50 last:border-0">
-    <span className="text-xs text-gray-500 w-36 shrink-0 font-medium">{label}</span>
-    <span className="text-xs text-gray-800 flex-1">{value || "Not Specified"}</span>
-  </div>
-);
+const DetailRow = ({ label, value }: { label: string; value: string }) => {
+  const isContact = label === "Email" || label === "Phone Number";
+
+  return (
+    <div
+      className={`flex gap-2 py-1.5 border-b last:border-0 ${
+        isContact
+          ? "my-1 rounded-lg border border-rose-100 bg-rose-50 px-3"
+          : "border-gray-50"
+      }`}
+    >
+      <span
+        className={`text-xs w-36 shrink-0 font-semibold ${
+          isContact ? "text-[#c0174c]" : "text-gray-500"
+        }`}
+      >
+        {label}
+      </span>
+      <span
+        className={`text-xs flex-1 break-all ${
+          isContact ? "font-bold text-gray-900" : "text-gray-800"
+        }`}
+      >
+        {value || "Not Specified"}
+      </span>
+    </div>
+  );
+};
 
 // ─── Two-Column Details ───────────────────────────────────────────────────────
 const TwoColDetails = ({
@@ -534,6 +767,145 @@ const Sidebar = () => (
 );
 
 // ─── Main Component ───────────────────────────────────────────────────────────
+export const LegacyProfileSidebar = Sidebar;
+
+const isFilled = (value?: string | number): boolean => {
+  if (value == null) return false;
+  const text = String(value).trim();
+  return Boolean(text && text !== "â€”" && text.toLowerCase() !== "not specified");
+};
+
+const ProfileSidebarRow = ({ label, value }: { label: string; value: string | number }) => (
+  <div className="py-2 border-b border-gray-100 last:border-0">
+    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{label}</p>
+    <p className="text-xs font-semibold text-gray-800 leading-snug mt-0.5">{isFilled(value) ? value : "Not Specified"}</p>
+  </div>
+);
+
+const ProfileSidebarSection = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) => (
+  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-100">
+      <h3 className="text-xs font-bold text-gray-800">{title}</h3>
+    </div>
+    <div className="px-4 py-2">{children}</div>
+  </div>
+);
+
+const ProfileSidebar = ({
+  profile,
+  preferences,
+}: {
+  profile: ProfileData;
+  preferences: ProfileData["partnerPreferences"];
+}) => {
+  const completionFields = [
+    profile.name,
+    profile.photo,
+    profile.age,
+    profile.height,
+    profile.location,
+    profile.religion,
+    profile.education,
+    profile.profession,
+    profile.about,
+    profile.maritalStatus,
+  ];
+  const filledCount = completionFields.filter(isFilled).length;
+  const localCompletion = Math.round((filledCount / completionFields.length) * 100);
+  // Use backend value if available (more accurate — includes all onboarding fields)
+  const completion = profile.completionPct ?? localCompletion;
+  const highlights = [
+    `${profile.age} Yrs`,
+    profile.height,
+    profile.maritalStatus,
+    profile.religion,
+    profile.location,
+  ].filter(isFilled);
+
+  return (
+    <aside className="hidden lg:block w-64 shrink-0 space-y-3">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-[#b22234] text-white px-4 py-3">
+          <p className="text-sm font-bold leading-tight">Profile Summary</p>
+          <p className="text-[10px] text-white/80 mt-0.5 truncate">{profile.name}</p>
+        </div>
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div
+              role="img"
+              aria-label={profile.name}
+              className="w-14 h-14 rounded-md border border-rose-100 bg-center bg-cover bg-rose-50 shrink-0"
+              style={{ backgroundImage: `url(${profile.photo || FALLBACK_AVATAR(profile.name)})` }}
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900 truncate">{profile.name}</p>
+              <p className="text-[11px] text-gray-500 truncate">{profile.profession}</p>
+              <p className="text-[11px] text-gray-500 truncate">{profile.city}, {profile.state}</p>
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-[10px] font-semibold text-gray-500 mb-1">
+              <span>Profile filled</span>
+              <span>{completion}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+              <div className="h-full bg-[#b22234]" style={{ width: `${completion}%` }} />
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {highlights.map((item) => (
+              <span key={item} className="text-[10px] text-gray-700 bg-rose-50 border border-rose-100 px-2 py-1 rounded-full">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <ProfileSidebarSection title="At A Glance">
+        <ProfileSidebarRow label="Annual Income" value={profile.annualIncome} />
+        <ProfileSidebarRow label="Mother Tongue" value={profile.motherTongue} />
+        <ProfileSidebarRow label="Diet" value={profile.eatingHabits} />
+        <ProfileSidebarRow label="Shudhajathakam" value={profile.manglik} />
+      </ProfileSidebarSection>
+
+      <ProfileSidebarSection title="Partner Preference">
+        <ProfileSidebarRow label="Age Range" value={`${preferences.ageFrom} - ${preferences.ageTo} Yrs`} />
+        <ProfileSidebarRow label="Location" value={[preferences.city, preferences.state, preferences.country].filter(isFilled).join(", ") || "Any"} />
+        <ProfileSidebarRow label="Religion / Caste" value={[preferences.religion, preferences.caste].filter(isFilled).join(" / ") || "Any"} />
+        <ProfileSidebarRow label="Education" value={preferences.education} />
+      </ProfileSidebarSection>
+
+      <ProfileSidebarSection title="Quick Match Checks">
+        <div className="space-y-2 py-1">
+          {[
+            ["Basic details", isFilled(profile.age) && isFilled(profile.height)],
+            ["Location", isFilled(profile.city) || isFilled(profile.state) || isFilled(profile.country)],
+            ["Religion", isFilled(profile.religion) && isFilled(profile.caste)],
+            ["Profession", isFilled(profile.education) || isFilled(profile.profession)],
+            ["Photos", profile.photos.length > 0],
+          ].map(([label, ok]) => (
+            <div key={String(label)} className="flex items-center justify-between gap-2 text-xs">
+              <span className="text-gray-600">{label}</span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ok ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-400"}`}>
+                {ok ? "Ready" : "Missing"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </ProfileSidebarSection>
+    </aside>
+  );
+};
+
 interface ProfileDetailProps {
   id?: string;
 }
@@ -549,6 +921,9 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
   const [actionBusy, setActionBusy] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [me, setMe] = useState<FullProfile | null>(null);
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   // Logged-in user — used as the other side of the AI compatibility match.
   useEffect(() => {
@@ -569,12 +944,8 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
       await sendInterest(profile.id);
       setInterestStatus("PENDING");
       showToast(`Interest sent to ${profile.firstName ?? "this profile"}`);
-    } catch (ex: any) {
-      const msg =
-        ex?.response?.data?.message ||
-        ex?.message ||
-        "Could not send interest. Please try again.";
-      showToast(msg);
+    } catch (ex: unknown) {
+      showToast(getAsyncErrorMessage(ex, "Could not send interest. Please try again."));
     } finally {
       setActionBusy(false);
     }
@@ -583,6 +954,60 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
   const handleChatNow = () => {
     if (!profile) return;
     router.push(`/chat/${profile.userId}`);
+  };
+
+  const handleBlockProfile = async () => {
+    if (!profile) return;
+    setBlockConfirmOpen(false);
+    setActionBusy(true);
+    
+    try {
+      // Pass full profile data to blockProfile for localStorage fallback
+      const profileData = {
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        age: profile.age,
+        city: profile.city,
+        state: profile.state,
+        profilePhotoUrl: profile.profilePhotoUrl,
+        occupation: profile.occupation,
+      };
+      
+      await blockProfile(profile.id, profileData);
+      showToast(`${profile.firstName ?? "Profile"} has been blocked`);
+      
+      // Dispatch event to refresh blocked profiles list
+      window.dispatchEvent(new CustomEvent('profile-blocked', { detail: { profileId: profile.id } }));
+      
+      // Optional: Navigate back to profiles page
+      setTimeout(() => router.push('/profiles'), 1500);
+    } catch (e) {
+      showToast(
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Could not block profile. Please try again."
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleReportSubmit = async (payload: ProfileReportRequest) => {
+    setReportSubmitting(true);
+    try {
+      const report = await submitProfileReport(payload);
+      addReportNotification({
+        reportId: report.id,
+        reportedProfileId: report.reportedProfileId,
+        reportedProfileName: report.reportedProfileName,
+        createdAt: report.createdAt,
+      });
+      setReportOpen(false);
+      showToast("Report submitted. Made2Match will review it shortly.");
+    } catch (reportError) {
+      showToast(getAsyncErrorMessage(reportError, "Could not submit report. Please try again."));
+    } finally {
+      setReportSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -599,13 +1024,9 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
 
     getProfileById(id)
       .then((data) => { if (!cancelled) setProfile(data); })
-      .catch((ex: any) => {
+      .catch((ex: unknown) => {
         if (cancelled) return;
-        setError(
-          ex?.response?.data?.message ||
-            ex?.message ||
-            "Could not load this profile.",
-        );
+        setError(getAsyncErrorMessage(ex, "Could not load this profile."));
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -648,7 +1069,7 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white border border-red-200 rounded-xl p-6 max-w-md text-center">
-          <p className="text-red-500 text-sm font-semibold mb-1">Couldn't load profile</p>
+          <p className="text-red-500 text-sm font-semibold mb-1">Couldn&apos;t load profile</p>
           <p className="text-xs text-gray-500">{error}</p>
         </div>
       </div>
@@ -715,6 +1136,7 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
         chatStatus: "",
         callStatus: "",
         sendMail: "",
+        completionPct: profile.profileCompletionPct ?? undefined,
       }
     : PROFILE;
 
@@ -784,6 +1206,51 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
         targetProfileId={id}
       />
 
+      {/* Block Confirmation Modal */}
+      {blockConfirmOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.5)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-modal-pop">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#b22234" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Block this profile?</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Are you sure you want to block {profile?.firstName ?? "this profile"}? They won&apos;t be able to see your profile or contact you.
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setBlockConfirmOpen(false)}
+                className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+              >
+                No, Cancel
+              </button>
+              <button
+                onClick={handleBlockProfile}
+                className="flex-1 px-4 py-3 bg-[#b22234] text-white rounded-xl font-semibold hover:bg-[#9a1d2b] transition-colors shadow-lg"
+              >
+                Yes, Block
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reportOpen && (
+        <ReportViolationModal
+          profileId={p.id}
+          profileName={p.name}
+          onClose={() => setReportOpen(false)}
+          onSubmit={handleReportSubmit}
+          submitting={reportSubmitting}
+        />
+      )}
+
       {/* Floating "Ask AI" button — right side, stacked above the chat FAB.
           z below the chat layer (1400) so the chat popup covers it when open. */}
       <button
@@ -808,23 +1275,10 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
         </div>
       )}
 
-      {/* Back navigation */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-3 sm:pt-4">
-        <button
-          onClick={() => router.back()}
-          aria-label="Back"
-          className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-600 hover:text-white hover:bg-[#b22234] hover:border-[#b22234] transition-colors cursor-pointer"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-      </div>
-
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 flex gap-4 lg:gap-6">
 
         {/* ── Left Sidebar — hidden on mobile & tablet, visible lg+ ── */}
-        <Sidebar />
+        <ProfileSidebar profile={p} preferences={pp} />
 
         {/* ── Main Content ── */}
         <div className="flex-1 min-w-0 space-y-4">
@@ -872,18 +1326,35 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
                     {p.about}
                   </p>
                   {/* Social Icons */}
-                  <div className="flex gap-1.5 mb-3">
-                    {[
-                      { label: "f", bg: "#1877F2" },
-                      { label: "g+", bg: "#34A853" },
-                      { label: "in", bg: "#0A66C2" },
-                      { label: "t", bg: "#1DA1F2" },
-                      { label: "yt", bg: "#FF0000" },
-                    ].map((s) => (
-                      <button key={s.label} style={{ backgroundColor: s.bg }} className="w-7 h-7 rounded text-white text-[9px] font-bold hover:opacity-80 transition-opacity">
-                        {s.label}
-                      </button>
-                    ))}
+                  <div className="flex gap-2 mb-3">
+                    {/* Facebook */}
+                    <a href="#" aria-label="Facebook" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ backgroundColor: "#1877F2" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                      </svg>
+                    </a>
+                    {/* Instagram */}
+                    <a href="#" aria-label="Instagram" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                      </svg>
+                    </a>
+                    {/* LinkedIn */}
+                    <a href="#" aria-label="LinkedIn" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ backgroundColor: "#0A66C2" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                        <rect x="2" y="9" width="4" height="12" />
+                        <circle cx="4" cy="4" r="2" />
+                      </svg>
+                    </a>
+                    {/* WhatsApp */}
+                    <a href="#" aria-label="WhatsApp" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ backgroundColor: "#25D366" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                      </svg>
+                    </a>
                   </div>
                   {(() => {
                     const STATUS_UI: Record<
@@ -925,6 +1396,33 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
                       </button>
                     );
                   })()}
+                  
+                  {/* Block and Report buttons */}
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => setBlockConfirmOpen(true)}
+                      className="flex-1 flex items-center justify-center gap-1 border border-gray-300 text-gray-600 hover:border-red-500 hover:text-red-600 hover:bg-red-50 text-[11px] font-semibold px-3 py-2 rounded transition-colors cursor-pointer"
+                      title="Block this profile"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                      </svg>
+                      Block
+                    </button>
+                    <button
+                      onClick={() => setReportOpen(true)}
+                      className="flex-1 flex items-center justify-center gap-1 border border-gray-300 text-gray-600 hover:border-orange-500 hover:text-orange-600 hover:bg-orange-50 text-[11px] font-semibold px-3 py-2 rounded transition-colors cursor-pointer"
+                      title="Report this profile"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                      Report
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -955,6 +1453,8 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
                   { label: "Age", value: `${p.age} Yrs` },
                   { label: "Height", value: p.height },
                   { label: "Weight", value: p.weight },
+                  { label: "Email", value: profile?.email || "" },
+                  { label: "Phone Number", value: profile?.phoneNumber || "" },
                   { label: "Mother Tongue", value: p.motherTongue },
                   { label: "Marital Status", value: p.maritalStatus },
                 ]}
