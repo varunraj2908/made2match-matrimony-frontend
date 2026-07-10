@@ -808,7 +808,7 @@ export default function SearchPage() {
                     onOpen={(profile) => router.push(`/profiles/${profile.id}`)}
                   />
                 ))}
-                {false && results.items.map((p) => (
+                {false && results?.items.map((p) => (
                   <button key={p.id}>
                     <div className="relative w-full aspect-square overflow-hidden bg-gray-100">
                       {/* eslint-disable-next-line @next/next/no-img-element */}

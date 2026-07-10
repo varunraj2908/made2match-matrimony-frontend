@@ -99,13 +99,13 @@ function SortByPill({
 
       {/* Modal overlay - rendered at document.body */}
       {open && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0" style={{ display: 'grid', placeItems: 'center', padding: '1rem', minHeight: '100vh', minHeight: '100dvh', zIndex: 2147483647, width: '100vw', height: '100vh', height: '100dvh', position: 'fixed', top: 0, left: 0 }}>
+        <div className="fixed inset-0" style={{ display: 'grid', placeItems: 'center', padding: '1rem', minHeight: '100dvh', zIndex: 2147483647, width: '100vw', height: '100dvh', position: 'fixed', top: 0, left: 0 }}>
           {/* Blurred backdrop */}
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" style={{ width: '100%', height: '100%', top: 0, left: 0, right: 0, bottom: 0 }} onClick={handleClose} />
           
           {/* Modal container */}
-          <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl" style={{ background: "white", maxHeight: 'calc(100vh - 2rem)', maxHeight: 'calc(100dvh - 2rem)', maxWidth: '442px', margin: 'auto', zIndex: 1 }}>
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 2rem)', maxHeight: 'calc(100dvh - 2rem)' }}>
+          <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl" style={{ background: "white", maxHeight: 'calc(100dvh - 2rem)', maxWidth: '442px', margin: 'auto', zIndex: 1 }}>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 2rem)' }}>
 
             {/* Gradient header strip */}
             <div className="relative px-6 pt-5 pb-4" style={{ background: "linear-gradient(135deg,#c0174c 0%,#8b0f38 100%)" }}>
@@ -276,13 +276,13 @@ function LocationPill({
 
       {/* Modal - rendered at document.body */}
       {open && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0" style={{ display: 'grid', placeItems: 'center', padding: '1rem', minHeight: '100vh', minHeight: '100dvh', zIndex: 2147483647, width: '100vw', height: '100vh', height: '100dvh', position: 'fixed', top: 0, left: 0 }}>
+        <div className="fixed inset-0" style={{ display: 'grid', placeItems: 'center', padding: '1rem', minHeight: '100dvh', zIndex: 2147483647, width: '100vw', height: '100dvh', position: 'fixed', top: 0, left: 0 }}>
           {/* Blurred backdrop */}
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" style={{ width: '100%', height: '100%', top: 0, left: 0, right: 0, bottom: 0 }} onClick={handleClose} />
           
           {/* Modal container */}
-          <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl bg-white" style={{ maxHeight: 'calc(100vh - 2rem)', maxHeight: 'calc(100dvh - 2rem)', maxWidth: '442px', margin: 'auto', zIndex: 1 }}>
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 2rem)', maxHeight: 'calc(100dvh - 2rem)' }}>
+          <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl bg-white" style={{ maxHeight: 'calc(100dvh - 2rem)', maxWidth: '442px', margin: 'auto', zIndex: 1 }}>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 2rem)' }}>
             {/* Gradient header */}
             <div className="relative px-6 pt-5 pb-4" style={{ background: "linear-gradient(135deg,#c0174c 0%,#8b0f38 100%)" }}>
               <div className="flex items-center justify-between">
@@ -462,13 +462,13 @@ function ProfileCreatedByPill({
 
       {/* Modal - rendered at document.body */}
       {open && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0" style={{ display: 'grid', placeItems: 'center', padding: '1rem', minHeight: '100vh', minHeight: '100dvh', zIndex: 2147483647, width: '100vw', height: '100vh', height: '100dvh', position: 'fixed', top: 0, left: 0 }}>
+        <div className="fixed inset-0" style={{ display: 'grid', placeItems: 'center', padding: '1rem', minHeight: '100dvh', zIndex: 2147483647, width: '100vw', height: '100dvh', position: 'fixed', top: 0, left: 0 }}>
           {/* Blurred backdrop */}
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" style={{ width: '100%', height: '100%', top: 0, left: 0, right: 0, bottom: 0 }} onClick={handleClose} />
           
           {/* Modal container */}
-          <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl bg-white" style={{ maxHeight: 'calc(100vh - 2rem)', maxHeight: 'calc(100dvh - 2rem)', maxWidth: '442px', margin: 'auto', zIndex: 1 }}>
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 2rem)', maxHeight: 'calc(100dvh - 2rem)' }}>
+          <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl bg-white" style={{ maxHeight: 'calc(100dvh - 2rem)', maxWidth: '442px', margin: 'auto', zIndex: 1 }}>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 2rem)' }}>
             {/* Gradient header */}
             <div className="relative px-6 pt-5 pb-4" style={{ background: "linear-gradient(135deg,#c0174c 0%,#8b0f38 100%)" }}>
               <div className="flex items-center justify-between">
@@ -618,13 +618,13 @@ function MutualHobbiesPill({
 
       {/* Modal - rendered at document.body */}
       {open && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0" style={{ display: 'grid', placeItems: 'center', padding: '1rem', minHeight: '100vh', minHeight: '100dvh', zIndex: 2147483647, width: '100vw', height: '100vh', height: '100dvh', position: 'fixed', top: 0, left: 0 }}>
+        <div className="fixed inset-0" style={{ display: 'grid', placeItems: 'center', padding: '1rem', minHeight: '100dvh', zIndex: 2147483647, width: '100vw', height: '100dvh', position: 'fixed', top: 0, left: 0 }}>
           {/* Blurred backdrop */}
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" style={{ width: '100%', height: '100%', top: 0, left: 0, right: 0, bottom: 0 }} onClick={handleClose} />
           
           {/* Modal container */}
-          <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl bg-white" style={{ maxHeight: 'calc(100vh - 2rem)', maxHeight: 'calc(100dvh - 2rem)', maxWidth: '442px', margin: 'auto', zIndex: 1 }}>
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 2rem)', maxHeight: 'calc(100dvh - 2rem)' }}>
+          <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl bg-white" style={{ maxHeight: 'calc(100dvh - 2rem)', maxWidth: '442px', margin: 'auto', zIndex: 1 }}>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 2rem)' }}>
             {/* Gradient header */}
             <div className="relative px-6 pt-5 pb-4" style={{ background: "linear-gradient(135deg,#c0174c 0%,#8b0f38 100%)" }}>
               <div className="flex items-center justify-between">

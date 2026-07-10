@@ -80,6 +80,7 @@ export interface ActivityCounts {
 export interface MyProfile {
   id: number;
   userId: number;
+  profileCode?: string;
   firstName?: string;
   lastName?: string;
   age?: number;

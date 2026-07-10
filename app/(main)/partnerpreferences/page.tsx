@@ -24,7 +24,7 @@ const listOpts = (labels: string[]): Opt[] => opts(...labels);
 
 const AGE_OPTS = Array.from({ length: 48 }, (_, i) => 18 + i); // 18–65
 const HEIGHT_CM = Array.from({ length: 56 }, (_, i) => 140 + i); // 140–195 cm
-const cmToFtIn = (cm?: number) => {
+const cmToFtIn = (cm?: number | null) => {
   if (!cm) return "";
   const t = Math.round(cm / 2.54);
   return `${Math.floor(t / 12)}'${t % 12}" / ${cm} Cms`;
