@@ -3,17 +3,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useOnboarding } from "../OnboardingContext";
+import { useOnboarding, type FormData as OnboardingFormData } from "../OnboardingContext";
 import { ActionBtn, BackBtn, Divider, educationList, FieldGroup, incomeList, PlainInput, professionList, SectionHeading, StyledSelect } from "../shared-components";
 import {
   incomeLabelToAnnual,
   saveProfessionalDetails,
 } from "@/services/profileService";
+import { getCitiesForState, INDIA_STATES } from "@/data/india-locations";
 
 
 const countries = ["India","UAE","USA","UK","Canada","Australia","Singapore","Other"];
 const statesByCountry: Record<string, string[]> = {
-  India:   ["Kerala","Tamil Nadu","Karnataka","Andhra Pradesh","Maharashtra","Delhi","Gujarat","Punjab","Rajasthan","Other"],
+  India:   INDIA_STATES,
   UAE:     ["Dubai","Abu Dhabi","Sharjah","Other"],
   USA:     ["California","New York","Texas","Florida","Other"],
   UK:      ["England","Scotland","Wales","Northern Ireland","Other"],
@@ -26,10 +27,11 @@ export default function LocationProfessionalPage() {
   const [err, setErr] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const set = (k: string) => (v: any) =>
+  const set = <K extends keyof OnboardingFormData>(k: K) => (v: OnboardingFormData[K]) =>
     setFormData(d => ({ ...d, [k]: v }));
 
   const states = statesByCountry[formData.country] ?? statesByCountry.default;
+  const cityOptions = formData.country === "India" ? getCitiesForState(formData.state) : [];
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -57,10 +59,14 @@ export default function LocationProfessionalPage() {
           : undefined,
       });
       router.push("/onboarding/additional-details");
-    } catch (ex: any) {
+    } catch (ex: unknown) {
+      const apiError = ex as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
       const msg =
-        ex?.response?.data?.message ||
-        ex?.message ||
+        apiError.response?.data?.message ||
+        apiError.message ||
         "Could not save professional details. Please try again.";
       setErr({ submit: msg });
     } finally {
@@ -79,20 +85,31 @@ export default function LocationProfessionalPage() {
       <FieldGroup label="Country of residence" error={err.country}>
         <StyledSelect
           label="Country" value={formData.country}
-          onChange={v => { set("country")(v); set("state")(""); }}
+          onChange={v => { set("country")(v); set("state")(""); set("city")(""); }}
           options={countries} placeholder="Select country"
         />
       </FieldGroup>
 
       <FieldGroup label="State / Emirate / Province" error={err.state}>
         <StyledSelect
-          label="State" value={formData.state} onChange={set("state")}
+          label="State" value={formData.state}
+          onChange={v => { set("state")(v); set("city")(""); }}
           options={states} placeholder="Select state"
         />
       </FieldGroup>
 
       <FieldGroup label="City / District" optional>
-        <PlainInput placeholder="Enter your city" value={formData.city} onChange={set("city")} />
+        {cityOptions.length ? (
+          <StyledSelect
+            label="District"
+            value={formData.city}
+            onChange={set("city")}
+            options={cityOptions}
+            placeholder="Select district"
+          />
+        ) : (
+          <PlainInput placeholder="Enter your city" value={formData.city} onChange={set("city")} />
+        )}
       </FieldGroup>
 
       {/* Professional */}

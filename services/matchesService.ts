@@ -5,6 +5,7 @@ import type {
   PageEnvelope,
   ProfileActivity,
 } from "./homeService";
+import { formatProfileCode } from "@/lib/memberId";
 
 // ─── Unified card shape ────────────────────────────────────────
 // Whatever endpoint returned the row, the UI cares about the same fields.
@@ -43,7 +44,7 @@ const isJoinedToday = (iso?: string): boolean => {
 };
 
 const fromMatch = (m: MatchProfile): CardProfile => ({
-  id: String(m.profileId),
+  id: formatProfileCode(m.profileCode, m.profileId),
   numericId: m.profileId,
   name: m.fullName || [m.firstName, m.lastName].filter(Boolean).join(" ") || "—",
   age: m.age,
@@ -62,7 +63,7 @@ const fromMatch = (m: MatchProfile): CardProfile => ({
 });
 
 const fromActivity = (a: ProfileActivity): CardProfile => ({
-  id: String(a.profileId),
+  id: formatProfileCode(a.profileCode, a.profileId),
   numericId: a.profileId,
   name: a.fullName || "—",
   age: a.age,
@@ -261,10 +262,14 @@ export type InterestStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
 
 export interface InterestProfileSummary {
   id?: number;
+  profileId?: number;
+  profileCode?: string;
+  fullName?: string;
   firstName?: string;
   lastName?: string;
   age?: number;
   heightCm?: number;
+  heightDisplay?: string;
   city?: string;
   state?: string;
   caste?: string;
@@ -280,16 +285,267 @@ export interface InterestDto {
   message?: string;
   sentAt?: string;
   updatedAt?: string;
+  readAt?: string | null;
   sender?: InterestProfileSummary;
   receiver?: InterestProfileSummary;
 }
+
+export type SentInterestProfileCacheInput = InterestProfileSummary & {
+  fullName?: string;
+  name?: string;
+};
+
+const SENT_INTEREST_CACHE_KEY = "made2match.sentInterests.v1";
+
+const isBrowser = () => typeof window !== "undefined";
+
+const hashValue = (value: string): string => {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+};
+
+const getSentInterestCacheKey = () => {
+  if (!isBrowser()) return SENT_INTEREST_CACHE_KEY;
+  const token = localStorage.getItem("token") || "anonymous";
+  return `${SENT_INTEREST_CACHE_KEY}.${hashValue(token)}`;
+};
+
+const getInterestData = (payload: unknown): unknown => {
+  const body = payload as {
+    data?: unknown;
+    payload?: unknown;
+    result?: unknown;
+    response?: unknown;
+  };
+  return body?.data ?? body?.payload ?? body?.result ?? body?.response ?? payload;
+};
+
+const asInterestDto = (value: unknown): InterestDto | null => {
+  const row = value as Partial<InterestDto> | null | undefined;
+  return typeof row?.id === "number" ? (row as InterestDto) : null;
+};
+
+const splitName = (profile: SentInterestProfileCacheInput) => {
+  const fullName = (profile.fullName || profile.name || "").trim();
+  if (!fullName) return { firstName: profile.firstName, lastName: profile.lastName };
+  const [firstName, ...rest] = fullName.split(/\s+/);
+  return {
+    firstName: profile.firstName || firstName,
+    lastName: profile.lastName || rest.join(" ") || undefined,
+  };
+};
+
+const readCachedSentInterests = (): InterestDto[] => {
+  if (!isBrowser()) return [];
+  try {
+    localStorage.removeItem(SENT_INTEREST_CACHE_KEY);
+    const parsed = JSON.parse(localStorage.getItem(getSentInterestCacheKey()) || "[]") as unknown;
+    return Array.isArray(parsed) ? parsed.map((item) => normalizeInterest(item as InterestDto)) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeCachedSentInterests = (items: InterestDto[]) => {
+  if (!isBrowser()) return;
+  localStorage.setItem(getSentInterestCacheKey(), JSON.stringify(items.slice(0, 100)));
+};
+
+export const cacheSentInterest = (
+  receiverProfileId: number,
+  profile: SentInterestProfileCacheInput,
+  response?: unknown,
+) => {
+  if (!isBrowser() || !receiverProfileId) return;
+  const responseInterest = asInterestDto(getInterestData(response));
+  const names = splitName(profile);
+  const cached: InterestDto = normalizeInterest({
+    id: responseInterest?.id ?? -receiverProfileId,
+    status: responseInterest?.status ?? "PENDING",
+    message: responseInterest?.message,
+    sentAt: responseInterest?.sentAt ?? new Date().toISOString(),
+    updatedAt: responseInterest?.updatedAt,
+    readAt: responseInterest?.readAt ?? null,
+    sender: responseInterest?.sender,
+    receiver: {
+      id: receiverProfileId,
+      profileCode: profile.profileCode,
+      firstName: names.firstName,
+      lastName: names.lastName,
+      age: profile.age,
+      heightCm: profile.heightCm,
+      heightDisplay: profile.heightDisplay,
+      city: profile.city,
+      state: profile.state,
+      caste: profile.caste,
+      religion: profile.religion,
+      highestQualification: profile.highestQualification,
+      occupation: profile.occupation,
+      profilePhotoUrl: profile.profilePhotoUrl,
+    },
+  });
+  const next = readCachedSentInterests().filter(
+    (item) => item.receiver?.id !== receiverProfileId,
+  );
+  writeCachedSentInterests([cached, ...next]);
+};
+
+const removeCachedSentInterest = (interestId: number) => {
+  if (!isBrowser()) return;
+  const next = readCachedSentInterests().filter((item) => item.id !== interestId);
+  writeCachedSentInterests(next);
+};
+
+const mergeCachedSentInterests = (backendItems: InterestDto[]) => {
+  const backendReceiverIds = new Set(
+    backendItems
+      .map((item) => item.receiver?.id)
+      .filter((id): id is number => typeof id === "number"),
+  );
+  const missingCachedItems = readCachedSentInterests().filter(
+    (item) =>
+      item.status === "PENDING" &&
+      typeof item.receiver?.id === "number" &&
+      !backendReceiverIds.has(item.receiver.id),
+  );
+  return [...backendItems, ...missingCachedItems];
+};
+
+type RawPage<T> = Partial<PageEnvelope<T>> & {
+  items?: T[];
+  results?: T[];
+  interests?: T[];
+  received?: T[];
+  receivedInterests?: T[];
+  sent?: T[];
+  sentInterests?: T[];
+  data?: T[] | Partial<PageEnvelope<T>>;
+};
+
+type RawInterestProfile = InterestProfileSummary & {
+  name?: string;
+  profileName?: string;
+};
+
+type RawInterest = Partial<InterestDto> & {
+  interestId?: number;
+  senderProfile?: RawInterestProfile;
+  receiverProfile?: RawInterestProfile;
+  senderProfileSummary?: RawInterestProfile;
+  receiverProfileSummary?: RawInterestProfile;
+  fromProfile?: RawInterestProfile;
+  toProfile?: RawInterestProfile;
+  profile?: RawInterestProfile;
+  createdAt?: string;
+};
+
+const normalizeInterestStatus = (status: unknown): InterestStatus => {
+  const value = String(status || "PENDING").trim().toUpperCase();
+  if (value === "ACCEPTED" || value === "ACCEPT" || value === "APPROVED") return "ACCEPTED";
+  if (value === "REJECTED" || value === "DECLINED" || value === "DECLINE") return "REJECTED";
+  if (value === "WITHDRAWN" || value === "CANCELLED" || value === "CANCELED") return "WITHDRAWN";
+  return "PENDING";
+};
+
+const normalizeProfileSummary = (profile?: RawInterestProfile): InterestProfileSummary | undefined => {
+  if (!profile) return undefined;
+  const fullName = profile.fullName || profile.name || profile.profileName;
+  const [firstName, ...rest] = (fullName || "").trim().split(/\s+/).filter(Boolean);
+  return {
+    ...profile,
+    id: profile.id ?? profile.profileId,
+    firstName: profile.firstName || firstName,
+    lastName: profile.lastName || rest.join(" ") || undefined,
+    fullName,
+  };
+};
+
+const normalizeInterest = (interest: InterestDto): InterestDto => {
+  const raw = interest as RawInterest;
+  return {
+    ...interest,
+    id: interest.id ?? raw.interestId ?? 0,
+    status: normalizeInterestStatus(interest.status),
+    sentAt: interest.sentAt ?? raw.createdAt,
+    sender: normalizeProfileSummary(
+      raw.sender || raw.senderProfile || raw.senderProfileSummary || raw.fromProfile,
+    ),
+    receiver: normalizeProfileSummary(
+      raw.receiver || raw.receiverProfile || raw.receiverProfileSummary || raw.toProfile || raw.profile,
+    ),
+  };
+};
+
+const normalizePage = <T,>(
+  payload: unknown,
+  page: number,
+  size: number,
+  collectionKeys: string[] = [],
+): PageEnvelope<T> => {
+  const body = payload as { data?: unknown };
+  const raw = (body?.data ?? payload) as RawPage<T> | T[];
+  const nested = !Array.isArray(raw) && raw?.data && !Array.isArray(raw.data)
+    ? (raw.data as RawPage<T>)
+    : raw;
+  const keyedContent = !Array.isArray(nested)
+    ? collectionKeys
+        .map((key) => (nested as Record<string, unknown>)[key])
+        .find((value): value is T[] => Array.isArray(value))
+    : undefined;
+  const content =
+    Array.isArray(nested)
+      ? nested
+      : keyedContent
+        ? keyedContent
+      : Array.isArray(nested.content)
+        ? nested.content
+        : Array.isArray(nested.items)
+          ? nested.items
+          : Array.isArray(nested.results)
+            ? nested.results
+            : Array.isArray(nested.interests)
+              ? nested.interests
+            : Array.isArray(nested.data)
+              ? nested.data
+              : [];
+  const totalElements = Array.isArray(nested)
+    ? nested.length
+    : nested.totalElements ?? content.length;
+  return {
+    content,
+    totalElements,
+    totalPages: Array.isArray(nested)
+      ? Math.max(1, Math.ceil(nested.length / size))
+      : nested.totalPages ?? Math.max(1, Math.ceil(totalElements / size)),
+    number: Array.isArray(nested) ? page : nested.number ?? page,
+    size: Array.isArray(nested) ? size : nested.size ?? size,
+    first: Array.isArray(nested) ? page === 0 : nested.first ?? page === 0,
+    last: Array.isArray(nested)
+      ? true
+      : nested.last ?? (page + 1 >= (nested.totalPages ?? Math.max(1, Math.ceil(totalElements / size)))),
+    empty: content.length === 0,
+  };
+};
 
 export const getReceivedInterests = async (page = 0, size = 200) => {
   const res = await axiosInstance.get<ApiEnvelope<PageEnvelope<InterestDto>>>(
     "/interests/received",
     { params: { page, size } },
   );
-  return res.data.data;
+  const normalized = normalizePage<InterestDto>(
+    res.data,
+    page,
+    size,
+    ["received", "receivedInterests", "interests"],
+  );
+  return {
+    ...normalized,
+    content: normalized.content.map(normalizeInterest),
+  };
 };
 
 export const getSentInterestsList = async (page = 0, size = 200) => {
@@ -297,7 +553,19 @@ export const getSentInterestsList = async (page = 0, size = 200) => {
     "/interests/sent",
     { params: { page, size } },
   );
-  return res.data.data;
+  const normalized = normalizePage<InterestDto>(
+    res.data,
+    page,
+    size,
+    ["sent", "sentInterests", "interests"],
+  );
+  const content = mergeCachedSentInterests(normalized.content.map(normalizeInterest));
+  return {
+    ...normalized,
+    content,
+    totalElements: Math.max(normalized.totalElements, content.length),
+    empty: content.length === 0,
+  };
 };
 
 export const acceptInterest = async (interestId: number) => {
@@ -311,7 +579,10 @@ export const rejectInterest = async (interestId: number) => {
 };
 
 export const withdrawInterest = async (interestId: number) => {
-  const res = await axiosInstance.delete(`/interests/${interestId}`);
+  const res = interestId < 0
+    ? { data: { success: true } }
+    : await axiosInstance.delete(`/interests/${interestId}`);
+  removeCachedSentInterest(interestId);
   return res.data;
 };
 
@@ -326,13 +597,15 @@ export const fetchSentInterestStatusByProfileId = async (
       "/interests/sent",
       { params: { page: 0, size } },
     );
-    const content = res.data.data.content ?? [];
+    const content = mergeCachedSentInterests(
+      normalizePage<InterestDto>(res.data, 0, size, ["sent", "sentInterests", "interests"]).content.map(normalizeInterest),
+    );
     const map = new Map<number, InterestStatus>();
     // Backend returns newest first; first hit per profile is the latest status.
     content.forEach((row) => {
       const pid = row?.receiver?.id;
       if (typeof pid === "number" && !map.has(pid)) {
-        map.set(pid, row.status);
+        map.set(pid, normalizeInterestStatus(row.status));
       }
     });
     return map;
@@ -347,7 +620,9 @@ export const fetchSentInterestProfileIds = async (size = 200): Promise<Set<numbe
     const res = await axiosInstance.get<ApiEnvelope<PageEnvelope<InterestDto>>>(
       "/interests/sent", { params: { page: 0, size } },
     );
-    const content = res.data.data.content ?? [];
+    const content = mergeCachedSentInterests(
+      normalizePage<InterestDto>(res.data, 0, size, ["sent", "sentInterests", "interests"]).content.map(normalizeInterest),
+    );
     const ids = new Set<number>();
     content.forEach((row) => {
       const pid = row?.receiver?.id;

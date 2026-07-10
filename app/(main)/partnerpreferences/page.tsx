@@ -6,6 +6,11 @@ import {
   updateMyPreferences,
   type PartnerPreferencePayload,
 } from "@/services/profileService";
+import {
+  castesByReligion,
+  educationList,
+  professionList,
+} from "@/app/(auth)/onboarding/shared-components";
 
 type Pref = PartnerPreferencePayload;
 
@@ -15,6 +20,7 @@ type Section = typeof sections[number];
 // ── Option lists ────────────────────────────────────────────────
 type Opt = { label: string; value?: string };
 const opts = (...labels: string[]): Opt[] => [{ label: "Any" }, ...labels.map((l) => ({ label: l, value: l }))];
+const listOpts = (labels: string[]): Opt[] => opts(...labels);
 
 const AGE_OPTS = Array.from({ length: 48 }, (_, i) => 18 + i); // 18–65
 const HEIGHT_CM = Array.from({ length: 56 }, (_, i) => 140 + i); // 140–195 cm
@@ -40,8 +46,21 @@ const DIET_OPTS: Opt[] = [
   { label: "Jain", value: "JAIN" },
 ];
 const RELIGION_OPTS = opts("Hindu", "Muslim", "Christian", "Sikh", "Jain", "Buddhist", "Other");
-const EDUCATION_OPTS = opts("Any Graduate", "B.Tech", "M.Tech", "MBA", "MBBS", "B.Sc", "M.Sc", "PhD", "Diploma");
-const OCCUPATION_OPTS = opts("Software Professional", "Doctor", "Engineer", "Teacher", "Business", "Government", "Accountant", "Lawyer");
+const EDUCATION_OPTS = listOpts(educationList);
+const OCCUPATION_OPTS = listOpts(professionList);
+const KERALA_CASTE_OPTS = (religion?: string | null): Opt[] => {
+  const list =
+    religion && castesByReligion[religion]
+      ? castesByReligion[religion]
+      : Array.from(
+          new Set(
+            ["Hindu", "Muslim", "Christian"]
+              .flatMap((key) => castesByReligion[key] ?? [])
+              .filter((value) => value !== "Any"),
+          ),
+        );
+  return listOpts(list);
+};
 const COUNTRY_OPTS = opts("India", "USA", "UK", "Canada", "Australia", "UAE");
 const STATE_OPTS = opts("Kerala", "Tamil Nadu", "Karnataka", "Maharashtra", "Delhi", "Other");
 const INCOME_OPTS: { label: string; value?: number }[] = [
@@ -72,8 +91,30 @@ interface Row {
   display: (p: Pref) => string;
 }
 
-const selLabel = (options: Opt[], value?: string) =>
+const selLabel = (options: Opt[], value?: string | null) =>
   value ? options.find((o) => o.value === value)?.label ?? value : "Any";
+
+const emptyToNull = <T,>(value: T | undefined): T | null => value ?? null;
+
+const normalizePreferencePayload = (pref: Pref): Pref => ({
+  minAge: emptyToNull(pref.minAge),
+  maxAge: emptyToNull(pref.maxAge),
+  minHeightCm: emptyToNull(pref.minHeightCm),
+  maxHeightCm: emptyToNull(pref.maxHeightCm),
+  preferredCountry: emptyToNull(pref.preferredCountry),
+  preferredState: emptyToNull(pref.preferredState),
+  preferredReligion: emptyToNull(pref.preferredReligion),
+  preferredCaste: emptyToNull(pref.preferredCaste),
+  casteNoBar: emptyToNull(pref.casteNoBar),
+  preferredMaritalStatus: emptyToNull(pref.preferredMaritalStatus),
+  preferredEducation: emptyToNull(pref.preferredEducation),
+  preferredOccupation: emptyToNull(pref.preferredOccupation),
+  minAnnualIncome: emptyToNull(pref.minAnnualIncome),
+  preferredDiet: emptyToNull(pref.preferredDiet),
+  smokingAcceptable: emptyToNull(pref.smokingAcceptable),
+  drinkingAcceptable: emptyToNull(pref.drinkingAcceptable),
+  partnerDescription: pref.partnerDescription?.trim() || null,
+});
 
 const ROWS: Record<Section, Row[]> = {
   Basic: [
@@ -93,8 +134,8 @@ const ROWS: Record<Section, Row[]> = {
   Religious: [
     { id: "religion", label: "Religion", editor: { kind: "select", field: "preferredReligion", options: RELIGION_OPTS },
       display: (p) => selLabel(RELIGION_OPTS, p.preferredReligion) },
-    { id: "caste", label: "Caste", editor: { kind: "text", field: "preferredCaste" },
-      display: (p) => p.preferredCaste || "Any" },
+    { id: "caste", label: "Caste", editor: { kind: "select", field: "preferredCaste", options: KERALA_CASTE_OPTS() },
+      display: (p) => selLabel(KERALA_CASTE_OPTS(p.preferredReligion), p.preferredCaste) },
     { id: "casteNoBar", label: "Caste No Bar", editor: { kind: "bool", field: "casteNoBar", trueLabel: "Yes — any caste", falseLabel: "No" },
       display: (p) => (p.casteNoBar ? "Yes — any caste" : "No") },
   ],
@@ -196,9 +237,21 @@ function EditModal({
           </div>
         );
       case "select":
+        const options = e.field === "preferredCaste" ? KERALA_CASTE_OPTS(draft.preferredReligion) : e.options;
         return (
-          <select className={selectCls} value={(draft[e.field] as string) ?? ""} onChange={(ev) => setDraft((d) => ({ ...d, [e.field]: ev.target.value || undefined }))}>
-            {e.options.map((o) => <option key={o.label} value={o.value ?? ""}>{o.label}</option>)}
+          <select
+            className={selectCls}
+            value={(draft[e.field] as string | null | undefined) ?? ""}
+            onChange={(ev) => {
+              const value = ev.target.value || undefined;
+              setDraft((d) =>
+                e.field === "preferredReligion"
+                  ? { ...d, [e.field]: value, preferredCaste: undefined }
+                  : { ...d, [e.field]: value },
+              );
+            }}
+          >
+            {options.map((o) => <option key={o.label} value={o.value ?? ""}>{o.label}</option>)}
           </select>
         );
       case "bool":
@@ -285,9 +338,10 @@ export default function PartnerPreferences() {
     setSaving(true);
     setToast(null);
     try {
-      const saved = await updateMyPreferences(pref);
+      const saved = await updateMyPreferences(normalizePreferencePayload(pref));
       setPref(saved ?? pref);
       setToast({ ok: true, text: "Preferences saved!" });
+      router.push("/profiles");
     } catch (e) {
       setToast({
         ok: false,
@@ -305,12 +359,6 @@ export default function PartnerPreferences() {
       <header className="text-white shadow-lg" style={{ background: "linear-gradient(135deg, #c0174c 0%, #a01040 100%)" }}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.back()}
-              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors cursor-pointer" aria-label="Back">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
             <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
                 <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />

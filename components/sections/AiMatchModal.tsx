@@ -43,6 +43,7 @@ interface Attribute {
   brideVal: string;
   groomVal: string;
   score: number;
+  unavailable?: boolean;
 }
 
 interface AiMatchModalProps {
@@ -126,7 +127,7 @@ const buildAttributes = (
   presentationMatch: number,
   bridePhoto: number,
   groomPhoto: number,
-  horoscope: { score: number; brideVal: string; groomVal: string },
+  horoscope: { score: number; brideVal: string; groomVal: string; unavailable?: boolean },
 ): Attribute[] => [
   { key: "face", label: "Facial Harmony", icon: "😊", brideVal: "Symmetric", groomVal: "Symmetric", score: faceScore },
   { key: "photo", label: "Photo Presentation", icon: "📷", brideVal: `Quality ${bridePhoto}`, groomVal: `Quality ${groomPhoto}`, score: presentationMatch },
@@ -136,7 +137,7 @@ const buildAttributes = (
   { key: "family", label: "Family", icon: "🏡", brideVal: b.family, groomVal: g.family, score: 90 },
   { key: "location", label: "Location", icon: "📍", brideVal: b.location, groomVal: g.location, score: 78 },
   { key: "weight", label: "Weight", icon: "⚖️", brideVal: b.weight, groomVal: g.weight, score: 85 },
-  { key: "horoscope", label: "Horoscope", icon: "✨", brideVal: horoscope.brideVal, groomVal: horoscope.groomVal, score: horoscope.score },
+  { key: "horoscope", label: "Horoscope", icon: "✨", brideVal: horoscope.brideVal, groomVal: horoscope.groomVal, score: horoscope.score, unavailable: horoscope.unavailable },
 ];
 
 const ANALYSIS_STEPS = [
@@ -449,7 +450,7 @@ function MiniRing({ score, run }: { score: number; run: boolean }) {
 
 // ── Compact glass attribute card: accent edge · icon · values · ring ──
 function AttributeRow({ attr, delay, run }: { attr: Attribute; delay: number; run: boolean }) {
-  const q = qualityOf(attr.score);
+  const q = attr.unavailable ? { tag: "Needed", color: "#94a3b8" } : qualityOf(attr.score);
   return (
     <div
       className="animate-ai-reveal group relative overflow-hidden rounded-xl bg-white/70 backdrop-blur-sm border border-white/80 p-1.5 pl-2.5 flex items-center gap-1.5 transition-all hover:-translate-y-0.5"
@@ -482,7 +483,13 @@ function AttributeRow({ attr, delay, run }: { attr: Attribute; delay: number; ru
         </p>
       </div>
 
-      <MiniRing score={attr.score} run={run} />
+      {attr.unavailable ? (
+        <div className="w-12 shrink-0 text-center text-[9px] font-black uppercase tracking-wide text-slate-400">
+          Needed
+        </div>
+      ) : (
+        <MiniRing score={attr.score} run={run} />
+      )}
     </div>
   );
 }
@@ -527,29 +534,61 @@ export default function AiMatchModal({ open, onClose, bride, groom, targetProfil
 
   // Real Vedic Guna Milan from the backend (when a target profile is given).
   const [horoMatch, setHoroMatch] = useState<HoroscopeMatch | null>(null);
+  const [horoLoading, setHoroLoading] = useState(false);
+  const [horoError, setHoroError] = useState("");
   useEffect(() => {
-    if (!open || targetProfileId == null) {
-      setHoroMatch(null);
-      return;
-    }
     let cancelled = false;
+    const setInitialState = window.setTimeout(() => {
+      if (cancelled) return;
+      setHoroMatch(null);
+      setHoroLoading(open && targetProfileId != null);
+      setHoroError("");
+    }, 0);
+
+    if (!open || targetProfileId == null) {
+      return () => {
+        cancelled = true;
+        window.clearTimeout(setInitialState);
+      };
+    }
+
     getHoroscopeMatch(targetProfileId)
-      .then((m) => { if (!cancelled) setHoroMatch(m); })
-      .catch(() => { if (!cancelled) setHoroMatch(null); });
-    return () => { cancelled = true; };
+      .then((m) => {
+        if (!cancelled) setHoroMatch(m);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHoroMatch(null);
+          setHoroError("Horoscope details required");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setHoroLoading(false);
+      });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(setInitialState);
+    };
   }, [open, targetProfileId]);
 
-  // Real horoscope % when available, else the demo placeholder.
+  // Real horoscope % from backend/API only. No demo percentage fallback.
   const horoscope = useMemo(
-    () =>
-      horoMatch
-        ? {
-            score: horoMatch.percentage,
-            brideVal: horoMatch.brideNakshatra,
-            groomVal: horoMatch.groomNakshatra,
-          }
-        : { score: 82, brideVal: b.horoscope, groomVal: g.horoscope },
-    [horoMatch, b.horoscope, g.horoscope],
+    () => {
+      if (horoMatch) {
+        return {
+          score: Math.max(0, Math.min(100, Math.round(horoMatch.percentage))),
+          brideVal: [horoMatch.brideNakshatra, horoMatch.brideRaasi].filter(Boolean).join(" · "),
+          groomVal: [horoMatch.groomNakshatra, horoMatch.groomRaasi].filter(Boolean).join(" · "),
+        };
+      }
+      return {
+        score: 0,
+        brideVal: horoLoading ? "Checking..." : "Add horoscope",
+        groomVal: horoLoading ? "Checking..." : "Add horoscope",
+        unavailable: true,
+      };
+    },
+    [horoMatch, horoLoading],
   );
 
   const faceScore = useMemo(() => faceMatchScore(b.photo, g.photo), [b.photo, g.photo]);
@@ -563,22 +602,23 @@ export default function AiMatchModal({ open, onClose, bride, groom, targetProfil
     () => buildAttributes(b, g, faceScore, presentationMatch, bridePhotoScore, groomPhotoScore, horoscope),
     [b, g, faceScore, presentationMatch, bridePhotoScore, groomPhotoScore, horoscope],
   );
-  const overall = useMemo(
-    () => Math.round(attributes.reduce((s, a) => s + a.score, 0) / attributes.length),
-    [attributes],
-  );
+  const overall = useMemo(() => {
+    const scoredAttributes = attributes.filter((attr) => !attr.unavailable);
+    if (scoredAttributes.length === 0) return 0;
+    return Math.round(scoredAttributes.reduce((s, a) => s + a.score, 0) / scoredAttributes.length);
+  }, [attributes]);
   // Live synthesis bars — Facial Harmony & Photo Presentation are content-based
   // AI estimates; Horoscope Match is the real Guna Milan score when available.
   const synthesis = useMemo(
     () => [
       { label: "Facial Harmony", score: faceScore },
       { label: "Photo Presentation", score: presentationMatch },
-      { label: "Horoscope Match", score: horoscope.score },
+      { label: horoscope.unavailable ? "Horoscope Needed" : "Horoscope Match", score: horoscope.unavailable ? 0 : horoscope.score, unavailable: horoscope.unavailable },
       { label: "Family Compat.", score: 96 },
       { label: "Lifestyle Sync", score: 89 },
       { label: "Education Align", score: 91 },
     ],
-    [faceScore, presentationMatch, horoscope.score],
+    [faceScore, presentationMatch, horoscope.score, horoscope.unavailable],
   );
 
   // phase: "analysing" → "done"
@@ -588,8 +628,10 @@ export default function AiMatchModal({ open, onClose, bride, groom, targetProfil
   // Run the scripted analysis whenever the modal opens.
   useEffect(() => {
     if (!open) return;
-    setPhase("analysing");
-    setStepIdx(0);
+    const resetTimer = window.setTimeout(() => {
+      setPhase("analysing");
+      setStepIdx(0);
+    }, 0);
 
     const stepTimer = window.setInterval(() => {
       setStepIdx((i) => Math.min(i + 1, ANALYSIS_STEPS.length - 1));
@@ -602,6 +644,7 @@ export default function AiMatchModal({ open, onClose, bride, groom, targetProfil
     }, 650 * ANALYSIS_STEPS.length + 300);
 
     return () => {
+      window.clearTimeout(resetTimer);
       window.clearInterval(stepTimer);
       window.clearTimeout(doneTimer);
     };
@@ -666,7 +709,13 @@ export default function AiMatchModal({ open, onClose, bride, groom, targetProfil
                   className="inline-block w-1.5 h-1.5 rounded-full animate-ai-live"
                   style={{ background: GOLD }}
                 />
-                {scanning ? "Made2Match AI is analysing in real time…" : "Analysis complete"}
+                {scanning
+                  ? "Made2Match AI is analysing in real time..."
+                  : horoLoading
+                    ? "Checking horoscope match..."
+                    : horoError
+                      ? horoError
+                      : "Analysis complete"}
               </p>
             </div>
           </div>
@@ -734,14 +783,14 @@ export default function AiMatchModal({ open, onClose, bride, groom, targetProfil
                         <div
                           className="h-full rounded-full ease-out"
                           style={{
-                            width: reached ? `${s.score}%` : "0%",
+                            width: reached && !s.unavailable ? `${s.score}%` : "0%",
                             transition: "width 900ms ease-out",
                             background: `linear-gradient(90deg, ${ORANGE}, ${GOLD})`,
                           }}
                         />
                       </div>
                       <span className="text-[11px] font-bold text-purple-100 w-9 text-right tabular-nums">
-                        {reached ? `${s.score}%` : "—"}
+                        {reached ? (s.unavailable ? "Needed" : `${s.score}%`) : "—"}
                       </span>
                     </div>
                   );
@@ -770,9 +819,8 @@ export default function AiMatchModal({ open, onClose, bride, groom, targetProfil
               {/* Honest disclaimer — these are estimates, not measures of beauty */}
               <p className="mt-2 text-[9px] leading-snug text-gray-400 flex items-start gap-1">
                 <span className="shrink-0">ⓘ</span>
-                Photo &amp; facial scores are AI estimates based on measurable signals
-                (image quality, symmetry &amp; facial landmarks) — not a judgement of a
-                person&apos;s beauty.
+                Photo &amp; facial scores are AI estimates based on measurable signals.
+                Horoscope score uses saved horoscope details from the matching API when available.
               </p>
             </div>
           )}
@@ -805,8 +853,10 @@ export default function AiMatchModal({ open, onClose, bride, groom, targetProfil
                   </div>
                   <p className="text-[11px] text-white/90 mt-1 leading-relaxed">
                     {b.name.split(" ")[0]} and {g.name.split(" ")[0]} share strong alignment in
-                    family values, education, and lifestyle. Horoscope and location differ slightly
-                    but are well within a harmonious range. A highly promising pairing.
+                    family values, education, and lifestyle.{" "}
+                    {horoscope.unavailable
+                      ? "Add horoscope details for both profiles to calculate a real horoscope match."
+                      : "The horoscope match is calculated dynamically from saved horoscope details."}
                   </p>
                   <div className="flex gap-2 mt-3">
                     <button

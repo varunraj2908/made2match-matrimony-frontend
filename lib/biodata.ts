@@ -1,4 +1,5 @@
 import type { MyProfile } from "@/services/homeService";
+import { formatProfileCode } from "@/lib/memberId";
 
 // Brand colours
 const BRAND: [number, number, number] = [178, 34, 52]; // #b22234
@@ -46,7 +47,7 @@ export async function downloadBiodata(me: MyProfile): Promise<void> {
 
   const fullName =
     [me.firstName, me.lastName].filter(Boolean).join(" ").trim() || "Member";
-  const userCode = `M2M-E${String(me.userId).padStart(7, "0")}`;
+  const userCode = formatProfileCode(me.profileCode, me.userId);
 
   // ── Header band ──
   doc.setFillColor(...BRAND);
@@ -83,7 +84,7 @@ export async function downloadBiodata(me: MyProfile): Promise<void> {
   doc.text(fullName, margin, 50);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.setTextColor(...MUTED);
+  doc.setTextColor(...BRAND);
   doc.text(userCode, margin, 57);
   if (me.isPremium) {
     doc.setTextColor(...ACCENT);

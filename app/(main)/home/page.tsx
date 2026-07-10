@@ -22,7 +22,7 @@ import {
 } from "@/services/homeService";
 import { uploadProfilePhoto } from "@/services/profileService";
 import { downloadBiodata } from "@/lib/biodata";
-import { celebrateMatch } from "@/lib/celebrate";
+import { formatProfileCode } from "@/lib/memberId";
 
 // ─── UI display type (kept narrow — what cards actually render) ───
 interface CardProfile {
@@ -273,19 +273,25 @@ const formatCountdown = (totalSeconds: number) => {
 };
 
 const Timer = () => {
-  const [secondsLeft, setSecondsLeft] = useState(getSecondsUntilMidnight);
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setSecondsLeft(getSecondsUntilMidnight());
+    }, 0);
     const interval = window.setInterval(() => {
       setSecondsLeft(getSecondsUntilMidnight());
     }, 1000);
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, []);
 
   return (
     <div className="hidden sm:flex items-center justify-center gap-1 bg-gray-800 text-white text-[10px] px-2.5 py-1.5 rounded-full font-mono tabular-nums w-[82px] shrink-0">
       <ClockIcon />
-      <span>{formatCountdown(secondsLeft)}s</span>
+      <span>{secondsLeft == null ? "00:00:00" : formatCountdown(secondsLeft)}s</span>
     </div>
   );
 };
@@ -480,10 +486,6 @@ export default function HomePage() {
     }
   };
 
-  // TEST: preview the "It's a Match!" celebration with sample data.
-  const previewMatch = () =>
-    celebrateMatch({ name: "Priya Nair", photo: "/image3.jpg", profileId: 1 });
-
   const scrollRef = useRef<HTMLDivElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -639,7 +641,9 @@ export default function HomePage() {
   const completionPct =
     me?.profileCompletionPct ?? me?.completionPercentage ?? 0;
   const isPremium = !!me?.isPremium;
-  const userIdLabel = me ? `E${String(me.userId).padStart(7, "0")}` : "—";
+  // profileCode may not be present on all API versions of MyProfile —
+  // fall back safely by using an any-cast so TypeScript doesn't error here.
+  const userIdLabel = me ? formatProfileCode((me as any).profileCode, me.userId) : "—";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -682,7 +686,7 @@ export default function HomePage() {
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-gray-800 text-sm">{displayName}</h3>
             <p className="text-[10px] text-gray-400 font-mono">
-              {userIdLabel} • {isPremium ? "Prime member" : "Free member"}
+              <span className="font-bold text-[#c0174c]">{userIdLabel}</span> • {isPremium ? "Prime member" : "Free member"}
             </p>
             <div className="flex items-center gap-1 text-[10px] text-[#b22234] font-medium mt-0.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#b22234" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -722,8 +726,8 @@ export default function HomePage() {
           {downloadingBiodata ? "Preparing…" : (<><DownloadIcon /> Download Biodata</>)}
         </button>
         <button
-          onClick={previewMatch}
-          className="cursor-pointer mt-2 w-full text-xs font-bold py-2 rounded-full text-white transition-opacity hover:opacity-90 cursor-pointer"
+          type="button"
+          className="hidden"
           style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
         >
           🎉 Preview Match
@@ -782,7 +786,7 @@ export default function HomePage() {
               </svg>
               Made2Match Matrimony
             </div>
-            <p className="text-[11px] text-gray-500 font-mono mb-1.5">{userIdLabel}</p>
+            <p className="text-[11px] font-mono font-bold text-[#c0174c] mb-1.5">{userIdLabel}</p>
             <span
               className="inline-block text-[10px] font-bold px-3 py-1 rounded-full text-white shadow-sm"
               style={{
@@ -838,8 +842,8 @@ export default function HomePage() {
               {downloadingBiodata ? "Preparing…" : (<><DownloadIcon /> Download Biodata</>)}
             </button>
             <button
-              onClick={previewMatch}
-              className="cursor-pointer mt-2 w-full text-xs font-bold py-2 rounded-full text-white transition-opacity hover:opacity-90 cursor-pointer"
+              type="button"
+              className="hidden"
               style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)" }}
             >
               🎉 Preview Match

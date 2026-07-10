@@ -154,23 +154,23 @@ export interface PartnerPreferenceDto {
 
 // ── Partner preferences — GET/PUT /profiles/me/preferences ──────
 export interface PartnerPreferencePayload {
-  minAge?: number;
-  maxAge?: number;
-  minHeightCm?: number;
-  maxHeightCm?: number;
-  preferredCountry?: string;
-  preferredState?: string;
-  preferredReligion?: string;
-  preferredCaste?: string;
-  casteNoBar?: boolean;
-  preferredMaritalStatus?: string;
-  preferredEducation?: string;
-  preferredOccupation?: string;
-  minAnnualIncome?: number;
-  preferredDiet?: string;
-  smokingAcceptable?: boolean;
-  drinkingAcceptable?: boolean;
-  partnerDescription?: string;
+  minAge?: number | null;
+  maxAge?: number | null;
+  minHeightCm?: number | null;
+  maxHeightCm?: number | null;
+  preferredCountry?: string | null;
+  preferredState?: string | null;
+  preferredReligion?: string | null;
+  preferredCaste?: string | null;
+  casteNoBar?: boolean | null;
+  preferredMaritalStatus?: string | null;
+  preferredEducation?: string | null;
+  preferredOccupation?: string | null;
+  minAnnualIncome?: number | null;
+  preferredDiet?: string | null;
+  smokingAcceptable?: boolean | null;
+  drinkingAcceptable?: boolean | null;
+  partnerDescription?: string | null;
 }
 
 export const getMyPreferences = async (): Promise<PartnerPreferencePayload> => {
@@ -193,6 +193,7 @@ export const updateMyPreferences = async (
 export interface FullProfile {
   id: number;
   userId: number;
+  profileCode?: string;
   email?: string;
   phoneNumber?: string;
   firstName?: string;
@@ -214,6 +215,8 @@ export interface FullProfile {
   maritalStatus?: string;
   willingToMarryAnyCaste?: boolean;
   shudhajathakam?: string;
+  nakshatra?: string;
+  raasi?: string;
   heightCm?: number;
   weightKg?: number;
   bodyType?: string;

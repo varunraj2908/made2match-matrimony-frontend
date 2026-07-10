@@ -18,6 +18,14 @@ const MONTHS = [
   "July","August","September","October","November","December",
 ];
 const DAYS_ABBR = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+const TIME_OF_BIRTH_OPTIONS = Array.from({ length: 24 * 4 }, (_, i) => {
+  const totalMinutes = i * 15;
+  const hour24 = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const period = hour24 < 12 ? "AM" : "PM";
+  const hour12 = hour24 % 12 || 12;
+  return `${String(hour12).padStart(2, "0")}:${String(minutes).padStart(2, "0")} ${period}`;
+});
 
 function formatDob(date: Date | null): string {
   if (!date) return "";
@@ -64,12 +72,6 @@ function CalendarPicker({ value, onChange }: CalendarPickerProps) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
-
-  // Sync when value prop changes externally
-  useEffect(() => {
-    const p = parseDob(value);
-    if (p) { setSelected(p); setViewYear(p.getFullYear()); setViewMonth(p.getMonth()); }
-  }, [value]);
 
   const selectDate = (d: Date) => {
     setSelected(d);
@@ -340,10 +342,14 @@ export default function HoroscopeForm() {
         birthCity: city || undefined,
       });
       router.push("/star-details");
-    } catch (ex: any) {
+    } catch (ex: unknown) {
+      const apiError = ex as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
       setErrorMsg(
-        ex?.response?.data?.message ||
-          ex?.message ||
+        apiError.response?.data?.message ||
+          apiError.message ||
           "Could not save horoscope details. Please try again.",
       );
     } finally {
@@ -417,7 +423,7 @@ export default function HoroscopeForm() {
             label="Time of birth"
             value={tob}
             onChange={setTob}
-            options={["12:00 AM", "06:00 AM", "12:00 PM", "06:00 PM"]}
+            options={TIME_OF_BIRTH_OPTIONS}
             placeholder="Select your time of birth"
           />
         </div>

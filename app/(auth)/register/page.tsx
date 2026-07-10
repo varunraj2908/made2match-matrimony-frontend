@@ -57,7 +57,7 @@ export default function RegisterPage() {
       className="h-full overflow-y-auto"
       style={{ background: "linear-gradient(165deg,#2d1b35 0%,#8f0e39 45%,#c0174c 100%)" }}
     >
-      <div className="relative w-full max-w-md mx-auto min-h-full px-6 py-8 flex flex-col">
+      <div className="relative w-full max-w-md lg:max-w-xl mx-auto min-h-full px-6 py-8 flex flex-col">
         <div className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(232,197,71,0.2)" }} />
         <div className="pointer-events-none absolute bottom-10 -left-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(255,106,156,0.22)" }} />
 

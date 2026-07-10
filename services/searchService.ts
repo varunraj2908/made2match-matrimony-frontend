@@ -113,7 +113,7 @@ export const PROFILE_CREATED_BY_MAP: Record<string, string> = {
   Friends: "FRIEND",
 };
 
-// Parse a matrimony id / code (e.g. "GM002341" or "2341") → numeric profile id.
+// Parse a matrimony id / code (e.g. "MTM02341" or "2341") → numeric profile id.
 export const parseProfileId = (raw: string): number | null => {
   const digits = raw.replace(/\D/g, "");
   if (!digits) return null;

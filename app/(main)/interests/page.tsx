@@ -13,6 +13,7 @@ import {
   type InterestStatus,
 } from "@/services/matchesService";
 import { celebrateMatch } from "@/lib/celebrate";
+import { formatProfileCode } from "@/lib/memberId";
 
 /* ─────────────────────────────────────────────
    DISPLAY HELPERS
@@ -20,7 +21,8 @@ import { celebrateMatch } from "@/lib/celebrate";
 const fallbackAvatar = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=d4a89a&color=fff&size=208`;
 
-const formatHeight = (cm?: number): string => {
+const formatHeight = (cm?: number, display?: string): string => {
+  if (display) return display;
   if (!cm) return "—";
   const totalIn = Math.round(cm / 2.54);
   return `${Math.floor(totalIn / 12)}'${totalIn % 12}"`;
@@ -32,9 +34,6 @@ const formatDate = (iso?: string): string => {
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" });
 };
-
-const profileCode = (id?: number): string =>
-  id != null ? `E${String(id).padStart(7, "0")}` : "—";
 
 interface CardData {
   profileNumericId: number;
@@ -57,10 +56,10 @@ function toCard(i: InterestDto, mode: "received" | "sent"): CardData {
     [p?.firstName, p?.lastName].filter(Boolean).join(" ").trim() || "Member";
   return {
     profileNumericId: p?.id ?? 0,
-    code: profileCode(p?.id),
+    code: formatProfileCode(p?.profileCode, p?.id),
     name: fullName,
     age: p?.age,
-    height: formatHeight(p?.heightCm),
+    height: formatHeight(p?.heightCm, p?.heightDisplay),
     caste: p?.caste || "—",
     education: p?.highestQualification || "—",
     profession: p?.occupation || "—",
@@ -106,6 +105,14 @@ function filterByKey(list: InterestDto[], key: string): InterestDto[] {
   if (statuses.length === 0) return list;
   return list.filter((i) => statuses.includes(i.status));
 }
+
+const getAsyncErrorMessage = (ex: unknown, fallback: string): string => {
+  const err = ex as {
+    response?: { data?: { message?: string } };
+    message?: string;
+  };
+  return err.response?.data?.message || err.message || fallback;
+};
 
 const ITEM_LABELS = [
   { key: "all",      label: "All" },
@@ -362,7 +369,7 @@ function ProfileCard({
               <h3 className="text-base sm:text-xl font-semibold text-gray-900 mb-0.5 pr-6">
                 {card.name}
               </h3>
-              <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-4">{card.code}</p>
+              <p className="text-xs sm:text-sm font-mono font-bold text-[#c0174c] mb-2 sm:mb-4">{card.code}</p>
             </button>
 
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs sm:text-sm text-gray-600">
@@ -557,12 +564,8 @@ export default function InterestsPage() {
       ]);
       setReceived(r.content ?? []);
       setSent(s.content ?? []);
-    } catch (ex: any) {
-      setError(
-        ex?.response?.data?.message ||
-          ex?.message ||
-          "Could not load interests.",
-      );
+    } catch (ex: unknown) {
+      setError(getAsyncErrorMessage(ex, "Could not load interests."));
     } finally {
       setLoading(false);
     }
@@ -600,8 +603,9 @@ export default function InterestsPage() {
     try {
       await fn();
       await loadAll();
-    } catch (ex: any) {
-      showToast(ex?.response?.data?.message || ex?.message || "Action failed");
+      window.dispatchEvent(new CustomEvent("notifications:refresh"));
+    } catch (ex: unknown) {
+      showToast(getAsyncErrorMessage(ex, "Action failed"));
     } finally {
       setBusyIds((s) => { const n = new Set(s); n.delete(id); return n; });
     }

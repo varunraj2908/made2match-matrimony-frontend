@@ -8,7 +8,9 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { getMyProfile, type MyProfile } from "@/services/homeService";
 import { fetchNotifications, persistReadIds, markInterestsReadOnServer, type AppNotification } from "@/services/notificationService";
+import { getReceivedInterests } from "@/services/matchesService";
 import { setAppBadge } from "@/lib/appBadge";
+import { formatProfileCode } from "@/lib/memberId";
 
 // ─── Nav Items (notification removed) ────────────────────────────────────────
 const NAV_ITEMS = [
@@ -36,7 +38,6 @@ const NAV_ITEMS = [
     id: "interests",
     label: "Interests",
     href: "/interests",
-    badge: 9,
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -104,6 +105,7 @@ export default function Navbar() {
   const [, setShowSwitchMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [pendingInterestCount, setPendingInterestCount] = useState(0);
   const [notifLoading, setNotifLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -148,6 +150,15 @@ export default function Navbar() {
         .then((list) => { if (!cancelled) setNotifications(list); })
         .catch(() => undefined)
         .finally(() => { if (!cancelled) setNotifLoading(false); });
+      getReceivedInterests(0, 500)
+        .then((page) => {
+          if (!cancelled) {
+            setPendingInterestCount(
+              (page.content ?? []).filter((interest) => interest.status === "PENDING").length,
+            );
+          }
+        })
+        .catch(() => { if (!cancelled) setPendingInterestCount(0); });
     };
     loadNotifications();
     window.addEventListener("notifications:refresh", loadNotifications);
@@ -170,9 +181,8 @@ export default function Navbar() {
   // Derived display values
   const displayName =
     [me?.firstName, me?.lastName].filter(Boolean).join(" ") || me?.firstName || "—";
-  const userCode = me ? `E${String(me.userId).padStart(7, "0")}` : "—";
+  const userCode = me ? formatProfileCode(me.profileCode, me.userId) : "—";
   const locationLine = [me?.city, me?.state].filter(Boolean).join(", ");
-  const subtitle = locationLine ? `${userCode} • ${locationLine}` : userCode;
   const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=b22234&color=fff&size=120`;
   const avatarUrl = me?.profilePhotoUrl || fallbackAvatar;
   const planLabel = me?.isPremium ? "Prime" : "Free";
@@ -221,10 +231,6 @@ export default function Navbar() {
   };
 
   const isLoggedIn = true;
-
-  const totalBadgeCount =
-    notifications.filter((n) => n.unread).length +
-    (NAV_ITEMS.find((i) => i.id === "interests")?.badge || 0);
 
   /* ── Shared Notification Panel ── */
   const notificationPanel = (
@@ -419,8 +425,10 @@ export default function Navbar() {
               DESKTOP Center Nav
           ───────────────────────────────────────────────── */}
           {isLoggedIn ? (
-            <nav className="hidden lg:flex items-center gap-1">
-              {NAV_ITEMS.map((item) => (
+            <nav className="hidden lg:flex items-center justify-center gap-0">
+              {NAV_ITEMS.map((item) => {
+                const navBadge = item.id === "interests" ? pendingInterestCount : 0;
+                return (
                 <Link
                   key={item.id}
                   href={item.href}
@@ -428,28 +436,29 @@ export default function Navbar() {
                     setActiveNav(item.id);
                     setShowNotifications(false);
                   }}
-                  className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all group ${
+                  className={`relative flex h-12 w-20 flex-col items-center justify-center gap-1 rounded-xl transition-all group ${
                     isActive(item.href)
                       ? "text-[#b22234]"
                       : "text-gray-500 hover:text-[#b22234]"
                   }`}
                 >
                   {isActive(item.href) && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#b22234]" />
+                    <span className="absolute bottom-0 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#b22234]" />
                   )}
-                  <span className="relative">
+                  <span className="relative flex h-5 w-8 items-center justify-center">
                     {item.icon}
-                    {item.badge && (
+                    {navBadge > 0 && (
                       <span className="absolute -top-1.5 -right-2 bg-[#b22234] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
-                        {item.badge}
+                        {navBadge > 9 ? "9+" : navBadge}
                       </span>
                     )}
                   </span>
-                  <span className="text-[10px] font-semibold leading-none">
+                  <span className="w-full text-center text-[10px] font-semibold leading-none">
                     {item.label}
                   </span>
                 </Link>
-              ))}
+                );
+              })}
             </nav>
           ) : (
             <p className="text-sm text-gray-400 italic hidden lg:block">
@@ -578,7 +587,10 @@ export default function Navbar() {
                     {planLabel}
                   </span>
                 </div>
-                <p className="text-xs text-gray-400">{subtitle}</p>
+                <p className="text-xs text-gray-400">
+                  <span className="font-mono font-bold text-[#c0174c]">{userCode}</span>
+                  {locationLine && <span> • {locationLine}</span>}
+                </p>
               </div>
 
               {/* Upgrade Banner */}
@@ -658,7 +670,9 @@ export default function Navbar() {
             <div className="absolute left-1/2 -translate-x-1/2 -top-9 w-[72px] h-[72px] rounded-full bg-white" />
 
             <div className="relative grid grid-cols-5 items-center h-full">
-              {NAV_ITEMS.slice(0, 2).map((item) => (
+              {NAV_ITEMS.slice(0, 2).map((item) => {
+                const navBadge = item.id === "interests" ? pendingInterestCount : 0;
+                return (
                 <Link
                   key={item.id}
                   href={item.href}
@@ -669,9 +683,9 @@ export default function Navbar() {
                 >
                   <span className="relative">
                     {item.icon}
-                    {item.badge && (
+                    {navBadge > 0 && (
                       <span className="absolute -top-1.5 -right-2 bg-white text-[#c0174c] text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
-                        {item.badge}
+                        {navBadge > 9 ? "9+" : navBadge}
                       </span>
                     )}
                   </span>
@@ -680,12 +694,15 @@ export default function Navbar() {
                     <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white" />
                   )}
                 </Link>
-              ))}
+                );
+              })}
 
               {/* Center column reserved for the FAB */}
               <div aria-hidden />
 
-              {NAV_ITEMS.slice(2, 4).map((item) => (
+              {NAV_ITEMS.slice(2, 4).map((item) => {
+                const navBadge = item.id === "interests" ? pendingInterestCount : 0;
+                return (
                 <Link
                   key={item.id}
                   href={item.href}
@@ -696,9 +713,9 @@ export default function Navbar() {
                 >
                   <span className="relative">
                     {item.icon}
-                    {item.badge && (
+                    {navBadge > 0 && (
                       <span className="absolute -top-1.5 -right-2 bg-white text-[#c0174c] text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
-                        {item.badge}
+                        {navBadge > 9 ? "9+" : navBadge}
                       </span>
                     )}
                   </span>
@@ -707,7 +724,8 @@ export default function Navbar() {
                     <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white" />
                   )}
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </div>
 
