@@ -550,7 +550,7 @@ export default function HowItWorks() {
             className="text-sm md:text-lg max-w-lg mx-auto leading-relaxed px-2"
             style={{ color: "#c97080" }}
           >
-            At GetMarry, we&apos;re committed to supporting you on your
+            At Made2Match, we&apos;re committed to supporting you on your
             journey to love and companionship.
           </p>
         </div>

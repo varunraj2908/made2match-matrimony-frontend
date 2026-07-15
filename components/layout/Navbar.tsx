@@ -651,7 +651,13 @@ export default function Navbar() {
                 <Link
                   key={item.label}
                   href={item.href}
-                  onClick={() => setShowUserMenu(false)}
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    // Set flag to allow settings page access
+                    if (item.href === '/settings') {
+                      sessionStorage.setItem('allowSettingsAccess', 'true');
+                    }
+                  }}
                   className="flex items-center gap-3 px-4 py-2 text-xs text-gray-600 hover:bg-red-50 hover:text-[#c0174c] transition-colors"
                 >
                   <span style={{ fontSize: 13 }}>{item.icon}</span>

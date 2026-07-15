@@ -5,6 +5,7 @@ import CookieConsent from "@/components/layout/CookieConsent";
 import PWARegister from "@/components/layout/PWARegister";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/seo";
+import { organizationSchema, websiteSchema } from "./schema";
 import "./globals.css";
 
 // A highly legible, screen-optimized UI font, self-hosted by next/font.
@@ -100,6 +101,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        {/* JSON-LD Structured Data for Google */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationSchema),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(websiteSchema),
+          }}
+        />
+      </head>
       <body>
           <QueryProvider>
           {children}
