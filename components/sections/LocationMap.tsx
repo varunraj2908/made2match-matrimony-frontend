@@ -17,7 +17,7 @@ const mapSrc = API_KEY
 export default function LocationMap() {
   return (
     <section className="px-4 sm:px-6 lg:px-8 py-10 bg-[#fdf5f5]">
-      <div className="max-w-6xl mx-auto">
+      <div className="mx-auto max-w-7xl lg:px-6">
         <h2 className="text-[#c0174c] font-bold text-xl md:text-2xl text-center mb-6">
           Find Us Here
         </h2>

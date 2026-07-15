@@ -126,6 +126,55 @@ export default function HeroRegistration() {
   return <HeroForm />;
 }
 
+export function TrustBar({ onClick }: { onClick: () => void }) {
+  const benefits = [
+    { icon: "✓", title: "Verified Profiles", detail: "Genuine members" },
+    { icon: "♥", title: "Smart Matches", detail: "Based on your preferences" },
+    { icon: "⌾", title: "Privacy First", detail: "You control your details" },
+  ];
+
+  return (
+    <section
+      className="relative w-full overflow-hidden px-4 py-4 sm:px-6 lg:px-8"
+      style={{ background: "linear-gradient(135deg, #fc8bab 0%, #c0174c 60%, #d4185a 100%)" }}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-15"
+        style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "22px 22px" }}
+      />
+      <div className="relative mx-auto max-w-7xl lg:px-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+          <div className="shrink-0 leading-tight">
+            <span className="block text-[25px] font-bold tracking-wide text-white" style={{ fontFamily: "Georgia, serif", fontStyle: "italic" }}>
+              Made for Meaningful Matches
+            </span>
+            <span className="mt-1 block text-[11px] tracking-wide text-white/80">
+              Trust, compatibility and privacy at every step
+            </span>
+          </div>
+
+          <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-3">
+            {benefits.map((benefit) => (
+              <div key={benefit.title} className="flex items-center gap-2.5 rounded-xl border border-white/20 bg-white/10 px-3 py-2 backdrop-blur-sm">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-black text-[#c0174c] shadow-sm">{benefit.icon}</span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-bold text-white">{benefit.title}</p>
+                  <p className="truncate text-[10px] text-white/70">{benefit.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button type="button" onClick={onClick} className="shrink-0 rounded-lg bg-white px-5 py-3 text-xs font-black tracking-wide text-[#c0174c] shadow-md transition-transform hover:-translate-y-0.5">
+            CREATE FREE PROFILE
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Search bar ────────────────────────────────────────────── */
 export function SearchBar() {
   const router = useRouter();
@@ -404,7 +453,7 @@ function HeroForm() {
         </div>
 
         {/* RIGHT — registration form */}
-        <div className="relative z-10 flex-1 lg:w-1/2 flex flex-col justify-center items-center px-4 py-8 lg:px-6 lg:py-12">
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-8 lg:w-1/2 lg:items-end lg:px-6 lg:py-12">
           <div
             className="
               w-full max-w-sm lg:max-w-md rounded-2xl overflow-hidden flex flex-col

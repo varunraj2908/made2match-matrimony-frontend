@@ -1,26 +1,51 @@
-import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/lib/seo";
-
-// Only genuinely public, indexable pages belong here — authenticated app
-// routes are excluded (see robots.ts).
-const routes: {
-  path: string;
-  changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
-  priority: number;
-}[] = [
-  { path: "/", changeFrequency: "daily", priority: 1 },
-  { path: "/specialoffer", changeFrequency: "weekly", priority: 0.8 },
-  { path: "/about-us", changeFrequency: "monthly", priority: 0.6 },
-  { path: "/privacy-policy", changeFrequency: "yearly", priority: 0.3 },
-  { path: "/terms-and-conditions", changeFrequency: "yearly", priority: 0.3 },
-];
+import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-  return routes.map((r) => ({
-    url: `${SITE_URL}${r.path}`,
-    lastModified,
-    changeFrequency: r.changeFrequency,
-    priority: r.priority,
-  }));
+  const baseUrl = 'https://made2match.in'
+  const currentDate = new Date()
+
+  return [
+    {
+      url: baseUrl,
+      lastModified: currentDate,
+      changeFrequency: 'daily',
+      priority: 1.0,
+    },
+    {
+      url: `${baseUrl}/home`,
+      lastModified: currentDate,
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/profiles`,
+      lastModified: currentDate,
+      changeFrequency: 'hourly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/about-us`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/terms-and-conditions`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/privacy-policy`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/help`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    },
+  ]
 }

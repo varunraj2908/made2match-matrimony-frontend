@@ -2,17 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import AuthBrandHeader from "@/components/sections/AuthBrandHeader";
 import { useLogin } from "@/hooks/useLogin";
 
 const FIELD =
-  "w-full pl-10 pr-3 py-3 rounded-xl text-sm text-white placeholder-white/55 outline-none transition-all bg-white/10 border border-white/25 focus:border-[#E8C547] focus:bg-white/15";
+  "w-full pl-10 pr-12 py-3 rounded-xl text-sm text-white placeholder-white/55 outline-none transition-all bg-white/10 border border-white/25 focus:border-[#E8C547] focus:bg-white/15";
 
 export default function LoginPage() {
   const router = useRouter();
   const { mutate, isPending } = useLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   const handleLogin = () => {
@@ -44,7 +46,7 @@ export default function LoginPage() {
       className="h-full overflow-y-auto"
       style={{ background: "linear-gradient(165deg,#2d1b35 0%,#8f0e39 45%,#c0174c 100%)" }}
     >
-      <div className="relative w-full max-w-md mx-auto min-h-full px-6 py-8 flex flex-col justify-center">
+      <div className="relative w-full max-w-md lg:max-w-xl mx-auto min-h-full px-6 py-8 flex flex-col justify-center">
         <div className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(232,197,71,0.2)" }} />
         <div className="pointer-events-none absolute bottom-10 -left-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(255,106,156,0.22)" }} />
 
@@ -52,7 +54,7 @@ export default function LoginPage() {
           <AuthBrandHeader />
 
           <div
-            className="mt-6 rounded-3xl p-6 backdrop-blur-md"
+            className="mt-6 rounded-3xl p-6 lg:p-11 backdrop-blur-md"
             style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}
           >
             <div className="flex justify-center">
@@ -88,17 +90,25 @@ export default function LoginPage() {
                 <path d="M7 11V7a5 5 0 0110 0v4" />
               </svg>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                 placeholder="Enter your password"
                 className={FIELD}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-white/65 hover:text-[#E8C547] transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
 
             <div className="text-right mt-2">
-              <button className="text-sm font-semibold text-[#E8C547] hover:underline">Forgot password?</button>
+              <button className="cursor-pointer text-sm font-semibold text-[#E8C547] hover:underline">Forgot password?</button>
             </div>
 
             {error && (
@@ -111,33 +121,17 @@ export default function LoginPage() {
             <button
               onClick={handleLogin}
               disabled={isPending}
-              className="w-full mt-5 py-3.5 rounded-full font-extrabold text-[#5e0a24] active:scale-[0.98] transition-transform disabled:opacity-60"
+              className="cursor-pointer w-full mt-5 py-3.5 rounded-full font-extrabold text-[#5e0a24] active:scale-[0.98] transition-transform disabled:cursor-not-allowed disabled:opacity-60"
               style={{ background: "linear-gradient(135deg,#ffe08a,#E8C547 55%,#d4a017)", boxShadow: "0 8px 22px rgba(232,197,71,0.4)" }}
             >
               {isPending ? "Signing in…" : "Login"}
             </button>
 
-            {/* Divider */}
-            <div className="relative flex items-center my-7">
-              <div className="flex-1 h-px bg-white/20" />
-              <span className="px-3 text-xs text-white/60">or continue with</span>
-              <div className="flex-1 h-px bg-white/20" />
-            </div>
-
-            {/* Social */}
-            <div className="grid grid-cols-2 gap-3">
-              <button className="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/25 bg-white/10 text-sm font-semibold text-white hover:bg-white/20 transition-colors">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#4285F4" }} /> Google
-              </button>
-              <button className="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/25 bg-white/10 text-sm font-semibold text-white hover:bg-white/20 transition-colors">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#1877F2" }} /> Facebook
-              </button>
-            </div>
           </div>
 
           <p className="mt-6 text-center text-sm text-white/75">
             New here?{" "}
-            <button onClick={() => router.push("/register")} className="font-bold text-[#E8C547]">
+            <button onClick={() => router.push("/register")} className="cursor-pointer font-bold text-[#E8C547]">
               Register free
             </button>
           </p>

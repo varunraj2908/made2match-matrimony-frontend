@@ -79,7 +79,7 @@ export default function MarriageQuoteBanner({
       </svg>
 
       <div className="relative px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8 items-center">
+        <div className="mx-auto grid max-w-7xl items-center gap-8 md:grid-cols-2 lg:px-6">
         {/* LEFT — copy */}
         <div className="text-white relative z-10">
           <h2

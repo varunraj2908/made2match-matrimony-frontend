@@ -8,6 +8,7 @@ import {
   type BlockedProfile,
 } from "@/services/blockedProfilesService";
 import type { PageEnvelope } from "@/services/homeService";
+import { formatProfileCode } from "@/lib/memberId";
 
 const PAGE_SIZE = 10;
 
@@ -146,7 +147,9 @@ function BlockedProfileCard({
               <span className="font-semibold text-gray-500 w-28 inline-block">
                 Profile ID:
               </span>
-              {formatValue(profile.profileCode ?? `GM${String(profile.profileId).padStart(6, "0")}`)}
+              <span className="font-mono font-bold text-[#c0174c]">
+                {formatValue(formatProfileCode(profile.profileCode, profile.profileId))}
+              </span>
             </p>
           </div>
         </div>
@@ -160,7 +163,7 @@ function BlockedProfileCard({
             type="button"
             onClick={() => onUnblock(profile)}
             disabled={busy}
-            className="w-full inline-flex items-center justify-center gap-2 border-2 border-[#c0174c] text-[#c0174c] hover:bg-[#c0174c] hover:text-white text-[11px] font-bold px-3 py-1.5 rounded transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="cursor-pointer w-full inline-flex items-center justify-center gap-2 border-2 border-[#c0174c] text-[#c0174c] hover:bg-[#c0174c] hover:text-white text-[11px] font-bold px-3 py-1.5 rounded transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Ban size={14} />
             {busy ? "UNBLOCKING..." : "UNBLOCK"}
@@ -177,6 +180,7 @@ export default function BlockedProfiles() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [unblockingId, setUnblockingId] = useState<number | null>(null);
+  const [profileToUnblock, setProfileToUnblock] = useState<BlockedProfile | null>(null);
 
   const loadProfiles = useCallback(async () => {
     setLoading(true);
@@ -195,10 +199,13 @@ export default function BlockedProfiles() {
     loadProfiles();
   }, [loadProfiles]);
 
-  const handleUnblock = async (profile: BlockedProfile) => {
-    const fullName = getFullName(profile);
-    if (!confirm(`Unblock ${fullName}?`)) return;
+  const requestUnblock = (profile: BlockedProfile) => {
+    setProfileToUnblock(profile);
+  };
 
+  const handleUnblock = async () => {
+    if (!profileToUnblock) return;
+    const profile = profileToUnblock;
     setUnblockingId(profile.profileId);
     try {
       await unblockProfile(profile.profileId);
@@ -213,6 +220,7 @@ export default function BlockedProfiles() {
           detail: { profileId: profile.profileId },
         }),
       );
+      setProfileToUnblock(null);
     } catch (unblockError) {
       alert(getErrorMessage(unblockError));
     } finally {
@@ -275,7 +283,7 @@ export default function BlockedProfiles() {
               <BlockedProfileCard
                 key={profile.blockedEntryId ?? profile.profileId}
                 profile={profile}
-                onUnblock={handleUnblock}
+                onUnblock={requestUnblock}
                 busy={unblockingId === profile.profileId}
               />
             ))}
@@ -305,6 +313,49 @@ export default function BlockedProfiles() {
             </div>
           )}
         </>
+      )}
+
+      {profileToUnblock && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="unblock-confirm-title"
+            className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl"
+          >
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#fff0f4] text-[#c0174c]">
+              <Ban size={24} />
+            </div>
+            <h3
+              id="unblock-confirm-title"
+              className="text-center text-lg font-bold text-gray-900"
+              style={{ fontFamily: "Georgia, serif" }}
+            >
+              Unblock {getFullName(profileToUnblock)}?
+            </h3>
+            <p className="mt-2 text-center text-sm leading-6 text-gray-600">
+              This profile will be able to see your profile and contact you again.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setProfileToUnblock(null)}
+                disabled={unblockingId === profileToUnblock.profileId}
+                className="cursor-pointer rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleUnblock}
+                disabled={unblockingId === profileToUnblock.profileId}
+                className="cursor-pointer rounded-lg bg-[#c0174c] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#9f123f] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {unblockingId === profileToUnblock.profileId ? "Unblocking..." : "Unblock"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

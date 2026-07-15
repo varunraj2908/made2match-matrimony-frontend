@@ -1273,7 +1273,9 @@ export default function MyProfilePage() {
         {/* ── Partner Preferences ── */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p className="text-xs sm:text-sm text-gray-700 font-medium">Edit your partner preferences to get relevant matches.</p>
-          <button className="text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-sm sm:shrink-0 w-full sm:w-auto text-center"
+          <button
+            onClick={() => router.push("/partnerpreferences")}
+            className="text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-sm sm:shrink-0 w-full sm:w-auto text-center"
             style={{ backgroundColor: "#e67e22" }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#ca6f1e"; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#e67e22"; }}>

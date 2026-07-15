@@ -23,11 +23,13 @@ export default function MainLayout({
           <Footer />
         </div>
       )}
-      <ChatAssistant />
+      {!pathname.startsWith("/chat") && <ChatAssistant />}
       <MatchCelebration />
       <WelcomeCelebration />
       {/* Spacer so content clears the fixed mobile bottom nav */}
-      <div className="h-16 lg:hidden" aria-hidden />
+      {!pathname.startsWith("/chat") && (
+        <div className="h-16 lg:hidden" aria-hidden />
+      )}
     </>
   );
 }

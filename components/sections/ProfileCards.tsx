@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import CoastHeaderBar from "../layout/CoastHeaderBar";
 import FilterBar, { type FilterState } from "./FilterTab";
 import {
+  cacheSentInterest,
   fetchForMenu,
   recordProfileView,
   shortlistProfile,
@@ -15,6 +16,10 @@ import {
   type SidebarLabel,
 } from "@/services/matchesService";
 import { getBlockedProfiles } from "@/services/blockedProfilesService";
+import {
+  getMyPreferences,
+  type PartnerPreferencePayload,
+} from "@/services/profileService";
 
 const PAGE_SIZE = 10;
 
@@ -42,6 +47,30 @@ const hasActiveFilters = (
   Object.values(state.dropdowns).some((value) => value !== null && value !== undefined);
 
 const EMPTY_FILTERS: FilterState = { toggles: {}, dropdowns: {} };
+
+const hasSavedPartnerPreferences = (pref: PartnerPreferencePayload): boolean =>
+  [
+    pref.minAge,
+    pref.maxAge,
+    pref.minHeightCm,
+    pref.maxHeightCm,
+    pref.preferredCountry,
+    pref.preferredState,
+    pref.preferredReligion,
+    pref.preferredCaste,
+    pref.preferredMaritalStatus,
+    pref.preferredEducation,
+    pref.preferredOccupation,
+    pref.minAnnualIncome,
+    pref.preferredDiet,
+    pref.partnerDescription,
+  ].some((value) => {
+    if (typeof value === "string") return value.trim().length > 0;
+    return value != null;
+  }) ||
+  pref.casteNoBar === true ||
+  pref.smokingAcceptable === true ||
+  pref.drinkingAcceptable === true;
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   if (typeof error === "object" && error !== null) {
@@ -74,9 +103,30 @@ const SIDEBAR_SECTIONS = [
             <circle cx="12" cy="7" r="4" />
           </svg>
         ),
+        label: "All Matches",
+        desc: "View all available profiles",
+        highlight: true,
+      },
+      {
+        icon: (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="9" cy="7" r="4" />
+            <path d="M2 21v-2a7 7 0 0 1 14 0v2" />
+            <path d="M16 3.3a4 4 0 0 1 0 7.4" />
+            <path d="M22 21v-2a7 7 0 0 0-4-6.3" />
+          </svg>
+        ),
         label: "Your Matches",
         desc: "View all the profiles that match your preferences",
-        highlight: true,
       },
     ],
   },
@@ -409,26 +459,6 @@ const SIDEBAR_SECTIONS = [
         ),
         label: "Location preference",
         desc: "Matches based on your preferred city/location",
-      },
-      {
-        icon: (
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="2" y1="12" x2="22" y2="12" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-          </svg>
-        ),
-        label: "NRI matches",
-        desc: "Matches from outside India",
       },
     ],
   },
@@ -896,7 +926,7 @@ const ProfileCardList = ({
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-gray-400 font-mono truncate">
+            <p className="text-[11px] font-mono font-bold text-[#c0174c] truncate">
               {profile.id}
             </p>
             <div className="flex flex-wrap gap-1 mt-1">
@@ -1015,7 +1045,7 @@ const Pagination = ({
 export default function ProfileCards() {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeMenu, setActiveMenu] = useState<string>("Your Matches");
+  const [activeMenu, setActiveMenu] = useState<string>("All Matches");
   const [mobileViewMode, setMobileViewMode] = useState<"grid" | "list">("grid");
 
   const [items, setItems] = useState<CardProfile[]>([]);
@@ -1027,6 +1057,8 @@ export default function ProfileCards() {
   const [shortlistMsg, setShortlistMsg] = useState<string>("");
   const [filterState, setFilterState] = useState<FilterState>(EMPTY_FILTERS);
   const [blockedProfileIds, setBlockedProfileIds] = useState<Set<number>>(new Set());
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+  const [hasPartnerPreferences, setHasPartnerPreferences] = useState(false);
 
   // appendModeRef tracks whether the next fetch should append or replace items
   const appendModeRef  = useRef(false);
@@ -1040,6 +1072,13 @@ export default function ProfileCards() {
   useEffect(() => { totalPagesRef.current  = totalPages;  }, [totalPages]);
 
   // Fetch blocked profile IDs on mount
+  useEffect(() => {
+    getMyPreferences()
+      .then((pref) => setHasPartnerPreferences(hasSavedPartnerPreferences(pref ?? {})))
+      .catch(() => setHasPartnerPreferences(false))
+      .finally(() => setPreferencesLoaded(true));
+  }, []);
+
   useEffect(() => {
     const loadBlockedProfiles = () => {
       getBlockedProfiles()
@@ -1112,7 +1151,7 @@ export default function ProfileCards() {
 
   const handleFilterChange = (next: FilterState) => {
     setFilterState(next);
-    setActiveMenu(hasActiveFilters(next) ? "" : "Your Matches");
+    setActiveMenu(hasActiveFilters(next) ? "" : "All Matches");
   };
 
   // Reset to page 1 when menu or filter changes.
@@ -1133,8 +1172,31 @@ export default function ProfileCards() {
     setError("");
 
     const matchFilters = buildMatchFilters(filterState);
+    const activeLabel = (
+      activeMenu || "All Matches"
+    ) as SidebarLabel;
+    const shouldWaitForPreferences = activeLabel === "Your Matches" && !hasActiveFilters(filterState);
 
-    fetchForMenu((activeMenu || "Your Matches") as SidebarLabel, currentPage - 1, PAGE_SIZE, matchFilters)
+    if (shouldWaitForPreferences && !preferencesLoaded) {
+      setLoading(true);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (shouldWaitForPreferences && !hasPartnerPreferences) {
+      setItems([]);
+      setTotalElements(0);
+      setTotalPages(0);
+      setLoading(false);
+      setLoadingMore(false);
+      isFetchingRef.current = false;
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    fetchForMenu(activeLabel, currentPage - 1, PAGE_SIZE, matchFilters)
       .then((result) => {
         if (cancelled) return;
         
@@ -1168,7 +1230,7 @@ export default function ProfileCards() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeMenu, currentPage, filterKey, blockedProfileIds]);
+  }, [activeMenu, currentPage, filterKey, blockedProfileIds, preferencesLoaded, hasPartnerPreferences]);
 
   const handleOpen = (p: CardProfile) => {
     recordProfileView(p.numericId).catch(() => undefined);
@@ -1190,7 +1252,18 @@ export default function ProfileCards() {
 
   const handleInterest = async (p: CardProfile) => {
     try {
-      await sendInterest(p.numericId);
+      const response = await sendInterest(p.numericId);
+      cacheSentInterest(p.numericId, {
+        name: p.name,
+        age: p.age,
+        heightDisplay: p.height,
+        city: p.location,
+        caste: p.caste,
+        religion: p.religion,
+        highestQualification: p.education,
+        occupation: p.profession,
+        profilePhotoUrl: p.photo,
+      }, response);
       setShortlistMsg(`Interest sent to ${p.name}`);
       window.setTimeout(() => setShortlistMsg(""), 2500);
     } catch (ex: unknown) {
@@ -1303,6 +1376,20 @@ export default function ProfileCards() {
                     className="bg-gray-100 animate-pulse rounded-lg h-44 md:h-40"
                   />
                 ))}
+              </div>
+            ) : !hasPartnerPreferences && (activeMenu || "Your Matches") === "Your Matches" && !hasActiveFilters(filterState) ? (
+              <div className="text-center py-16 text-gray-500 bg-white border border-gray-100 rounded-xl">
+                <p className="text-sm font-semibold text-gray-700">Set partner preferences to see preference based matches.</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Your matches will appear here after you save age, religion, education, location or other preferences.
+                </p>
+                <button
+                  onClick={() => router.push("/partnerpreferences")}
+                  className="mt-4 px-5 py-2.5 rounded-full text-white text-sm font-bold hover:opacity-90 transition"
+                  style={{ background: "linear-gradient(135deg, #c0174c, #8b0f38)" }}
+                >
+                  Set Preferences
+                </button>
               </div>
             ) : items.length === 0 ? (
               <div className="text-center py-16 text-gray-500">

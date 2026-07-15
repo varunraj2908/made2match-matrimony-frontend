@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getMyProfile } from "@/services/homeService";
+import { getReceivedInterests, getSentInterestsList } from "@/services/matchesService";
 import {
   fetchConversation,
   formatChatTime,
@@ -77,16 +78,21 @@ interface ChatProps {
   initialUserId?: number;
 }
 
+type ConversationTab = "All" | "Unread" | "Interests";
+
 export default function Chat({ initialUserId }: ChatProps = {}) {
   const router = useRouter();
 
   const [meId, setMeId] = useState<number | null>(null);
+  const [myPhoto, setMyPhoto] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(true);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<ConversationTab>("All");
+  const [interestProfileIds, setInterestProfileIds] = useState<Set<number>>(new Set());
   const [showProfile, setShowProfile] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [mobileScreen, setMobileScreen] = useState<"list" | "chat" | "profile">("list");
@@ -98,9 +104,37 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
   const initialUserIdAppliedRef = useRef(false);
 
   const currentMessages = selectedContact ? messages[selectedContact.id] || [] : [];
-  const filteredContacts = contacts.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredContacts = contacts.filter((contact) => {
+    const matchesSearch = contact.name.toLowerCase().includes(search.trim().toLowerCase());
+    if (!matchesSearch) return false;
+    if (activeTab === "Unread") return contact.unread > 0;
+    if (activeTab === "Interests") {
+      return contact.profileId != null && interestProfileIds.has(contact.profileId);
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getReceivedInterests(0, 500), getSentInterestsList(0, 500)])
+      .then(([received, sent]) => {
+        if (cancelled) return;
+        const ids = new Set<number>();
+        received.content.forEach((interest) => {
+          if (interest.status === "ACCEPTED" && interest.sender?.id != null) ids.add(interest.sender.id);
+        });
+        sent.content.forEach((interest) => {
+          if (interest.status === "ACCEPTED" && interest.receiver?.id != null) ids.add(interest.receiver.id);
+        });
+        setInterestProfileIds(ids);
+      })
+      .catch(() => {
+        if (!cancelled) setInterestProfileIds(new Set());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /* ─── Load my user id once ────────────────────────────────────── */
   useEffect(() => {
@@ -109,8 +143,8 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
       try {
         const me = await getMyProfile();
         if (cancelled) return;
-        const id = (me as any)?.userId ?? (me as any)?.user?.id ?? null;
-        if (id != null) setMeId(Number(id));
+        if (me.userId != null) setMeId(Number(me.userId));
+        setMyPhoto(me.profilePhotoUrl || fallbackAvatar([me.firstName, me.lastName].filter(Boolean).join(" ") || "Me"));
       } catch {
         /* ignore */
       }
@@ -158,6 +192,7 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
     const existing = contacts.find((c) => c.userId === targetUserId);
     if (existing) {
       setSelectedContact(existing);
+      setMobileScreen("chat");
       initialUserIdAppliedRef.current = true;
       return;
     }
@@ -176,6 +211,7 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
       online: false,
       verified: true,
     });
+    setMobileScreen("chat");
     initialUserIdAppliedRef.current = true;
   }, [initialUserId, contacts, contactsLoading]);
 
@@ -185,10 +221,16 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
       if (meId == null) return;
       try {
         const dtos = await fetchConversation(contact.userId, 0, 200);
-        // backend returns DESC; reverse to ascending for display
-        const ordered = [...dtos].reverse();
-        const mapped = ordered.map((m) => dtoToMessage(m, meId));
+        // The backend returns the conversation in ascending sent-time order.
+        const mapped = dtos.map((m) => dtoToMessage(m, meId));
         setMessages((prev) => ({ ...prev, [contact.id]: mapped }));
+        const hasUnreadIncoming = dtos.some(
+          (message) => !message.isRead && message.sender?.id !== meId,
+        );
+        if (hasUnreadIncoming) {
+          await markConversationRead(contact.userId);
+          window.dispatchEvent(new CustomEvent("messages:refresh"));
+        }
       } catch {
         /* ignore */
       }
@@ -199,8 +241,6 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
   useEffect(() => {
     if (!selectedContact || meId == null) return;
     loadMessages(selectedContact);
-    // mark as read on open (fire-and-forget)
-    markConversationRead(selectedContact.userId).catch(() => {});
     const t = setInterval(() => loadMessages(selectedContact), POLL_INTERVAL_MS);
     return () => clearInterval(t);
   }, [selectedContact, meId, loadMessages]);
@@ -224,11 +264,18 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
   const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
     setShowQuickReplies(false);
+    setShowProfile(false);
     setInput("");
-    navigateTo("chat", "in");
+    setAnimating(false);
+    setMobileScreen("chat");
   };
 
-  const handleBack = () => navigateTo("list", "out");
+  const handleBack = () => {
+    // Switch atomically so the list and chat layers do not briefly overlap.
+    setAnimating(false);
+    setShowProfile(false);
+    setMobileScreen("list");
+  };
   const handleOpenProfile = () => {
     setShowProfile(true);
     navigateTo("profile", "in");
@@ -251,7 +298,12 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
       id: `tmp-${Date.now()}`,
       senderId: "me",
       text: trimmed,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      time: new Date().toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      }),
       status: "sent",
       type: "text",
     };
@@ -308,9 +360,9 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
         .slide-out-right { animation: slideOutToRight   0.28s cubic-bezier(0.25,0.46,0.45,0.94) forwards; }
       `}</style>
 
-      <div className="bg-gray-100">
+      <div className="bg-gray-100 overflow-hidden">
         <div className="max-w-7xl mx-auto sm:px-4 sm:py-6">
-          <div className="bg-white sm:rounded-2xl shadow-xl flex overflow-hidden h-[93svh] sm:h-[85svh]">
+          <div className="bg-white sm:rounded-2xl shadow-xl flex overflow-hidden h-[calc(100svh-7.375rem)] sm:h-[85svh]">
 
             {/* Desktop Sidebar */}
             <div className="hidden lg:flex w-80 shrink-0 flex-col border-r border-gray-100">
@@ -321,6 +373,8 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
                 selectedContact={selectedContact}
                 totalUnread={totalUnread}
                 loading={contactsLoading}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
                 onSelect={(c) => { setSelectedContact(c); setInput(""); setShowQuickReplies(false); }}
               />
             </div>
@@ -343,6 +397,7 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
                   messagesEndRef={messagesEndRef}
                   showBackButton={false}
                   sending={sending}
+                  myPhoto={myPhoto}
                 />
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center bg-[#fdf8f8] text-gray-400">
@@ -386,6 +441,8 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
                   selectedContact={selectedContact}
                   totalUnread={totalUnread}
                   loading={contactsLoading}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
                   onSelect={handleSelectContact}
                 />
               </div>
@@ -421,6 +478,7 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
                     messagesEndRef={messagesEndRef}
                     showBackButton={true}
                     sending={sending}
+                    myPhoto={myPhoto}
                   />
                 </div>
               )}
@@ -457,7 +515,8 @@ export default function Chat({ initialUserId }: ChatProps = {}) {
 
 /* ─── Sidebar Content ─────────────────────────────────────────────── */
 function SidebarContent({
-  search, setSearch, filteredContacts, selectedContact, totalUnread, loading, onSelect,
+  search, setSearch, filteredContacts, selectedContact, totalUnread, loading,
+  activeTab, onTabChange, onSelect,
 }: {
   search: string;
   setSearch: (v: string) => void;
@@ -465,6 +524,8 @@ function SidebarContent({
   selectedContact: Contact | null;
   totalUnread: number;
   loading: boolean;
+  activeTab: ConversationTab;
+  onTabChange: (tab: ConversationTab) => void;
   onSelect: (c: Contact) => void;
 }) {
   return (
@@ -490,11 +551,14 @@ function SidebarContent({
       </div>
 
       <div className="flex border-b border-gray-100">
-        {["All", "Unread", "Interests"].map((tab, i) => (
+        {(["All", "Unread", "Interests"] as ConversationTab[]).map((tab) => (
           <button
             key={tab}
+            type="button"
+            onClick={() => onTabChange(tab)}
+            aria-pressed={activeTab === tab}
             className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${
-              i === 0 ? "text-[#b22234] border-b-2 border-[#b22234]" : "text-gray-500 hover:text-[#b22234]"
+              activeTab === tab ? "text-[#b22234] border-b-2 border-[#b22234]" : "text-gray-500 hover:text-[#b22234]"
             }`}
           >
             {tab}
@@ -512,7 +576,11 @@ function SidebarContent({
           <div className="p-8 text-center text-xs text-gray-400">Loading conversations...</div>
         ) : filteredContacts.length === 0 ? (
           <div className="p-8 text-center text-xs text-gray-400">
-            No conversations yet. Send an interest and start chatting once accepted!
+            {activeTab === "Unread"
+              ? "No unread conversations."
+              : activeTab === "Interests"
+                ? "No accepted-interest conversations yet."
+                : "No conversations yet. Send an interest and start chatting once accepted!"}
           </div>
         ) : (
           filteredContacts.map((contact) => (
@@ -569,6 +637,7 @@ function ChatContent({
   selectedContact, currentMessages, input, setInput,
   showQuickReplies, setShowQuickReplies, showProfile,
   onToggleProfile, onBack, onSend, onKeyDown, messagesEndRef, showBackButton, sending,
+  myPhoto,
 }: {
   selectedContact: Contact;
   currentMessages: Message[];
@@ -584,6 +653,7 @@ function ChatContent({
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   showBackButton: boolean;
   sending: boolean;
+  myPhoto: string;
 }) {
   return (
     <>
@@ -683,7 +753,11 @@ function ChatContent({
                   </div>
                 </div>
                 {isMe && (
-                  <div className="w-6 h-6 rounded-full bg-[#b22234] flex items-center justify-center text-white text-[9px] font-bold shrink-0 mb-1">Me</div>
+                  <img
+                    src={myPhoto || fallbackAvatar("Me")}
+                    alt="My profile"
+                    className="mb-1 h-6 w-6 shrink-0 rounded-full border border-[#f5c6cb] object-cover"
+                  />
                 )}
               </div>
             );
@@ -710,33 +784,32 @@ function ChatContent({
       )}
 
       {/* Input */}
-      <div className="px-3 sm:px-4 py-3 bg-white border-t border-gray-100 shrink-0">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="flex gap-1 justify-center items-center">
+      <div className="flex h-18 shrink-0 items-center border-t border-gray-100 bg-white px-3 sm:px-4">
+        <div className="flex h-10 w-full items-center gap-1.5 mb-3 sm:gap-2">
+          <div className="flex h-10 shrink-0 items-center gap-1">
             <button
               onClick={() => setShowQuickReplies(!showQuickReplies)}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm transition-colors ${
+              className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center text-sm transition-colors ${
                 showQuickReplies ? "bg-[#b22234] text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-500"
               }`}
             >⚡</button>
-            <button className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 text-sm flex items-center justify-center">📎</button>
+            <button className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 text-sm flex items-center justify-center">📎</button>
           </div>
-          <div className="flex relative justify-center items-center w-full">
+          <div className="relative flex h-10 min-w-0 flex-1 items-center">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder="Type a message..."
               rows={1}
-              className="w-full px-3 sm:px-4 py-2.5 pr-9 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#b22234] resize-none bg-gray-50 focus:bg-white transition-colors"
-              style={{ maxHeight: "100px" }}
+              className="h-10 w-full resize-none overflow-hidden rounded-xl border border-gray-200 bg-gray-50 px-3 py-[9px] pr-9 text-sm leading-5 transition-colors focus:border-[#b22234] focus:bg-white focus:outline-none"
             />
-            <button className="absolute right-2.5 bottom-2.5 text-gray-400 hover:text-[#b22234] text-sm transition-colors">😊</button>
+            <button className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-gray-400 transition-colors hover:text-[#b22234]">😊</button>
           </div>
           <button
             onClick={() => onSend(input)}
             disabled={!input.trim() || sending}
-            className="w-10 h-10 rounded-xl bg-[#b22234] hover:bg-[#9a1d2b] disabled:bg-gray-200 text-white flex items-center justify-center transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed shrink-0"
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-[#b22234] hover:bg-[#9a1d2b] disabled:bg-gray-200 text-white flex items-center justify-center transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed shrink-0"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13" />

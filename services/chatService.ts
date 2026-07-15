@@ -52,7 +52,7 @@ export const sendChatMessage = async (
 ): Promise<MessageDto> => {
   const res = await axiosInstance.post<ApiEnvelope<MessageDto>>(
     `/messages/send/${receiverUserId}`,
-    { content },
+    { content, clientSentAt: new Date().toISOString() },
   );
   return res.data.data;
 };
@@ -87,7 +87,15 @@ export const formatChatTime = (iso?: string): string => {
 
 export const formatMessageTime = (iso?: string): string => {
   if (!iso) return "";
-  const d = new Date(iso);
+  // Message timestamps are stored as UTC LocalDateTime by the backend. Spring
+  // omits the zone suffix, so add it before converting to Indian time.
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(iso);
+  const d = new Date(hasZone ? iso : `${iso}Z`);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  });
 };

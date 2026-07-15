@@ -52,6 +52,7 @@ export interface MatchProfile {
 export interface ProfileActivity {
   profileId: number;
   userId: number;
+  profileCode?: string;
   fullName?: string;
   age?: number;
   heightDisplay?: string;
@@ -79,6 +80,7 @@ export interface ActivityCounts {
 export interface MyProfile {
   id: number;
   userId: number;
+  profileCode?: string;
   firstName?: string;
   lastName?: string;
   age?: number;

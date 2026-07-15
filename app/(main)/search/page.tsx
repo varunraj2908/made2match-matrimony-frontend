@@ -8,9 +8,11 @@ import {
   PROFILE_CREATED_BY_MAP,
   parseProfileId,
   type SearchCriteria,
+  type SearchCardProfile,
   type SearchResult,
 } from "@/services/searchService";
 import { getMyPreferences } from "@/services/profileService";
+import { formatProfileCode } from "@/lib/memberId";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -143,6 +145,77 @@ function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: (c
       </div>
       <span className="text-sm text-gray-600">{label}</span>
     </label>
+  );
+}
+
+function SearchResultCard({
+  profile,
+  onOpen,
+}: {
+  profile: SearchCardProfile;
+  onOpen: (profile: SearchCardProfile) => void;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const tags = [profile.profession, profile.education, profile.religion, profile.height]
+    .filter(Boolean)
+    .slice(0, 4) as string[];
+  const initials = profile.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "M2";
+
+  return (
+    <button
+      onClick={() => onOpen(profile)}
+      className="text-left rounded-2xl bg-white border border-gray-200 p-2.5 group shadow-[0_10px_30px_-12px_rgba(0,0,0,0.18)] hover:shadow-[0_16px_42px_-12px_rgba(192,23,76,0.25)] hover:border-[#f0c6d2] transition-all"
+    >
+      <div className="relative w-full overflow-hidden rounded-xl bg-gray-900" style={{ aspectRatio: "3 / 2.6" }}>
+        {imgError || !profile.photo ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#c0174c] text-white text-5xl font-semibold tracking-wide">
+            {initials}
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profile.photo}
+            alt={profile.name}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={() => setImgError(true)}
+          />
+        )}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(0,0,0,0.58) 4%, rgba(0,0,0,0) 46%)" }} />
+        {profile.isPremium && (
+          <span className="absolute top-2 left-2 bg-amber-400 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow">
+            PRIME
+          </span>
+        )}
+        <div className="absolute left-2 right-2 bottom-2 text-white">
+          <p className="text-sm font-black leading-tight truncate">{profile.name}</p>
+          <p className="text-[11px] text-white/85 mt-0.5">
+            {[profile.age ? `${profile.age} yrs` : null, profile.height].filter(Boolean).join(", ") || "--"}
+          </p>
+        </div>
+      </div>
+      <div className="px-1.5 pt-2 pb-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] font-mono font-bold text-[#c0174c] truncate">
+            {formatProfileCode(null, profile.id)}
+          </p>
+          {profile.location && (
+            <p className="text-[10px] text-gray-500 truncate">{profile.location}</p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {tags.map((tag) => (
+            <span key={tag} className="px-1.5 py-0.5 rounded bg-rose-50 text-[10px] font-medium text-[#9c0736] max-w-full truncate">
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -297,7 +370,7 @@ export default function SearchPage() {
   const searchByProfileId = () => {
     const id = parseProfileId(profileIdInput);
     if (id) router.push(`/profiles/${id}`);
-    else setSearchErr("Please enter a valid Profile ID (e.g. GM002341).");
+    else setSearchErr("Please enter a valid Profile ID (e.g. MTM02341).");
   };
 
   // Load partner preferences as default search criteria + initial match count
@@ -356,7 +429,7 @@ export default function SearchPage() {
               <div className="flex gap-3">
                 <input value={profileIdInput} onChange={e => setProfileIdInput(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") searchByProfileId(); }}
-                  placeholder="Enter Profile ID e.g. GM002341"
+                  placeholder="Enter Profile ID e.g. MTM02341"
                   className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200" />
                 <button onClick={searchByProfileId}
                   className="px-6 py-2.5 rounded-lg text-white text-sm font-bold hover:opacity-90 transition"
@@ -675,20 +748,46 @@ export default function SearchPage() {
       {results && (
         <div className="fixed inset-0 z-[1500] bg-gray-50 overflow-y-auto">
           {/* Results header */}
-          <div className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-8 py-4 border-b border-gray-100 bg-white shadow-sm">
-            <button onClick={() => setResults(null)}
-              className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#c0174c] transition">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-              Modify search
-            </button>
-            <p className="text-sm font-semibold text-gray-700">
-              <span className="font-black text-base" style={{ color: "#c0174c" }}>
-                {results.totalElements.toLocaleString()}
-              </span>
-              <span className="text-gray-500 ml-1">profiles found</span>
-            </p>
+          <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
+            <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+              <button
+                onClick={() => router.push("/home")}
+                className="flex items-center gap-2 min-w-0"
+                aria-label="Go to home"
+              >
+                <span className="w-10 h-10 rounded-full bg-white shadow-sm border border-rose-100 flex items-center justify-center overflow-hidden shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo.png" alt="" className="w-8 h-8 object-contain" />
+                </span>
+                <span className="font-serif text-2xl font-bold tracking-wide text-[#b22234] truncate">
+                  Made<span className="text-yellow-400">2</span>Match
+                </span>
+              </button>
+              <button
+                onClick={() => router.push("/notifications")}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-rose-50 hover:text-[#c0174c] transition"
+                aria-label="Notifications"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                  <path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6v-5a7 7 0 0 0-5.25-6.78V3a1.75 1.75 0 1 0-3.5 0v1.22A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z" />
+                </svg>
+              </button>
+            </div>
+            <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3 border-t border-gray-50">
+              <button onClick={() => setResults(null)}
+                className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#c0174c] transition">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+                Modify search
+              </button>
+              <p className="text-sm font-semibold text-gray-700">
+                <span className="font-black text-base" style={{ color: "#c0174c" }}>
+                  {results.totalElements.toLocaleString()}
+                </span>
+                <span className="text-gray-500 ml-1">profiles found</span>
+              </p>
+            </div>
           </div>
 
           <div className="max-w-5xl mx-auto px-4 py-6">
@@ -701,13 +800,16 @@ export default function SearchPage() {
                 No profiles match your criteria. Try widening your filters.
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {results.items.map((p) => (
-                  <button
+                  <SearchResultCard
                     key={p.id}
-                    onClick={() => router.push(`/profiles/${p.id}`)}
-                    className="text-left bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg hover:border-[#c0174c]/30 transition group"
-                  >
+                    profile={p}
+                    onOpen={(profile) => router.push(`/profiles/${profile.id}`)}
+                  />
+                ))}
+                {false && results?.items.map((p) => (
+                  <button key={p.id}>
                     <div className="relative w-full aspect-square overflow-hidden bg-gray-100">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img

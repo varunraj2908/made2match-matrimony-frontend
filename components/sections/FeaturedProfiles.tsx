@@ -1,6 +1,5 @@
 "use client";
 
-import { profiles } from "@/constants/profiles";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -21,15 +20,15 @@ export default function FeaturedProfiles() {
     { name: "Varun", age: 33, height: "5'6\"", city: "Palakkad", image: "/varun-groom.jpg" },
     { name: "Shijo", age: 30, height: "6'0\"", city: "Palakkad", image: "/shijo-groom.jpg" },
     { name: "Sabin", age: 31, height: "5'9\"", city: "Palakkad", image: "/sabin-groom.jpg" },
-    { name: "Arjun Nair", age: 29, height: "5'8\"", city: "Kozhikode", image: "https://randomuser.me/api/portraits/men/45.jpg" },
-    ...profiles.slice(5, 6),
+    { name: "Adithyan", age: 29, height: "5'9\"", city: "Kochi", image: "/profile5.png" },
+    { name: "Nithin", age: 30, height: "5'10\"", city: "Kannur", image: "/profile6.png" },
   ];
   const list = tab === "bride" ? brides : grooms;
   const [activeIdx, setActiveIdx] = useState(2); // center one is highlighted
 
   return (
     <section className="bg-white px-4 sm:px-6 lg:px-8 py-12">
-      <div className="max-w-6xl mx-auto">
+      <div className="mx-auto max-w-7xl lg:px-6">
         {/* Header */}
         <div className="text-center mb-6">
           <h2

@@ -441,6 +441,27 @@ export default function Settings() {
 
   const [showMobileMenu, setShowMobileMenu] =
     useState(false);
+  
+  const [isChecking, setIsChecking] = useState(true);
+
+  // Prevent direct URL access - only allow navigation from within app
+  useEffect(() => {
+    const canAccess = sessionStorage.getItem('allowSettingsAccess');
+    
+    if (!canAccess) {
+      // Direct URL access detected - redirect to home
+      router.replace('/home');
+    } else {
+      // Clear the flag immediately after checking
+      sessionStorage.removeItem('allowSettingsAccess');
+      setIsChecking(false);
+    }
+  }, [router]);
+  
+  // Show nothing while checking access
+  if (isChecking) {
+    return null;
+  }
 
   const renderContent = () => {
     switch (active) {
@@ -479,6 +500,28 @@ export default function Settings() {
         fontFamily: "'Segoe UI', sans-serif",
       }}
     >
+      {/* Back Button - Mobile Only */}
+      <div className="max-w-7xl mx-auto px-4 pt-4 pb-3 lg:hidden flex items-center justify-between">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white border-2 border-[#f5d0d7] text-[#b22234] hover:bg-[#b22234] hover:text-white hover:border-[#b22234] transition-colors shadow-md"
+          aria-label="Go back"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        
+        {/* Mobile Settings Button */}
+        <button
+          onClick={() => setShowMobileMenu(true)}
+          className="md:hidden text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md"
+          style={{ background: 'linear-gradient(135deg,#c0174c,#8b0f38)' }}
+        >
+          Settings Menu
+        </button>
+      </div>
+      
       {/* Logout Modal */}
       {showLogoutModal && (
         <LogoutModal
@@ -493,45 +536,6 @@ export default function Settings() {
           }}
         />
       )}
-
-      {/* Header */}
-      <header
-        className="w-full px-4 md:px-8 py-4 flex items-center justify-between shadow-lg sticky top-0 z-30 lg:hidden"
-        style={{
-          background:
-            'linear-gradient(135deg,#c0174c,#8b0f38)',
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
-            <svg
-              viewBox="0 0 24 24"
-              fill="white"
-              className="w-5 h-5"
-            >
-              <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </div>
-
-          <div>
-            <h1 className="text-white font-bold text-lg">
-              MatriMatch
-            </h1>
-
-            <p className="text-white/70 text-xs">
-              Profile Settings
-            </p>
-          </div>
-        </div>
-
-        {/* Mobile Settings Button */}
-        <button
-          onClick={() => setShowMobileMenu(true)}
-          className="md:hidden bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-medium backdrop-blur-md"
-        >
-          Settings
-        </button>
-      </header>
 
       <div className="max-w-7xl mx-auto px-3 md:px-6 py-5 md:py-8">
         {/* MOBILE VIEW */}

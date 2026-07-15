@@ -10,6 +10,7 @@ import {
   type FullProfile,
 } from "@/services/profileService";
 import {
+  cacheSentInterest,
   fetchSentInterestStatusByProfileId,
   recordProfileView,
   sendInterest,
@@ -19,6 +20,7 @@ import { blockProfile } from "@/services/blockedProfilesService";
 import { submitProfileReport, type ProfileReportRequest } from "@/services/profileReportService";
 import { addReportNotification } from "@/services/notificationService";
 import AiMatchModal, { type MatchPerson } from "./AiMatchModal";
+import { formatProfileCode } from "@/lib/memberId";
 
 // ── Display helpers ─────────────────────────────────────────────
 const FALLBACK_AVATAR = (name?: string) =>
@@ -53,9 +55,20 @@ const formatIncomeRange = (min?: number, max?: number): string => {
   return formatIncome(min ?? max);
 };
 
-const friendly = (enumValue?: string): string => {
-  if (!enumValue) return "—";
-  return enumValue
+const friendly = (enumValue: unknown): string => {
+  if (enumValue == null || enumValue === "") return "—";
+  if (typeof enumValue === "boolean") return enumValue ? "Yes" : "No";
+
+  const displayValue =
+    typeof enumValue === "object"
+      ? (enumValue as { label?: unknown; name?: unknown; value?: unknown }).label ??
+        (enumValue as { name?: unknown }).name ??
+        (enumValue as { value?: unknown }).value
+      : enumValue;
+
+  if (displayValue == null || displayValue === "") return "—";
+
+  return String(displayValue)
     .toLowerCase()
     .split(/[_\s]+/)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -85,6 +98,9 @@ const getAsyncErrorMessage = (errorValue: unknown, fallback: string) =>
 const toMatchPerson = (p: FullProfile): MatchPerson => {
   const name = [p.firstName, p.lastName].filter(Boolean).join(" ") || "—";
   const isFemale = (p.gender || "").toUpperCase().startsWith("F");
+  const horoscope = [friendly(p.nakshatra), friendly(p.raasi)]
+    .filter((value) => value && value !== "—")
+    .join(" · ");
   return {
     name,
     role: isFemale ? "Bride" : "Groom",
@@ -97,7 +113,7 @@ const toMatchPerson = (p: FullProfile): MatchPerson => {
       .join(" · ") || "—",
     location: [p.city, p.state].filter(Boolean).join(", ") || "—",
     weight: p.weightKg ? `${p.weightKg} kg` : "—",
-    horoscope: friendly(p.shudhajathakam) !== "—" ? friendly(p.shudhajathakam) : "—",
+    horoscope: horoscope || (friendly(p.shudhajathakam) !== "—" ? friendly(p.shudhajathakam) : "—"),
   };
 };
 
@@ -112,12 +128,14 @@ const REPORT_CATEGORIES = [
 
 function ReportViolationModal({
   profileId,
+  profileCode,
   profileName,
   onClose,
   onSubmit,
   submitting,
 }: {
   profileId: string;
+  profileCode?: string;
   profileName: string;
   onClose: () => void;
   onSubmit: (payload: ProfileReportRequest) => Promise<void>;
@@ -127,20 +145,20 @@ function ReportViolationModal({
   const [subject, setSubject] = useState("");
   const [details, setDetails] = useState("");
   const [evidence, setEvidence] = useState("");
-  const [matrimonyId, setMatrimonyId] = useState(`GM${profileId.padStart(6, "0")}`);
+  const [matrimonyId, setMatrimonyId] = useState(formatProfileCode(profileCode, profileId));
 
   const reset = () => {
     setCategory("");
     setSubject("");
     setDetails("");
     setEvidence("");
-    setMatrimonyId(`GM${profileId.padStart(6, "0")}`);
+    setMatrimonyId(formatProfileCode(profileCode, profileId));
   };
 
   const submit = () => {
     if (!category || !subject.trim() || !details.trim()) return;
     onSubmit({
-      reportedProfileId: Number(profileId),
+      reportedProfileId: Number(profileId.replace(/\D/g, "")),
       category,
       subject: subject.trim(),
       complaintDetails: details.trim(),
@@ -208,7 +226,7 @@ function ReportViolationModal({
               <select
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
-                className="mt-1 w-full h-10 rounded-lg border border-rose-100 bg-white px-3 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
+                className="mt-1 w-full h-10 rounded-lg border border-rose-100 bg-white px-3 font-mono font-bold text-[#c0174c] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
               >
                 <option value="">- select -</option>
                 {REPORT_CATEGORIES.map((item) => (
@@ -225,7 +243,7 @@ function ReportViolationModal({
               <input
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
-                className="mt-1 w-full h-10 rounded-lg border border-rose-100 bg-white px-3 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
+                className="mt-1 w-full h-10 rounded-lg border border-rose-100 bg-white px-3 font-mono font-bold text-[#c0174c] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
               />
             </label>
 
@@ -257,7 +275,7 @@ function ReportViolationModal({
               <input
                 value={matrimonyId}
                 onChange={(event) => setMatrimonyId(event.target.value)}
-                className="mt-1 w-full h-10 rounded-lg border border-rose-100 bg-white px-3 text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
+                className="mt-1 w-full h-10 rounded-lg border border-rose-100 bg-white px-3 font-mono font-bold text-[#c0174c] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#c0174c]/25"
               />
               <span className="block text-xs font-semibold text-gray-400 mt-0.5">
                 Reporting {profileName}. Furnish Made2Match ID if relevant.
@@ -367,7 +385,7 @@ interface ProfileData {
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const PROFILE: ProfileData = {
-  id: "GM001247",
+  id: "MTM01247",
   name: "Lorem Ipsum",
   age: 20,
   height: "5'1 In",
@@ -941,7 +959,21 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
     if (!profile || interestStatus !== null || actionBusy) return;
     setActionBusy(true);
     try {
-      await sendInterest(profile.id);
+      const response = await sendInterest(profile.id);
+      cacheSentInterest(profile.id, {
+        profileCode: profile.profileCode,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        age: profile.age,
+        heightCm: profile.heightCm,
+        city: profile.city,
+        state: profile.state,
+        caste: profile.caste,
+        religion: profile.religion,
+        highestQualification: profile.highestQualification,
+        occupation: profile.occupation,
+        profilePhotoUrl: profile.profilePhotoUrl,
+      }, response);
       setInterestStatus("PENDING");
       showToast(`Interest sent to ${profile.firstName ?? "this profile"}`);
     } catch (ex: unknown) {
@@ -1244,6 +1276,7 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
       {reportOpen && (
         <ReportViolationModal
           profileId={p.id}
+          profileCode={profile?.profileCode}
           profileName={p.name}
           onClose={() => setReportOpen(false)}
           onSubmit={handleReportSubmit}

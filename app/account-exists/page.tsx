@@ -7,7 +7,7 @@ export default function AccountExistsPage() {
   const phone = "+91 8075067058";
   const profile = {
     name: "Varun",
-    id: "E7086341",
+    id: "MTM7086341",
     avatar: null,
   };
 
@@ -52,7 +52,7 @@ export default function AccountExistsPage() {
           {/* Info */}
           <div className="flex-1 min-w-0">
             <p className="font-bold text-gray-900 text-sm">{profile.name}</p>
-            <p className="text-xs text-gray-400 mb-1">{profile.id}</p>
+            <p className="text-xs font-mono font-bold text-[#c0174c] mb-1">{profile.id}</p>
             <button
               className="flex items-center gap-0.5 text-xs font-semibold hover:underline transition"
               style={{ color: "#c0174c" }}

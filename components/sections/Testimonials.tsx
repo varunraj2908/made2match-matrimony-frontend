@@ -13,24 +13,24 @@ interface Testimonial {
 const TESTIMONIALS: Testimonial[] = [
   {
     quote:
-      "Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem ipsum has been the industry's standard dummy text ever since the 1500s. When an unknown printer took a galley of type and scrambled it to make a type specimen book.",
-    couple: "Prince & Kavita",
-    city: "India, Delhi",
-    photos: ["/image1.jpg", "/image2.jpg", "/image3.jpg"],
+      "Made2Match brought our families together in the most natural way. The profile details were genuine, our values matched, and every conversation gave us more confidence about building a life together.",
+    couple: "Adithyan & Devika",
+    city: "Kochi, Kerala",
+    photos: ["/couple2.jpeg", "/Traditional Kerala wedding portrait.png", "/Newlywed South Asian couple in traditional attire.png"],
   },
   {
     quote:
-      "We connected on this platform last year and got married within months. The verified profiles and family information helped us trust the process and our families.",
-    couple: "Aman & Riya",
-    city: "Mumbai, India",
-    photos: ["/image2.jpg", "/image3.jpg", "/image4.jpg"],
+      "The community and preference filters helped us find each other without making the journey feel complicated. Our families connected quickly, and today we are grateful that one profile visit became our forever story.",
+    couple: "Arjun & Meera",
+    city: "Thrissur, Kerala",
+    photos: ["/Traditional Kerala wedding portrait.png", "/couple2.jpeg", "/Newlywed South Asian couple in traditional attire.png"],
   },
   {
     quote:
-      "Finding the right partner felt effortless once we joined. The community-based matching is what made all the difference for our families.",
-    couple: "Rahul & Pooja",
-    city: "Bangalore, India",
-    photos: ["/image4.jpg", "/image1.jpg", "/image3.jpg"],
+      "We were both looking for someone who respected family, tradition, and career goals. Made2Match introduced us at the right time and gave us a safe space to understand each other before our families met.",
+    couple: "Naveen & Lakshmi",
+    city: "Kozhikode, Kerala",
+    photos: ["/Newlywed South Asian couple in traditional attire.png", "/Traditional Kerala wedding portrait.png", "/couple2.jpeg"],
   },
 ];
 
@@ -39,12 +39,12 @@ export default function Testimonials() {
   const t = TESTIMONIALS[idx];
 
   return (
-    <section className="relative bg-white px-4 sm:px-6 lg:px-8 py-16 overflow-hidden">
+    <section className="relative overflow-hidden bg-[#fffaf5] px-4 py-16 sm:px-6 lg:px-8">
       {/* Decorative dots */}
       <span
         aria-hidden
         className="absolute top-10 left-10 w-16 h-16 rounded-full hidden md:block"
-        style={{ background: "#3da5d9" }}
+        style={{ background: "#e8b44f" }}
       />
       <span
         aria-hidden
@@ -54,7 +54,7 @@ export default function Testimonials() {
       <span
         aria-hidden
         className="absolute top-1/2 right-10 w-12 h-12 rounded-full hidden md:block"
-        style={{ background: "#3da5d9" }}
+        style={{ background: "#e8b44f" }}
       />
       <span
         aria-hidden
@@ -67,7 +67,7 @@ export default function Testimonials() {
           className="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-1"
           style={{ fontFamily: "Georgia, serif" }}
         >
-          Testimonial
+          What Our Couples Say
         </h2>
         <div className="flex items-center justify-center gap-2 mb-6">
           <span className="h-px w-6 bg-gray-300" />
@@ -88,7 +88,7 @@ export default function Testimonials() {
                   src={p}
                   alt={`${t.couple} ${i + 1}`}
                   fill
-                  className="object-cover"
+                  className="object-cover object-top"
                   sizes="80px"
                 />
               </div>
