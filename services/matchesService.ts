@@ -62,19 +62,6 @@ const fromMatch = (m: MatchProfile): CardProfile => ({
   createdAt: m.createdAt,
 });
 
-const fromActivity = (a: ProfileActivity): CardProfile => ({
-  id: formatProfileCode(a.profileCode, a.profileId),
-  numericId: a.profileId,
-  name: a.fullName || "—",
-  age: a.age,
-  height: a.heightDisplay,
-  location: [a.city, a.state].filter(Boolean).join(", "),
-  education: a.highestQualification,
-  profession: a.occupation,
-  photo: a.profilePhotoUrl || fallbackPhoto(a.fullName),
-  isPremium: a.isPremium,
-});
-
 // ─── Generic page fetcher ──────────────────────────────────────
 const getPage = async <T,>(
   url: string,
@@ -116,6 +103,21 @@ export const fetchAllMatches = (
   size: number,
   filters?: MatchFilters,
 ) =>
+  getPage<MatchProfile>("/recommendations/all", {
+    page,
+    size,
+    ...buildFilterParams(filters),
+  });
+
+// Browse-all source: the fallback category does not apply saved preferences.
+export const fetchAvailableMatches = (page: number, size: number) =>
+  getPage<MatchProfile>("/recommendations/category", { page, size });
+
+export const fetchFilteredAvailableMatches = (
+  page: number,
+  size: number,
+  filters?: MatchFilters,
+) =>
   getPage<MatchProfile>("/matches/all", {
     page,
     size,
@@ -143,8 +145,15 @@ export const fetchWhoViewedMe = (page: number, size: number) =>
 export const fetchNewMatches = (page: number, size: number) =>
   getPage<MatchProfile>("/activity/new-matches", { page, size });
 
+const fetchMatchesEndpoint = (
+  endpoint: string,
+  page: number,
+  size: number,
+) => getPage<MatchProfile>(`/matches/${endpoint}`, { page, size });
+
 // ─── Sidebar label → category dispatch ─────────────────────────
 export const SIDEBAR_LABELS = [
+  "All Matches",
   "Your Matches",
   "Shortlisted by you",
   "Viewed you",
@@ -179,51 +188,64 @@ const mapMatches = (p: PageEnvelope<MatchProfile>): FetchResult => ({
   totalPages: p.totalPages ?? 0,
 });
 
-const mapActivity = (p: PageEnvelope<ProfileActivity>): FetchResult => ({
-  items: p.content.map(fromActivity),
-  totalElements: p.totalElements ?? 0,
-  totalPages: p.totalPages ?? 0,
-});
-
 export const fetchForMenu = async (
   label: SidebarLabel,
   page: number,
   size: number,
   filters?: MatchFilters,
 ): Promise<FetchResult> => {
+  // These two filter controls are backed by dedicated endpoints rather than
+  // query parameters on /matches/all.
+  if (filters?.mutualMatches) {
+    return mapMatches(await fetchMatchesEndpoint("mutual", page, size));
+  }
+  if (filters?.mutualHobbies) {
+    return mapMatches(await fetchMatchesEndpoint("similar-hobbies", page, size));
+  }
+
   switch (label) {
     case "Your Matches":
-      return mapMatches(await fetchAllMatches(page, size, filters));
+      return mapMatches(await fetchAllMatches(page, size));
+    case "All Matches":
+      return mapMatches(
+        await (Object.values(filters ?? {}).some((value) => value != null && value !== false && value !== "")
+          ? fetchFilteredAvailableMatches(page, size, filters)
+          : fetchAvailableMatches(page, size)),
+      );
     case "Shortlisted by you":
-      return mapActivity(await fetchShortlistedByMe(page, size));
+      return mapMatches(await fetchMatchesEndpoint("shortlisted-by-you", page, size));
     case "Viewed you":
-      return mapActivity(await fetchWhoViewedMe(page, size));
+      return mapMatches(await fetchMatchesEndpoint("viewed-you", page, size));
     case "Shortlisted you":
-      return mapActivity(await fetchWhoShortlistedMe(page, size));
+      return mapMatches(await fetchMatchesEndpoint("shortlisted-you", page, size));
     case "Viewed by you":
-      return mapActivity(await fetchViewedByMe(page, size));
+      return mapMatches(await fetchMatchesEndpoint("viewed-by-you", page, size));
     case "Newly Joined":
-      return mapMatches(await fetchNewMatches(page, size));
+      return mapMatches(await fetchMatchesEndpoint("newly-joined", page, size));
     case "Nearby matches":
-      return mapMatches(await fetchByCategory("NEARBY", page, size));
+      return mapMatches(await fetchMatchesEndpoint("nearby", page, size));
     case "With photos":
-      return mapMatches(await fetchByCategory("WITH_PHOTOS", page, size));
-    case "Education preference":
-      return mapMatches(await fetchByCategory("EDUCATION_PREF", page, size));
-    case "Professional preference":
-      return mapMatches(await fetchByCategory("PROFESSIONAL_PREF", page, size));
-    case "Location preference":
-      return mapMatches(await fetchByCategory("LOCATION_PREF", page, size));
-    case "NRI matches":
-      return mapMatches(await fetchByCategory("NRI", page, size));
-    // The remaining labels don't have specialised backend logic yet;
-    // they fall back to "Your Matches" (with filters) so the UI still shows results.
+      return mapMatches(await fetchMatchesEndpoint("with-photos", page, size));
     case "With horoscope":
+      return mapMatches(await fetchMatchesEndpoint("with-horoscope", page, size));
     case "Similar hobbies":
+      return mapMatches(await fetchMatchesEndpoint("similar-hobbies", page, size));
     case "Star matches":
+      return mapMatches(await fetchMatchesEndpoint("star-matches", page, size));
     case "Horoscope matches":
+      return mapMatches(await fetchMatchesEndpoint("horoscope-matches", page, size));
     case "Mutual matches":
+      return mapMatches(await fetchMatchesEndpoint("mutual", page, size));
     case "Looking for you":
+      return mapMatches(await fetchMatchesEndpoint("looking-for-you", page, size));
+    case "Education preference":
+      return mapMatches(await fetchMatchesEndpoint("education-preference", page, size));
+    case "Professional preference":
+      return mapMatches(await fetchMatchesEndpoint("professional-preference", page, size));
+    case "Location preference":
+      return mapMatches(await fetchMatchesEndpoint("location-preference", page, size));
+    case "NRI matches":
+      return mapMatches(await fetchMatchesEndpoint("nri", page, size));
     default:
       return mapMatches(await fetchAllMatches(page, size, filters));
   }
@@ -388,6 +410,7 @@ export const cacheSentInterest = (
       profilePhotoUrl: profile.profilePhotoUrl,
     },
   });
+
   const next = readCachedSentInterests().filter(
     (item) => item.receiver?.id !== receiverProfileId,
   );
@@ -398,21 +421,6 @@ const removeCachedSentInterest = (interestId: number) => {
   if (!isBrowser()) return;
   const next = readCachedSentInterests().filter((item) => item.id !== interestId);
   writeCachedSentInterests(next);
-};
-
-const mergeCachedSentInterests = (backendItems: InterestDto[]) => {
-  const backendReceiverIds = new Set(
-    backendItems
-      .map((item) => item.receiver?.id)
-      .filter((id): id is number => typeof id === "number"),
-  );
-  const missingCachedItems = readCachedSentInterests().filter(
-    (item) =>
-      item.status === "PENDING" &&
-      typeof item.receiver?.id === "number" &&
-      !backendReceiverIds.has(item.receiver.id),
-  );
-  return [...backendItems, ...missingCachedItems];
 };
 
 type RawPage<T> = Partial<PageEnvelope<T>> & {
@@ -559,7 +567,7 @@ export const getSentInterestsList = async (page = 0, size = 200) => {
     size,
     ["sent", "sentInterests", "interests"],
   );
-  const content = mergeCachedSentInterests(normalized.content.map(normalizeInterest));
+  const content = normalized.content.map(normalizeInterest);
   return {
     ...normalized,
     content,
@@ -597,9 +605,12 @@ export const fetchSentInterestStatusByProfileId = async (
       "/interests/sent",
       { params: { page: 0, size } },
     );
-    const content = mergeCachedSentInterests(
-      normalizePage<InterestDto>(res.data, 0, size, ["sent", "sentInterests", "interests"]).content.map(normalizeInterest),
-    );
+    const content = normalizePage<InterestDto>(
+      res.data,
+      0,
+      size,
+      ["sent", "sentInterests", "interests"],
+    ).content.map(normalizeInterest);
     const map = new Map<number, InterestStatus>();
     // Backend returns newest first; first hit per profile is the latest status.
     content.forEach((row) => {
@@ -620,9 +631,12 @@ export const fetchSentInterestProfileIds = async (size = 200): Promise<Set<numbe
     const res = await axiosInstance.get<ApiEnvelope<PageEnvelope<InterestDto>>>(
       "/interests/sent", { params: { page: 0, size } },
     );
-    const content = mergeCachedSentInterests(
-      normalizePage<InterestDto>(res.data, 0, size, ["sent", "sentInterests", "interests"]).content.map(normalizeInterest),
-    );
+    const content = normalizePage<InterestDto>(
+      res.data,
+      0,
+      size,
+      ["sent", "sentInterests", "interests"],
+    ).content.map(normalizeInterest);
     const ids = new Set<number>();
     content.forEach((row) => {
       const pid = row?.receiver?.id;

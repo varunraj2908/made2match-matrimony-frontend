@@ -1,7 +1,7 @@
 export default function StatusBar() {
   return (
-    <section className="bg-white border-t border-b border-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto grid grid-cols-2 lg:flex lg:justify-around gap-6 lg:gap-0 items-center">
+    <section className="border-b border-rose-100 bg-[#fff8fa] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:px-6">
         {[
           {
             icon: "👤",
@@ -26,10 +26,10 @@ export default function StatusBar() {
         ].map((stat, i) => (
           <div
             key={i}
-            className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-3 sm:gap-4"
+            className="flex min-h-28 flex-col items-center justify-center gap-3 rounded-2xl border border-rose-100 bg-white px-3 py-5 text-center shadow-[0_8px_30px_rgba(139,26,58,0.06)] transition-transform duration-300 hover:-translate-y-1 sm:flex-row sm:justify-start sm:px-5 sm:text-left"
           >
             <div
-              className="w-14 h-14 lg:w-16 lg:h-16 rounded-full border-2 flex items-center justify-center text-xl lg:text-2xl shrink-0"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 bg-rose-50 text-xl lg:h-14 lg:w-14 lg:text-2xl"
               style={{
                 borderColor: "#c0174c",
                 borderStyle: "dashed",
@@ -39,7 +39,7 @@ export default function StatusBar() {
             </div>
 
             <div>
-              <p className="text-2xl lg:text-3xl font-bold text-gray-800 leading-none">
+              <p className="text-2xl font-bold leading-none text-[#17223b] lg:text-3xl">
                 {stat.value}
               </p>
 

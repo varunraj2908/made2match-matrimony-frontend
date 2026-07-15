@@ -9,6 +9,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { getMyProfile, type MyProfile } from "@/services/homeService";
 import { fetchNotifications, persistReadIds, markInterestsReadOnServer, type AppNotification } from "@/services/notificationService";
 import { getReceivedInterests } from "@/services/matchesService";
+import { getUnreadMessageCount } from "@/services/chatService";
 import { setAppBadge } from "@/lib/appBadge";
 import { formatProfileCode } from "@/lib/memberId";
 
@@ -106,6 +107,7 @@ export default function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [pendingInterestCount, setPendingInterestCount] = useState(0);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [notifLoading, setNotifLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -165,6 +167,26 @@ export default function Navbar() {
     return () => {
       cancelled = true;
       window.removeEventListener("notifications:refresh", loadNotifications);
+    };
+  }, []);
+
+  // Keep the Messages badge in sync with unread conversations. The custom
+  // event refreshes it immediately when Chat marks a conversation as read;
+  // polling also catches messages received while the user stays on the site.
+  useEffect(() => {
+    let cancelled = false;
+    const loadUnreadMessages = () => {
+      getUnreadMessageCount()
+        .then((count) => { if (!cancelled) setUnreadMessageCount(count); })
+        .catch(() => { if (!cancelled) setUnreadMessageCount(0); });
+    };
+    loadUnreadMessages();
+    const timer = window.setInterval(loadUnreadMessages, 15_000);
+    window.addEventListener("messages:refresh", loadUnreadMessages);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("messages:refresh", loadUnreadMessages);
     };
   }, []);
 
@@ -427,7 +449,11 @@ export default function Navbar() {
           {isLoggedIn ? (
             <nav className="hidden lg:flex items-center justify-center gap-0">
               {NAV_ITEMS.map((item) => {
-                const navBadge = item.id === "interests" ? pendingInterestCount : 0;
+                const navBadge = item.id === "interests"
+                  ? pendingInterestCount
+                  : item.id === "chat"
+                    ? unreadMessageCount
+                    : 0;
                 return (
                 <Link
                   key={item.id}
@@ -658,7 +684,7 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* ── Mobile curved bottom navigation with center FAB ── */}
+      {/* Mobile bottom navigation */}
       {isLoggedIn && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40">
           {/* Pink bar */}
@@ -666,42 +692,13 @@ export default function Navbar() {
             className="relative h-16 shadow-[0_-4px_16px_rgba(0,0,0,0.12)]"
             style={{ background: "linear-gradient(90deg,#c0174c,#e0185a)" }}
           >
-            {/* White notch cradle behind the FAB */}
-            <div className="absolute left-1/2 -translate-x-1/2 -top-9 w-[72px] h-[72px] rounded-full bg-white" />
-
             <div className="relative grid grid-cols-5 items-center h-full">
-              {NAV_ITEMS.slice(0, 2).map((item) => {
-                const navBadge = item.id === "interests" ? pendingInterestCount : 0;
-                return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  onClick={() => setActiveNav(item.id)}
-                  className={`relative flex flex-col items-center justify-center gap-0.5 h-full transition-colors ${
-                    isActive(item.href) ? "text-white" : "text-white/65"
-                  }`}
-                >
-                  <span className="relative">
-                    {item.icon}
-                    {navBadge > 0 && (
-                      <span className="absolute -top-1.5 -right-2 bg-white text-[#c0174c] text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
-                        {navBadge > 9 ? "9+" : navBadge}
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-[10px] font-semibold leading-none">{item.label}</span>
-                  {isActive(item.href) && (
-                    <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white" />
-                  )}
-                </Link>
-                );
-              })}
-
-              {/* Center column reserved for the FAB */}
-              <div aria-hidden />
-
-              {NAV_ITEMS.slice(2, 4).map((item) => {
-                const navBadge = item.id === "interests" ? pendingInterestCount : 0;
+              {NAV_ITEMS.map((item) => {
+                const navBadge = item.id === "interests"
+                  ? pendingInterestCount
+                  : item.id === "chat"
+                    ? unreadMessageCount
+                    : 0;
                 return (
                 <Link
                   key={item.id}
@@ -728,17 +725,6 @@ export default function Navbar() {
               })}
             </div>
           </div>
-
-          {/* Center floating action button */}
-          <Link
-            href={NAV_ITEMS[4].href}
-            onClick={() => setActiveNav(NAV_ITEMS[4].id)}
-            aria-label={NAV_ITEMS[4].label}
-            className="animate-fab-pulse absolute left-1/2 -translate-x-1/2 -top-7 w-14 h-14 rounded-full flex items-center justify-center text-white [&_svg]:w-6 [&_svg]:h-6"
-            style={{ background: "linear-gradient(135deg,#e8275f,#c0174c)" }}
-          >
-            {NAV_ITEMS[4].icon}
-          </Link>
         </div>
       )}
     </header>

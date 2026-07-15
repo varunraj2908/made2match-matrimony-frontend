@@ -55,9 +55,20 @@ const formatIncomeRange = (min?: number, max?: number): string => {
   return formatIncome(min ?? max);
 };
 
-const friendly = (enumValue?: string): string => {
-  if (!enumValue) return "—";
-  return enumValue
+const friendly = (enumValue: unknown): string => {
+  if (enumValue == null || enumValue === "") return "—";
+  if (typeof enumValue === "boolean") return enumValue ? "Yes" : "No";
+
+  const displayValue =
+    typeof enumValue === "object"
+      ? (enumValue as { label?: unknown; name?: unknown; value?: unknown }).label ??
+        (enumValue as { name?: unknown }).name ??
+        (enumValue as { value?: unknown }).value
+      : enumValue;
+
+  if (displayValue == null || displayValue === "") return "—";
+
+  return String(displayValue)
     .toLowerCase()
     .split(/[_\s]+/)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))

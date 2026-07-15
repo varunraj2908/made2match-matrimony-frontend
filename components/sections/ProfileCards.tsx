@@ -103,9 +103,30 @@ const SIDEBAR_SECTIONS = [
             <circle cx="12" cy="7" r="4" />
           </svg>
         ),
+        label: "All Matches",
+        desc: "View all available profiles",
+        highlight: true,
+      },
+      {
+        icon: (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="9" cy="7" r="4" />
+            <path d="M2 21v-2a7 7 0 0 1 14 0v2" />
+            <path d="M16 3.3a4 4 0 0 1 0 7.4" />
+            <path d="M22 21v-2a7 7 0 0 0-4-6.3" />
+          </svg>
+        ),
         label: "Your Matches",
         desc: "View all the profiles that match your preferences",
-        highlight: true,
       },
     ],
   },
@@ -1024,7 +1045,7 @@ const Pagination = ({
 export default function ProfileCards() {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeMenu, setActiveMenu] = useState<string>("Your Matches");
+  const [activeMenu, setActiveMenu] = useState<string>("All Matches");
   const [mobileViewMode, setMobileViewMode] = useState<"grid" | "list">("grid");
 
   const [items, setItems] = useState<CardProfile[]>([]);
@@ -1130,7 +1151,7 @@ export default function ProfileCards() {
 
   const handleFilterChange = (next: FilterState) => {
     setFilterState(next);
-    setActiveMenu(hasActiveFilters(next) ? "" : "Your Matches");
+    setActiveMenu(hasActiveFilters(next) ? "" : "All Matches");
   };
 
   // Reset to page 1 when menu or filter changes.
@@ -1151,7 +1172,9 @@ export default function ProfileCards() {
     setError("");
 
     const matchFilters = buildMatchFilters(filterState);
-    const activeLabel = (activeMenu || "Your Matches") as SidebarLabel;
+    const activeLabel = (
+      activeMenu || "All Matches"
+    ) as SidebarLabel;
     const shouldWaitForPreferences = activeLabel === "Your Matches" && !hasActiveFilters(filterState);
 
     if (shouldWaitForPreferences && !preferencesLoaded) {

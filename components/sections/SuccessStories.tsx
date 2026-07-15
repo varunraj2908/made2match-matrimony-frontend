@@ -10,14 +10,10 @@ interface Story {
 }
 
 const STORIES: Story[] = [
-  { name: "Pratep & Anita",       date: "12 Apr 2025", image: "/image1.jpg" },
-  { name: "Madhura & Rajeev",     date: "08 Mar 2025", image: "/image2.jpg" },
-  { name: "Sameer & Suchitra",    date: "23 Feb 2025", image: "/image3.jpg" },
-  { name: "Saagaresh & Sirisha",  date: "10 Jan 2025", image: "/image4.jpg" },
-  { name: "Arjun & Lakshmi",      date: "21 Dec 2024", image: "/image1.jpg" },
-  { name: "Mohit & Sneha",        date: "05 Dec 2024", image: "/image2.jpg" },
-  { name: "Suresh & Naina",       date: "18 Nov 2024", image: "/image3.jpg" },
-  { name: "Ravi & Tara",          date: "30 Oct 2024", image: "/image4.jpg" },
+  { name: "Arjun & Meera", date: "12 Apr 2025", image: "/couple1.jpeg" },
+  { name: "Adithyan & Devika", date: "08 Mar 2025", image: "/couple2.jpeg" },
+  { name: "Farhan & Aaliya", date: "23 Feb 2025", image: "/couple3.jpeg" },
+  { name: "Nikhil & Riya", date: "10 Jan 2025", image: "/couple5.png" },
 ];
 
 const PER_PAGE_DESKTOP = 4;
@@ -68,7 +64,7 @@ export default function SuccessStories() {
 
   return (
     <section className="bg-white px-4 sm:px-6 lg:px-8 py-14">
-      <div className="max-w-6xl mx-auto">
+      <div className="mx-auto max-w-7xl lg:px-6">
         {/* Header */}
         <div className="text-center mb-10">
           <h2
@@ -106,7 +102,7 @@ export default function SuccessStories() {
                         src={s.image}
                         alt={s.name}
                         fill
-                        className="object-cover"
+                        className="object-cover object-top"
                         sizes="100vw"
                       />
                     </div>
@@ -167,15 +163,17 @@ export default function SuccessStories() {
         {/* ─── DESKTOP: existing 4-up grid with side arrows ── */}
         <div className="hidden sm:block">
           <div className="relative">
-            <button
-              onClick={goPrev}
-              aria-label="Previous stories"
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 w-9 h-9 rounded-full bg-[#c0174c] hover:bg-[#a01040] text-white shadow-md flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
+            {totalPages > 1 && (
+              <button
+                onClick={goPrev}
+                aria-label="Previous stories"
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 w-9 h-9 rounded-full bg-[#c0174c] hover:bg-[#a01040] text-white shadow-md flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+            )}
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
               {visible.map((s) => (
@@ -188,7 +186,7 @@ export default function SuccessStories() {
                       src={s.image}
                       alt={s.name}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
                       sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
@@ -205,15 +203,17 @@ export default function SuccessStories() {
               ))}
             </div>
 
-            <button
-              onClick={goNext}
-              aria-label="Next stories"
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 w-9 h-9 rounded-full bg-[#c0174c] hover:bg-[#a01040] text-white shadow-md flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
+            {totalPages > 1 && (
+              <button
+                onClick={goNext}
+                aria-label="Next stories"
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 w-9 h-9 rounded-full bg-[#c0174c] hover:bg-[#a01040] text-white shadow-md flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            )}
           </div>
 
           {totalPages > 1 && (

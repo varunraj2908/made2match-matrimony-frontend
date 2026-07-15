@@ -10,7 +10,7 @@ import BeginLoveStory from "@/components/sections/BeginLoveStory";
 import BrowseBySection from "@/components/sections/BrowseBySection";
 import PricingSection from "@/components/ui/pricing-section";
 import FeaturedProfiles from "@/components/sections/FeaturedProfiles";
-import HeroRegistration, { SearchBar } from "@/components/sections/HeroRegistration";
+import HeroRegistration, { TrustBar } from "@/components/sections/HeroRegistration";
 import MarriageQuoteBanner from "@/components/sections/MarriageQuoteBanner";
 import RegisterNowButton from "@/components/ui/RegisterNowButton";
 import RegisterModal from "@/components/modals/RegisterModal";
@@ -124,7 +124,7 @@ export default function Home() {
           On desktop (lg+): search bar first, then StatusBar — original order. */}
       <div className="flex flex-col">
         <div className="order-2 lg:order-1">
-          <SearchBar />
+          <TrustBar onClick={openFromPage} />
         </div>
         <div className="order-1 lg:order-2">
           <StatusBar />

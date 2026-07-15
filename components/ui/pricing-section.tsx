@@ -264,7 +264,7 @@ export default function PricingSection() {
         <PricingSwitch onSwitch={togglePricingPeriod} />
       </TimelineContent>
 
-      <div className="relative z-10 grid md:grid-cols-3 max-w-6xl gap-4 py-6 mx-auto">
+      <div className="relative z-10 mx-auto grid max-w-7xl gap-4 py-6 md:grid-cols-3 lg:px-6">
         {plans.map((plan, index) => {
           const premium = (plan as any).premium;
           const usePremium = premium && (tabs[plan.name] ?? "base") === "premium";

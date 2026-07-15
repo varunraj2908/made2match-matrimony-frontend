@@ -12,12 +12,12 @@ const FAQS = [
     a: "Yes! Made2Match allows you to filter profiles by religion, caste, sub-caste and community. Simply use the search filters and select 'Christian' under Religion, then further narrow down by denomination or region to find the most compatible matches.",
   },
   {
-    q: "3. Is the app free to download?",
-    a: "Yes, the Made2Match app is completely free to download on both Android and iOS. Basic features like profile creation, browsing and sending interests are free. Premium membership unlocks unlimited messaging, contact details and advanced search filters.",
+    q: "3. How does Made2Match recommend compatible profiles?",
+    a: "Made2Match suggests profiles based on the preferences you add, such as age, location, education, profession and community. Keep your profile and partner preferences up to date to receive more relevant recommendations.",
   },
   {
-    q: "4. Are the profiles verified?",
-    a: "All profiles on Made2Match go through a verification process. Members can get a 'Verified' badge by submitting a government-issued ID. We also use AI-based photo verification to ensure profile photos are genuine and up to date.",
+    q: "4. Can a family member create and manage a profile?",
+    a: "Yes. Parents, siblings or guardians can create and manage a profile on behalf of a family member. During registration, simply mention who is managing the profile and provide accurate details about the prospective bride or groom.",
   },
   {
     q: "5. How do I contact a profile I like?",

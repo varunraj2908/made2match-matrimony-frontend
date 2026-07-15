@@ -330,19 +330,81 @@ function ProfileCard({
   const status = interest.status;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden p-4">
-      <div className="flex">
+    <>
+    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm sm:hidden">
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={() => card.profileNumericId && onOpenProfile(card.profileNumericId)}
+          className="shrink-0"
+        >
+          <img
+            src={card.photo}
+            alt={card.name}
+            className="h-28 w-28 rounded-md border border-[#e5a8b3] object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).src = fallbackAvatar(card.name); }}
+          />
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-1.5 pr-1">
+            <button
+              type="button"
+              onClick={() => card.profileNumericId && onOpenProfile(card.profileNumericId)}
+              className="min-w-0 text-left"
+            >
+              <h3 className="truncate text-base font-bold leading-tight text-gray-900">{card.name}</h3>
+            </button>
+            <span className="mt-0.5 shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[8px] font-semibold text-gray-500">
+              Not Verified
+            </span>
+          </div>
+          <p className="mt-1 font-mono text-[11px] font-bold text-[#c0174c]">{card.code}</p>
+
+          <div className="mt-1 flex flex-wrap gap-1">
+            {card.age != null && <span className="rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-[#c0174c]">{card.age} Yrs</span>}
+            {card.height !== "—" && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">{card.height}</span>}
+            {card.caste !== "—" && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">{card.caste}</span>}
+          </div>
+
+          <div className="mt-1.5 space-y-0.5 text-[11px] leading-4 text-gray-600">
+            {card.location !== "—" && <p className="truncate">📍 {card.location}</p>}
+            {card.education !== "—" && <p className="truncate">🎓 {card.education}</p>}
+            {card.profession !== "—" && <p className="truncate">💼 {card.profession}</p>}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-2 flex gap-1.5 border-t border-gray-100 pt-2">
+        {mode === "received" && status === "PENDING" && (
+          <>
+            <button onClick={() => onReject(interest.id)} disabled={busy} className="flex-1 rounded border border-gray-300 py-2 text-[10px] font-bold text-gray-600 disabled:opacity-50">Decline</button>
+            <button onClick={() => onAccept({ id: interest.id, name: card.name, photo: card.photo, profileId: card.profileNumericId })} disabled={busy} className="flex-1 rounded border border-[#b22234] py-2 text-[10px] font-bold text-[#b22234] disabled:opacity-50">♥ Accept</button>
+          </>
+        )}
+        {mode === "sent" && status === "PENDING" && (
+          <button onClick={() => onCancel(interest.id)} disabled={busy} className="flex-1 rounded border border-[#b22234] py-2 text-[10px] font-bold text-[#b22234] disabled:opacity-50">✕ Cancel Interest</button>
+        )}
+        {status !== "PENDING" && (
+          <span className="flex-1 rounded border border-gray-200 bg-gray-50 py-2 text-center text-[10px] font-bold text-gray-600">{status === "ACCEPTED" ? "Accepted ✓" : status === "WITHDRAWN" ? "Withdrawn" : "Declined"}</span>
+        )}
+        <button onClick={() => card.profileNumericId && onOpenProfile(card.profileNumericId)} className="flex-1 rounded border border-[#b22234] py-2 text-[10px] font-bold text-[#b22234]">View</button>
+      </div>
+    </div>
+
+    <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white p-4 sm:block">
+      <div className="flex items-start gap-3 sm:gap-0">
 
         {/* Photo */}
         <button
           type="button"
           onClick={() => card.profileNumericId && onOpenProfile(card.profileNumericId)}
-          className="shrink-0 cursor-pointer"
+          className="flex shrink-0 self-start cursor-pointer items-start"
         >
           <img
             src={card.photo}
             alt={card.name}
-            className="w-24 h-24 sm:w-40 sm:h-40 lg:w-52 lg:h-52 object-cover rounded-lg border border-[#b22234]"
+            className="h-20 w-20 rounded-lg border border-[#b22234] object-cover sm:h-40 sm:w-40 lg:h-52 lg:w-52"
             onError={(e) => {
               (e.target as HTMLImageElement).src = fallbackAvatar(card.name);
             }}
@@ -350,7 +412,7 @@ function ProfileCard({
         </button>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 px-3 sm:px-6 flex flex-col justify-between relative">
+        <div className="relative flex min-w-0 flex-1 flex-col justify-between px-0 sm:px-6">
 
           <button className="absolute top-0 right-0 text-gray-400 hover:text-gray-600">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -472,6 +534,7 @@ function ProfileCard({
         </div>
       </div>
     </div>
+    </>
   );
 }
 
