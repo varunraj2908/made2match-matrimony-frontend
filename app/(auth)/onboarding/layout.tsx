@@ -302,13 +302,13 @@ function LayoutShell({ children }: { children: ReactNode }) {
       </header>
 
       {/* Main */}
-      <div className="flex-1 flex items-start justify-center px-3 md:px-6 py-4 md:py-8">
+      <div className="flex-1 flex items-start justify-center px-3 md:px-6 py-2 md:py-8">
         <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full max-w-4xl items-start">
 
           <VerticalStepper currentStep={currentStep} />
 
           <div className="flex-1 w-full">
-            <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4 md:p-8">
+            <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4 md:p-8 max-h-[calc(100vh-220px)] overflow-y-auto md:max-h-none md:overflow-visible">
               {children}
             </div>
           </div>

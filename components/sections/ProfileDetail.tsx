@@ -602,7 +602,7 @@ const PhotoSlider = ({ photos, name }: { photos: string[]; name: string }) => {
       {/* Lightbox */}
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          className="fixed inset-0 z-[1500] bg-black/90 flex items-center justify-center"
           onClick={() => setLightbox(false)}
         >
           <button
@@ -1486,8 +1486,8 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
                   { label: "Age", value: `${p.age} Yrs` },
                   { label: "Height", value: p.height },
                   { label: "Weight", value: p.weight },
-                  { label: "Email", value: profile?.email || "" },
-                  { label: "Phone Number", value: profile?.phoneNumber || "" },
+                  { label: "Email", value: me && profile && me.id === profile.id ? (profile?.email || me.email || "") : (profile?.email || "") },
+                  { label: "Phone Number", value: me && profile && me.id === profile.id ? (profile?.phoneNumber || me.phoneNumber || "") : (profile?.phoneNumber || "") },
                   { label: "Mother Tongue", value: p.motherTongue },
                   { label: "Marital Status", value: p.maritalStatus },
                 ]}

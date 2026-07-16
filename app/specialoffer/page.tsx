@@ -356,7 +356,7 @@ function PlanCard({ plan }: { plan: PlanData }) {
 
 // ─── Shared Components ───────────────────────────────────────────────────────
 
-function Header({ onUpgrade }: { onUpgrade: () => void }) {
+function Header({ onUpgrade, showSkip, onSkip }: { onUpgrade: () => void; showSkip?: boolean; onSkip?: () => void }) {
   return (
     <header
       className="text-white shadow-lg  "
@@ -378,12 +378,21 @@ function Header({ onUpgrade }: { onUpgrade: () => void }) {
           <span className="font-bold text-base sm:text-lg tracking-wide truncate">Made2Match</span>
         </div>
 
-        <button
-          className="px-3 sm:px-5 py-1 border rounded-full cursor-pointer hover:bg-white hover:text-[#c0174c] font-extrabold text-xs sm:text-sm whitespace-nowrap"
-          onClick={onUpgrade}
-        >
-          Upgrade Now
-        </button>
+        {showSkip ? (
+          <button
+            className="px-3 sm:px-5 py-1 border rounded-full cursor-pointer hover:bg-white hover:text-[#c0174c] font-extrabold text-xs sm:text-sm whitespace-nowrap"
+            onClick={onSkip}
+          >
+            Skip
+          </button>
+        ) : (
+          <button
+            className="px-3 sm:px-5 py-1 border rounded-full cursor-pointer hover:bg-white hover:text-[#c0174c] font-extrabold text-xs sm:text-sm whitespace-nowrap"
+            onClick={onUpgrade}
+          >
+            Upgrade Now
+          </button>
+        )}
       </div>
     </header>
   );
@@ -459,7 +468,7 @@ function SpecialOfferPage({
       className="min-h-screen flex flex-col"
       style={{ fontFamily: "'Segoe UI', sans-serif" }}
     >
-      <Header onUpgrade={onUpgrade} />
+      <Header onUpgrade={onUpgrade} showSkip={false} />
       <main
         className="flex-1 py-6 sm:py-12 px-3 sm:px-4"
         style={{
@@ -467,8 +476,8 @@ function SpecialOfferPage({
             "linear-gradient(160deg, #fff8f0 0%, #fff0f5 40%, #fdf4ff 100%)",
         }}
       >
-        {/* Back nav */}
-        <div className="max-w-5xl mx-auto w-full mb-4">
+        {/* Back nav and Skip button row */}
+        <div className="max-w-5xl mx-auto w-full mb-4 flex items-center justify-between">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800 transition cursor-pointer"
@@ -483,6 +492,23 @@ function SpecialOfferPage({
               <path d="M15 18l-6-6 6-6" />
             </svg>
             Back
+          </button>
+          
+          <button
+            onClick={() => router.push('/home')}
+            className="text-sm font-bold hover:underline cursor-pointer transition inline-flex items-center gap-1"
+            style={{ color: "#c0174c" }}
+          >
+            Skip now
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              className="w-3.5 h-3.5"
+            >
+              <path d="M9 18l6-6-6-6" />
+            </svg>
           </button>
         </div>
 
@@ -525,30 +551,13 @@ function SpecialOfferPage({
         </div>
 
         {/* View All Packages */}
-        <div className="flex justify-between items-center mb-10 w-full max-w-5xl mx-auto">
+        <div className="flex justify-start items-center mb-10 w-full max-w-5xl mx-auto">
           <button
             onClick={onViewAll}
             className="text-sm font-bold hover:underline transition inline-flex items-center gap-1"
             style={{ color: "#c0174c" }}
           >
             View All Packages
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className="w-3.5 h-3.5"
-            >
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
-
-          <button
-            onClick={()=>router.push('/home')}
-            className="text-sm font-bold hover:underline cursor-pointer transition inline-flex items-center gap-1"
-            style={{ color: "#c0174c" }}
-          >
-            Skip now
             <svg
               viewBox="0 0 24 24"
               fill="none"

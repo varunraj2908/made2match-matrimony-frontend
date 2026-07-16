@@ -101,6 +101,7 @@ export interface MyProfile {
   completionPercentage?: number;
   isPremium?: boolean;
   photoUrls?: string[];
+  phoneNumber?: string;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
