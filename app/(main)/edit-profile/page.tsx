@@ -945,7 +945,7 @@ export default function MyProfilePage() {
   const [imgFallback, setImgFallback]         = useState(false);
   const [showAcademicInput, setShowAcademicInput] = useState(true);
   const [openModal, setOpenModal]             = useState<string | null>(null);
-  const [mobileNumber, setMobileNumber]       = useState("+91-8075067058");
+  const [mobileNumber, setMobileNumber]       = useState("");
   const [profile, setProfile]                 = useState<FullProfile | null>(null);
   const [saving, setSaving]                   = useState(false);
   const [toast, setToast]                     = useState("");
@@ -954,9 +954,51 @@ export default function MyProfilePage() {
 
   // Load the logged-in user's real profile + existing photos on mount.
   useEffect(() => {
-    getMyProfileFull()
-      .then(setProfile)
-      .catch(() => undefined);
+    // Try to get phone number from both profile and account APIs
+    Promise.all([
+      getMyProfileFull(),
+      import("@/services/settingsService").then(m => m.getAccount()).catch(() => null)
+    ])
+      .then(([profileData, accountData]) => {
+        console.log("Profile data received:", profileData); // Debug log
+        console.log("Account data received:", accountData); // Debug log
+        
+        setProfile(profileData);
+        
+        // Try to get phone number from: 1) profile, 2) account, 3) localStorage (from registration)
+        const phoneFromProfile = profileData?.phoneNumber;
+        const phoneFromAccount = accountData?.phoneNumber;
+        const phoneFromStorage = typeof window !== 'undefined' ? localStorage.getItem("userMobile") : null;
+        const phoneNumber = phoneFromProfile || phoneFromAccount || phoneFromStorage;
+        
+        console.log("Phone from profile:", phoneFromProfile); // Debug log
+        console.log("Phone from account:", phoneFromAccount); // Debug log
+        console.log("Phone from localStorage:", phoneFromStorage); // Debug log
+        console.log("Final phone number:", phoneNumber); // Debug log
+        
+        if (phoneNumber) {
+          const formattedNumber = phoneNumber.startsWith("+91") 
+            ? phoneNumber 
+            : phoneNumber.startsWith("91")
+            ? `+${phoneNumber}`
+            : `+91-${phoneNumber}`;
+          console.log("Setting mobile number:", formattedNumber); // Debug log
+          setMobileNumber(formattedNumber);
+        } else {
+          console.warn("No phone number found in profile, account, or localStorage!"); // Debug log
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load profile:", err);
+        // Fallback to localStorage even if API fails
+        const phoneFromStorage = typeof window !== 'undefined' ? localStorage.getItem("userMobile") : null;
+        if (phoneFromStorage) {
+          const formattedNumber = phoneFromStorage.startsWith("+91") 
+            ? phoneFromStorage 
+            : `+91-${phoneFromStorage}`;
+          setMobileNumber(formattedNumber);
+        }
+      });
 
     getMyPhotos()
       .then((items) => {
@@ -998,7 +1040,7 @@ export default function MyProfilePage() {
 
   const primaryPhoto  = photos.find(p => p.isPrimary);
   const displayPhoto  = primaryPhoto?.url ?? profile?.profilePhotoUrl ?? "https://i.pravatar.cc/300?img=33";
-  const displayMobile = mobileNumber.startsWith("+91-") ? `+91-${mobileNumber.slice(4)}` : mobileNumber;
+  const displayMobile = mobileNumber || profile?.phoneNumber || "+91-XXXXXXXXXX";
 
   // ── Real profile display values ──
   const displayName   = fullNameOf(profile);

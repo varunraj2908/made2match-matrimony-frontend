@@ -203,6 +203,11 @@ export default function Navbar() {
   // Derived display values
   const displayName =
     [me?.firstName, me?.lastName].filter(Boolean).join(" ") || me?.firstName || "—";
+  const displayNameFormatted = displayName === "—" ? "—" : displayName
+    .toLowerCase()
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
   const userCode = me ? formatProfileCode(me.profileCode, me.userId) : "—";
   const locationLine = [me?.city, me?.state].filter(Boolean).join(", ");
   const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=b22234&color=fff&size=120`;
@@ -601,11 +606,11 @@ export default function Navbar() {
               className="fixed inset-0 z-40"
               onClick={() => setShowUserMenu(false)}
             />
-            <div className="fixed inset-x-0 top-16 lg:absolute lg:inset-auto lg:right-2 lg:top-14 w-full lg:w-96 bg-white border border-gray-100 shadow-xl py-2 z-50 max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div className="fixed inset-x-0 top-16 lg:absolute lg:inset-auto lg:right-0 lg:top-full w-full lg:w-96 bg-white border border-gray-100 shadow-xl py-2 z-50 max-h-[calc(100vh-4rem)] overflow-y-auto">
               {/* User info */}
               <div className="px-4 py-3 border-b border-gray-100">
                 <div className="flex items-center justify-between mb-0.5">
-                  <p className="text-sm font-bold text-gray-800">{displayName}</p>
+                  <p className="text-sm font-bold text-gray-800">{displayNameFormatted}</p>
                   <span
                     className="text-xs font-semibold px-2 py-0.5 rounded-full"
                     style={{ background: "#fff0f4", color: "#c0174c", border: "1px solid #f9c8d6" }}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -48,6 +48,47 @@ function FloatingHearts() {
 /** Made2Match — modern mobile splash / intro screen. */
 export default function MobileSplash() {
   const router = useRouter();
+
+  // PWA install prompt
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [installing, setInstalling] = useState(false);
+
+  useEffect(() => {
+    // Check if already installed (standalone mode)
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+
+    window.addEventListener("appinstalled", () => {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+    });
+
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    setInstalling(true);
+    try {
+      await installPrompt.prompt();
+      const result = await installPrompt.userChoice;
+      if (result.outcome === "accepted") {
+        setIsInstalled(true);
+        setInstallPrompt(null);
+      }
+    } finally {
+      setInstalling(false);
+    }
+  };
 
   return (
     <div
@@ -154,6 +195,49 @@ export default function MobileSplash() {
         >
           Login
         </button>
+
+        {/* PWA Install button — only when prompt is available and not yet installed */}
+        {!isInstalled && installPrompt && (
+          <button
+            onClick={handleInstall}
+            disabled={installing}
+            className="w-full mt-3 py-3.5 rounded-full font-bold text-base active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-70"
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(232,197,71,0.5)",
+              color: GOLD,
+            }}
+          >
+            {installing ? (
+              <>
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                Installing…
+              </>
+            ) : (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Install App
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Already installed indicator */}
+        {isInstalled && (
+          <div className="mt-3 flex items-center justify-center gap-2 text-green-300 text-sm font-semibold">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            App Installed
+          </div>
+        )}
 
         <p className="mt-auto pt-8 text-[10px] tracking-[0.28em] text-white/45">
           MADE WITH ❤ IN INDIA

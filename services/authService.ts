@@ -10,7 +10,12 @@ export const registerUser = async (
 ) => {
   const response = await axiosInstance.post(
     "/auth/register",
-    data
+    {
+      fullName: data.fullName,
+      email: data.email,
+      password: data.password,
+      phoneNumber: data.mobileNumber,
+    }
   );
 
   return response.data;

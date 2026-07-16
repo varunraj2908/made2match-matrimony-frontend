@@ -97,16 +97,17 @@ const HelpIcon = () => (
     <line x1="12" y1="17" x2="12.01" y2="17" />
   </svg>
 );
-const HeartIcon = () => (
+const MatchesIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
   </svg>
 );
-const MoreIcon = () => (
+const MessageIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="5" r="1" />
-    <circle cx="12" cy="12" r="1" />
-    <circle cx="12" cy="19" r="1" />
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
   </svg>
 );
 const DownloadIcon = () => (
@@ -526,6 +527,13 @@ export default function HomePage() {
     load(getMyProfile(), (data) => {
       setMe(data);
       if (data.profilePhotoUrl) setProfilePhoto(data.profilePhotoUrl);
+      // If phone number not in profile, try localStorage (from registration)
+      if (!data.phoneNumber && typeof window !== 'undefined') {
+        const phoneFromStorage = localStorage.getItem("userMobile");
+        if (phoneFromStorage) {
+          setMe({ ...data, phoneNumber: phoneFromStorage });
+        }
+      }
     });
 
     load(getActivityCounts(), setCounts);
@@ -638,6 +646,12 @@ export default function HomePage() {
 
   const displayName =
     [me?.firstName, me?.lastName].filter(Boolean).join(" ") || me?.firstName || "—";
+  // Convert to title case: "TECHN" → "Techn", "john doe" → "John Doe"
+  const displayNameFormatted = displayName === "—" ? "—" : displayName
+    .toLowerCase()
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
   const completionPct =
     me?.profileCompletionPct ?? me?.completionPercentage ?? 0;
   const isPremium = !!me?.isPremium;
@@ -684,7 +698,7 @@ export default function HomePage() {
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-gray-800 text-sm">{displayName}</h3>
+            <h3 className="font-bold text-gray-800 text-sm capitalize">{displayNameFormatted}</h3>
             <p className="text-[10px] text-gray-400 font-mono">
               <span className="font-bold text-[#c0174c]">{userIdLabel}</span> • {isPremium ? "Prime member" : "Free member"}
             </p>
@@ -779,7 +793,7 @@ export default function HomePage() {
                 onChange={handlePhotoChange}
               />
             </div>
-            <h3 className="font-bold text-gray-900 text-lg sm:text-xl leading-tight">{displayName}</h3>
+            <h3 className="font-bold text-gray-900 text-lg sm:text-xl leading-tight">{displayNameFormatted}</h3>
             <div className="flex items-center justify-center gap-1 text-[10px] text-[#b22234] font-medium mb-1">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#b22234" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
@@ -873,8 +887,8 @@ export default function HomePage() {
             {[
               { icon: <SettingsIcon />, label: "Settings", href: "/settings" },
               { icon: <HelpIcon />, label: "Help", href: "/help" },
-              { icon: <HeartIcon />, label: "Success stories", href: "/help" },
-              { icon: <MoreIcon />, label: "More", href: "/search" },
+              { icon: <MatchesIcon />, label: "My Matches", href: "/profiles" },
+              { icon: <MessageIcon />, label: "Messages", href: "/chat" },
             ].map((item) => (
               <button
                 key={item.label}
@@ -894,30 +908,30 @@ export default function HomePage() {
         <div className="flex-1 min-w-0 space-y-3 sm:space-y-5">
           {/* AI awareness banner — points users to profiles where Ask AI lives */}
           <div
-            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 flex items-center justify-between gap-3 shadow-sm"
+            className="relative overflow-hidden rounded-2xl p-3 sm:p-5 flex items-center justify-between gap-3 shadow-sm"
             style={{ background: "linear-gradient(120deg,#2D1B35,#b22234 60%,#c0174c)" }}
           >
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">🤖</span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">
+                <span className="text-base sm:text-lg">🤖</span>
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">
                   Made2Match AI
                 </span>
               </div>
-              <h3 className="text-base sm:text-xl font-bold text-white leading-tight" style={{ fontFamily: "Georgia, serif" }}>
+              <h3 className="text-sm sm:text-xl font-bold text-white leading-tight" style={{ fontFamily: "Georgia, serif" }}>
                 Now check compatibility with AI
               </h3>
-              <p className="text-[11px] sm:text-xs text-white/80 mt-0.5 max-w-md">
+              <p className="text-[10px] sm:text-xs text-white/80 mt-0.5 max-w-md line-clamp-2 sm:line-clamp-none">
                 Open any profile and tap <span className="font-semibold text-amber-200">Ask AI </span> to score
                 facial harmony, horoscope, family, education &amp; lifestyle — in real time.
               </p>
             </div>
             <button
               onClick={() => router.push("/profiles")}
-              className="cursor-pointer relative z-10 shrink-0 flex items-center gap-2 bg-white text-sm font-bold px-4 sm:px-5 py-2.5 rounded-full hover:scale-105 transition-transform"
+              className="cursor-pointer relative z-10 shrink-0 flex items-center gap-1 sm:gap-2 bg-white text-xs sm:text-sm font-bold px-3 sm:px-5 py-2 sm:py-2.5 rounded-full hover:scale-105 transition-transform"
               style={{ color: "#c0174c" }}
             >
-              ✨ Explore matches
+              ✨ <span className="hidden sm:inline">Explore matches</span><span className="sm:hidden">Explore</span>
             </button>
             {/* decorative blurred hearts */}
             <span className="absolute -right-2 -top-3 text-7xl opacity-10 select-none">❤️</span>
@@ -964,7 +978,10 @@ export default function HomePage() {
                   <ChevronRight />
                 </button>
                 <Timer />
-                <button className="cursor-pointer flex items-center gap-1 text-xs text-white font-semibold border border-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full hover:bg-white hover:text-[#b22234] transition-colors cursor-pointer">
+                <button 
+                  onClick={() => router.push("/profiles")}
+                  className="cursor-pointer flex items-center gap-1 text-xs text-white font-semibold border border-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full hover:bg-white hover:text-[#b22234] transition-colors cursor-pointer"
+                >
                   View all <ChevronRight />
                 </button>
               </div>
@@ -1037,13 +1054,13 @@ export default function HomePage() {
                 ))}
               </div>
               <a
-                href="tel:+918075067058"
+                href={`tel:+91${me?.phoneNumber || '8075067058'}`}
                 className="inline-flex items-center gap-2 bg-white text-[#b22234] text-sm font-bold px-6 py-2.5 rounded-full hover:bg-amber-50 transition-colors shadow-sm"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
                 </svg>
-                Call 8075067058
+                Call {me?.phoneNumber || '8075067058'}
               </a>
             </div>
             <div className="w-24 sm:w-32 shrink-0 relative z-10">
@@ -1082,8 +1099,8 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Photo/Horoscope Requests */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-4">
+          {/* Photo/Horoscope Requests - HIDDEN */}
+          {/* <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-4">
             <h2 className="text-sm sm:text-base font-bold text-gray-800 mb-1">Photo/Horoscope Requests</h2>
             <div className="flex gap-4 border-b border-gray-200 mb-3 sm:mb-4">
               <button className="cursor-pointer text-xs font-semibold text-[#ea580c] border-b-2 border-[#ea580c] pb-2 px-1 cursor-pointer">
@@ -1123,7 +1140,7 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Profiles You Shortlisted */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -1163,19 +1180,19 @@ export default function HomePage() {
             </div>
             {/* Advertisement box */}
             <div
-              className="mt-3 rounded-xl p-4 flex items-center justify-between gap-3 overflow-hidden"
+              className="mt-3 rounded-xl p-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-3 overflow-hidden"
               style={{ background: "linear-gradient(135deg, #fef3c7, #fde68a, #fef3c7)" }}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#b22234] flex items-center justify-center shrink-0 shadow-sm">
-                  <span className="text-lg font-bold text-white">₹</span>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#b22234] flex items-center justify-center shrink-0 shadow-sm">
+                  <span className="text-base sm:text-lg font-bold text-white">₹</span>
                 </div>
                 <div>
-                  <p className="text-sm sm:text-base font-bold text-gray-800">Unlock unlimited messages &amp; see who liked you!</p>
-                  <p className="text-xs sm:text-sm text-gray-600">Upgrade to Premium — get up to 65% off + verified badge</p>
+                  <p className="text-xs sm:text-base font-bold text-gray-800">Unlock unlimited messages &amp; see who liked you!</p>
+                  <p className="text-[10px] sm:text-sm text-gray-600">Upgrade to Premium — get up to 65% off + verified badge</p>
                 </div>
               </div>
-              <button onClick={() => router.push("/specialoffer")} className="cursor-pointer shrink-0 bg-[#b22234] text-white text-sm font-bold px-5 py-2.5 rounded-full hover:bg-red-700 transition-colors shadow-sm">
+              <button onClick={() => router.push("/specialoffer")} className="cursor-pointer shrink-0 bg-[#b22234] text-white text-xs sm:text-sm font-bold px-3 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-red-700 transition-colors shadow-sm">
                 Claim now
               </button>
             </div>
@@ -1194,13 +1211,13 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <a
-              href="tel:+918075067058"
+              href={`tel:+91${me?.phoneNumber || '8075067058'}`}
               className="flex items-center gap-2 border border-gray-300 text-gray-700 text-xs font-semibold px-3 sm:px-4 py-2 rounded-full hover:border-[#ea580c] hover:text-[#ea580c] transition-colors"
             >
               <PhoneIcon /> Call now
             </a>
             <a
-              href="https://wa.me/918075067058"
+              href={`https://wa.me/91${me?.phoneNumber || '8075067058'}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-[#ea580c] text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-full hover:bg-orange-600 transition-colors"

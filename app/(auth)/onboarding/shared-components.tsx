@@ -260,10 +260,9 @@ export function ActionBtn({ onClick, label = "Continue", disabled = false }: {
 }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      className="w-full py-4 px-4  rounded-2xl cursor-pointer text-white font-black text-base tracking-wide uppercase transition-all hover:opacity-90 hover:scale-[1.02] active:scale-95"
+      className="w-full py-4 px-4 rounded-2xl cursor-pointer text-white font-black text-sm md:text-base tracking-wide transition-all hover:opacity-90 hover:scale-[1.02] active:scale-95 whitespace-nowrap overflow-hidden text-ellipsis"
       style={{
         background: "linear-gradient(135deg, #c0174c, #8b0f38)",
-        // boxShadow: "0 6px 20px rgba(192,23,76,0.35)",
         opacity: disabled ? 0.5 : 1,
       }}>
       {label}
@@ -283,8 +282,8 @@ export function BackBtn({ onClick }: { onClick: () => void }) {
 export function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-2 sticky top-0 z-20 bg-white">
-      <h2 className="text-xl font-black text-gray-900">{title}</h2>
-      {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+      <h2 className="text-xl font-black text-gray-900 text-left">{title}</h2>
+      {subtitle && <p className="text-sm text-gray-500 mt-1 text-left">{subtitle}</p>}
     </div>
   );
 }

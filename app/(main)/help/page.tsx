@@ -83,7 +83,7 @@ function ContactUs() {
   return (
     <div className="w-full">
       <p className="text-sm text-gray-600 mb-5 sm:mb-6 leading-relaxed">
-        MatriMatch is eager to help you find your partner at the earliest. Our customer service team will be pleased to assist you anytime you have a query. You can contact our customer service team in one of the following ways.
+        Made2Match is eager to help you find your partner at the earliest. Our customer service team will be pleased to assist you anytime you have a query. You can contact our customer service team in one of the following ways.
       </p>
 
       {/* 2 cols on desktop, 1 col on mobile */}
@@ -95,14 +95,7 @@ function ContactUs() {
               <span className="text-xl">🇮🇳</span>
               <div>
                 <span className="font-bold text-gray-700 text-sm mr-2">INDIA</span>
-                <span className="text-sm text-gray-600">0-8144-99-88-77</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🇦🇪</span>
-              <div>
-                <span className="font-bold text-gray-700 text-sm mr-2">UAE</span>
-                <span className="text-sm text-gray-600">+971 525060879</span>
+                <span className="text-sm text-gray-600">+91 8075067058</span>
               </div>
             </div>
           </div>
@@ -116,7 +109,7 @@ function ContactUs() {
                 <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
             </div>
-            <span className="text-sm text-gray-600">Call <span className="font-semibold text-gray-800">+91 9597337974</span></span>
+            <span className="text-sm text-gray-600">Call <span className="font-semibold text-gray-800">+91 8075067058</span></span>
           </div>
         </div>
       </div>

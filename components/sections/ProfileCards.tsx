@@ -15,6 +15,15 @@ import {
   type MatchFilters,
   type SidebarLabel,
 } from "@/services/matchesService";
+
+const toTitleCase = (str?: string) => {
+  if (!str || str === "—") return str ?? "—";
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+};
 import { getBlockedProfiles } from "@/services/blockedProfilesService";
 import {
   getMyPreferences,
@@ -724,19 +733,50 @@ const ProfileCardGrid = ({
         {/* Bottom darken for panel legibility */}
         <div className="absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(0,0,0,0.55) 4%, rgba(0,0,0,0) 42%)" }} />
 
-        {/* NEWLY JOINED diagonal ribbon — today only */}
+        {/* NEWLY JOINED 3D folded corner — today only */}
         {profile.isNew && (
-          <div className="absolute top-0 left-0 overflow-hidden w-24 h-24 pointer-events-none">
-            <div
-              className="absolute text-white text-[9px] font-black tracking-wider text-center leading-tight py-1 shadow-md"
-              style={{
-                background: "linear-gradient(135deg,#ff2d6f,#c0174c)",
-                width: "110px",
-                top: "18px",
-                left: "-22px",
-                transform: "rotate(-45deg)",
-              }}
-            >
+          <div className="absolute top-0 left-0 pointer-events-none" style={{ width: 70, height: 70 }}>
+            <div style={{
+              position: "absolute",
+              top: 0, left: 0,
+              width: 0, height: 0,
+              borderStyle: "solid",
+              borderWidth: "70px 70px 0 0",
+              borderColor: "#ff3d00 transparent transparent transparent",
+              filter: "drop-shadow(2px 3px 4px rgba(0,0,0,0.4))",
+            }} />
+            <div style={{
+              position: "absolute",
+              top: 0, left: 0,
+              width: 0, height: 0,
+              borderStyle: "solid",
+              borderWidth: "16px 16px 0 0",
+              borderColor: "rgba(255,255,255,0.3) transparent transparent transparent",
+            }} />
+            <div style={{
+              position: "absolute",
+              bottom: 0, left: 0,
+              width: 0, height: 0,
+              borderStyle: "solid",
+              borderWidth: "0 0 12px 12px",
+              borderColor: "transparent transparent #b22800 transparent",
+            }} />
+            <div style={{
+              position: "absolute",
+              top: 8,
+              left: 3,
+              width: 42,
+              transform: "rotate(-45deg)",
+              transformOrigin: "center center",
+              color: "white",
+              fontSize: 7,
+              fontWeight: 900,
+              lineHeight: 1.25,
+              textAlign: "center",
+              letterSpacing: "0.06em",
+              textShadow: "0 1px 3px rgba(0,0,0,0.6)",
+              textTransform: "uppercase",
+            }}>
               NEWLY<br />JOINED
             </div>
           </div>
@@ -767,7 +807,7 @@ const ProfileCardGrid = ({
           )}
           <div className="flex items-center gap-2 mt-0.5">
             <h3 className="text-2xl font-bold leading-tight truncate">
-              {profile.name}{profile.age != null && <>, {profile.age}</>}
+              {toTitleCase(profile.name)}{profile.age != null && <>, {profile.age}</>}
             </h3>
             <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "#ff2d6f" }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -886,19 +926,50 @@ const ProfileCardList = ({
                 onError={() => setImgError(true)}
               />
             )}
-            {/* NEWLY JOINED diagonal ribbon — today only */}
+            {/* NEWLY JOINED 3D folded corner — today only */}
             {profile.isNew && (
-              <div className="absolute top-0 left-0 overflow-hidden w-20 h-20 pointer-events-none">
-                <div
-                  className="absolute text-white text-[8px] font-black tracking-wider text-center leading-tight py-1 shadow-md"
-                  style={{
-                    background: "linear-gradient(135deg,#ff2d6f,#c0174c)",
-                    width: "90px",
-                    top: "14px",
-                    left: "-18px",
-                    transform: "rotate(-45deg)",
-                  }}
-                >
+              <div className="absolute top-0 left-0 pointer-events-none" style={{ width: 60, height: 60 }}>
+                <div style={{
+                  position: "absolute",
+                  top: 0, left: 0,
+                  width: 0, height: 0,
+                  borderStyle: "solid",
+                  borderWidth: "60px 60px 0 0",
+                  borderColor: "#ff3d00 transparent transparent transparent",
+                  filter: "drop-shadow(2px 3px 4px rgba(0,0,0,0.4))",
+                }} />
+                <div style={{
+                  position: "absolute",
+                  top: 0, left: 0,
+                  width: 0, height: 0,
+                  borderStyle: "solid",
+                  borderWidth: "13px 13px 0 0",
+                  borderColor: "rgba(255,255,255,0.3) transparent transparent transparent",
+                }} />
+                <div style={{
+                  position: "absolute",
+                  bottom: 0, left: 0,
+                  width: 0, height: 0,
+                  borderStyle: "solid",
+                  borderWidth: "0 0 10px 10px",
+                  borderColor: "transparent transparent #b22800 transparent",
+                }} />
+                <div style={{
+                  position: "absolute",
+                  top: 7,
+                  left: 3,
+                  width: 36,
+                  transform: "rotate(-45deg)",
+                  transformOrigin: "center center",
+                  color: "white",
+                  fontSize: 6,
+                  fontWeight: 900,
+                  lineHeight: 1.25,
+                  textAlign: "center",
+                  letterSpacing: "0.05em",
+                  textShadow: "0 1px 3px rgba(0,0,0,0.6)",
+                  textTransform: "uppercase",
+                }}>
                   NEWLY<br />JOINED
                 </div>
               </div>
@@ -914,15 +985,11 @@ const ProfileCardList = ({
           >
             <div className="flex items-center gap-1.5">
               <h3 className="text-lg font-bold text-gray-800 truncate">
-                {profile.name}
+                {toTitleCase(profile.name)}
               </h3>
-              {profile.isPremium ? (
+              {profile.isPremium && (
                 <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
                   ✓ Verified
-                </span>
-              ) : (
-                <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
-                  Not Verified
                 </span>
               )}
             </div>

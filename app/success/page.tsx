@@ -80,7 +80,7 @@ export default function SuccessPage() {
           Your account has been successfully created and your email has been verified.
         </p>
         <p className="text-sm text-gray-400 mb-8">
-          Welcome to <span className="font-black" style={{ color: "#c0174c" }}>MatriMatch</span>!
+          Welcome to <span className="font-black" style={{ color: "#c0174c" }}>Made2Match</span>!
         </p>
 
         {/* Details card */}

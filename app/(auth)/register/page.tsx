@@ -44,6 +44,8 @@ export default function RegisterPage() {
           localStorage.setItem("token", tokens.accessToken);
           if (tokens.refreshToken) localStorage.setItem("refreshToken", tokens.refreshToken);
         }
+        // Store mobile number for later use
+        localStorage.setItem("userMobile", form.mobileNumber);
         router.push("/onboarding/basic-details");
       },
       onError: (e: any) => {

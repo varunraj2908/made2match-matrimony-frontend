@@ -22,11 +22,11 @@ export default function OnboardingSuccessPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 sm:px-0"
+      className="h-screen w-full flex items-center justify-center px-4 sm:px-0"
       style={{ background: "#fdf2f5" }}
     >
       <div
-        className="w-full max-w-md rounded-3xl overflow-hidden"
+        className="w-full max-w-md rounded-3xl overflow-hidden mx-auto"
         style={{ border: "0.5px solid #f0c0d0", background: "white" }}
       >
         {/* ── Hero ── */}
@@ -175,7 +175,7 @@ export default function OnboardingSuccessPage() {
           {/* Secondary */}
           <button
             onClick={() => router.push("/upload-image")}
-            className="w-full text-center text-xs mt-3 hover:opacity-70 transition-opacity"
+            className="w-full text-center text-sm font-semibold mt-3 hover:opacity-70 transition-opacity"
             style={{
               color: "#c0174c",
               background: "none",

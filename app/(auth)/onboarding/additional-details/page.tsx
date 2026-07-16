@@ -129,7 +129,7 @@ export default function AdditionalDetailsPage(): JSX.Element {
       <FieldGroup label="About Yourself" isHeight="h-44">
         <textarea
           rows={6}
-          placeholder="Write something about yourself..."
+          placeholder="I am a caring and family-oriented person who believes in traditional values. I enjoy spending time with family and friends. Looking for a life partner who shares similar values and is ready for a committed relationship. I believe in mutual respect, trust, and understanding in a marriage."
           value={formData.aboutYourself}
           onChange={(
             e: ChangeEvent<HTMLTextAreaElement>
