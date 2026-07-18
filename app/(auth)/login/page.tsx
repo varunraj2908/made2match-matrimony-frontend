@@ -9,6 +9,21 @@ import { useLogin } from "@/hooks/useLogin";
 const FIELD =
   "w-full pl-10 pr-12 py-3 rounded-xl text-sm text-white placeholder-white/55 outline-none transition-all bg-white/10 border border-white/25 focus:border-[#E8C547] focus:bg-white/15";
 
+type LoginResponse = {
+  data?: {
+    accessToken?: string;
+    refreshToken?: string;
+  };
+};
+
+type LoginError = {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const { mutate, isPending } = useLogin();
@@ -26,16 +41,17 @@ export default function LoginPage() {
     mutate(
       { email: email.trim(), password },
       {
-        onSuccess: (res: any) => {
-          const tokens = res?.data;
+        onSuccess: (res: LoginResponse) => {
+          const tokens = res.data;
           if (tokens?.accessToken) {
             localStorage.setItem("token", tokens.accessToken);
             if (tokens.refreshToken) localStorage.setItem("refreshToken", tokens.refreshToken);
           }
           router.push("/home");
         },
-        onError: (e: any) => {
-          setError(e?.response?.data?.message || "Invalid email or password.");
+        onError: (e: Error) => {
+          const loginError = e as Error & LoginError;
+          setError(loginError.response?.data?.message || "Invalid email or password.");
         },
       },
     );
