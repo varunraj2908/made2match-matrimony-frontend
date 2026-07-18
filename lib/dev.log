@@ -1,0 +1,16 @@
+
+> matrimony@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.0 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.56.1:3000
+- Environments: .env.local
+✓ Ready in 740ms
+
+ GET /manifest.webmanifest 200 in 361ms (next.js: 331ms, application-code: 29ms)
+ GET /home 200 in 730ms (next.js: 139ms, application-code: 592ms)
+ GET /manifest.webmanifest 200 in 16ms (next.js: 7ms, application-code: 9ms)
+ GET /home 200 in 135ms (next.js: 8ms, application-code: 127ms)
+ GET /manifest.webmanifest 200 in 17ms (next.js: 7ms, application-code: 10ms)
+[?25h

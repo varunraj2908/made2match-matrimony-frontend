@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -12,6 +13,7 @@ type BeforeInstallPromptEvent = Event & {
  * when the browser signals the app is installable (Chromium/Android).
  */
 export default function PWARegister() {
+  const pathname = usePathname();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
 
@@ -50,7 +52,7 @@ export default function PWARegister() {
   return (
     <button
       onClick={install}
-      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[1500] flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold text-white shadow-lg transition-all hover:opacity-90 active:scale-95 animate-fade-in"
+      className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-[1500] items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold text-white shadow-lg transition-all hover:opacity-90 active:scale-95 animate-fade-in ${pathname === "/" || pathname === "/splash" ? "hidden lg:flex" : "flex"}`}
       style={{ background: "linear-gradient(135deg,#c0174c,#8b0f38)", boxShadow: "0 8px 20px rgba(192,23,76,0.35)" }}
     >
       <span>⬇️</span> Install App

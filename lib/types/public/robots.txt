@@ -1,0 +1,21 @@
+# Made2Match Matrimony - Robots.txt
+User-agent: *
+Allow: /
+Allow: /home
+Allow: /profiles
+Allow: /about-us
+Allow: /terms-and-conditions
+Allow: /privacy-policy
+
+# Disallow admin and private pages
+Disallow: /api/
+Disallow: /chat/
+Disallow: /settings/
+Disallow: /edit-profile/
+Disallow: /onboarding/
+Disallow: /login
+Disallow: /register
+Disallow: /verify-otp
+
+# Sitemap location
+Sitemap: https://made2match.in/sitemap.xml

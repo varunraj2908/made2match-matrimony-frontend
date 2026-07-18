@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline — Made2Match</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: #fdf5f5; color: #3a3a3a; text-align: center; padding: 24px;
+      }
+      .card {
+        max-width: 360px; background: #fff; border: 1px solid #f0d6df; border-radius: 24px;
+        padding: 32px 24px; box-shadow: 0 12px 32px rgba(192,23,76,.12);
+      }
+      .badge {
+        width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 16px;
+        display: flex; align-items: center; justify-content: center; font-size: 32px;
+        background: linear-gradient(135deg,#c0174c,#8b0f38); color: #fff;
+      }
+      h1 { font-size: 20px; margin: 0 0 8px; }
+      p { font-size: 14px; color: #777; margin: 0 0 20px; line-height: 1.5; }
+      button {
+        border: 0; cursor: pointer; padding: 12px 24px; border-radius: 999px; color: #fff;
+        font-weight: 700; font-size: 14px; background: linear-gradient(135deg,#c0174c,#8b0f38);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="badge">💞</div>
+      <h1>You're offline</h1>
+      <p>Made2Match needs an internet connection. Please check your network and try again.</p>
+      <button onclick="location.reload()">Retry</button>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,350 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* shadcn-style tokens used by Card / Avatar / Marquee components */
+  --color-card: #ffffff;
+  --color-card-foreground: var(--foreground);
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
+  --color-border: #e5e7eb;
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html, body {
+  max-width: 100%;
+  /* `clip` prevents horizontal scroll without creating a new scroll container,
+     so position:sticky on descendants (Header, SectionNavbar) still works. */
+  overflow-x: clip;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Consistent elegant serif for ALL headings; Inter handles body text.
+   This unifies headings site-wide so they no longer mix serif and sans. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+/* Unified button styles — glassmorphism + 3D depth. Each button keeps its own
+   size and border-radius; these classes set the fill, text and depth so every
+   button looks consistent across the landing page.
+   - .btn-primary      → pink gradient pill for light backgrounds
+   - .btn-glass        → frosted white for pink/colored/dark backgrounds
+   - .btn-glass-light  → frosted light (pink text) for white backgrounds */
+.btn-primary {
+  background: #c0174c;
+  color: #fff;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -3px 7px rgba(120, 10, 40, 0.35),
+    0 6px 16px rgba(192, 23, 76, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-1px) scale(1.02);
+  filter: brightness(1.05);
+}
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.26);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.14),
+    0 6px 16px rgba(0, 0, 0, 0.22);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px) scale(1.02);
+}
+.btn-glass:active { transform: scale(0.97); }
+
+.btn-glass-light {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #c0174c;
+  font-weight: 700;
+  border: 1px solid rgba(192, 23, 76, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 4px 12px rgba(192, 23, 76, 0.18);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-glass-light:hover {
+  background: rgba(255, 255, 255, 0.85);
+  transform: translateY(-1px) scale(1.02);
+}
+.btn-glass-light:active { transform: scale(0.97); }
+
+@keyframes borderRun {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animated-border {
+  position: relative;
+  border-radius: 18px;
+  padding: 2px;
+  background: #e5e7eb;
+}
+.animated-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: linear-gradient(270deg, #c0174c, #ff6a9c, #ffb3cc, #c0174c, #7a0030);
+  background-size: 300% 300%;
+  animation: borderRun 2s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  padding: 2px;
+}
+
+
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  display: inline-block;
+  min-width: 100%;
+  animation: marquee 10s linear infinite;
+}
+
+/* Vertical marquee used by the 3D testimonials component. */
+@keyframes marquee-vertical {
+  from { transform: translateY(0); }
+  to   { transform: translateY(calc(-100% - var(--gap, 1rem))); }
+}
+.animate-marquee-vertical {
+  animation: marquee-vertical var(--duration, 40s) linear infinite;
+}
+
+/* Seamless infinite horizontal carousel (track holds two copies of the cards,
+   so animating to -50% loops with no visible jump). */
+@keyframes stories-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-stories-scroll {
+  animation: stories-scroll var(--stories-duration, 45s) linear infinite;
+}
+
+/* Small blinking hint (e.g. "drag to flip" indicator). */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+.animate-blink {
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+/* Centered popup (backdrop fade + content pop-in). */
+@keyframes modalFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: modalFade 0.25s ease-out;
+}
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-modal-pop {
+  animation: modalPop 0.3s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Pulsing glow ring for the mobile bottom-nav floating action button. */
+@keyframes fab-pulse {
+  0%, 100% {
+    box-shadow: 0 6px 16px rgba(192, 23, 76, 0.5),
+      0 0 0 0 rgba(232, 39, 95, 0.45);
+  }
+  50% {
+    box-shadow: 0 6px 16px rgba(192, 23, 76, 0.5),
+      0 0 0 10px rgba(232, 39, 95, 0);
+  }
+}
+.animate-fab-pulse {
+  animation: fab-pulse 2s ease-in-out infinite;
+}
+
+/* Periodic attention shake — brief wobble every few seconds. */
+@keyframes shake {
+  0%, 90%, 100% { transform: translateX(0); }
+  92%  { transform: translateX(-6px); }
+  94%  { transform: translateX(6px); }
+  96%  { transform: translateX(-4px); }
+  98%  { transform: translateX(4px); }
+}
+.animate-shake {
+  animation: shake 3s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   AI Compatibility Matching modal (Ask AI) animations
+   ───────────────────────────────────────────────────────────────── */
+
+/* Vertical scanning beam that sweeps across a profile while analysing. */
+@keyframes ai-scan {
+  0%   { transform: translateY(-110%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(110%); opacity: 0; }
+}
+.animate-ai-scan {
+  animation: ai-scan 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Flowing dashed "love thread" connecting the two profiles. */
+@keyframes ai-thread {
+  to { stroke-dashoffset: -32; }
+}
+.animate-ai-thread {
+  animation: ai-thread 0.9s linear infinite;
+}
+
+/* Particles drifting along the thread between profiles. */
+@keyframes ai-particle {
+  0%   { offset-distance: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+/* Golden shimmer sweeping over the score ring on completion. */
+@keyframes ai-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-ai-shimmer {
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(232, 197, 71, 0.55) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: ai-shimmer 2.2s linear infinite;
+}
+
+/* Soft pulsing halo behind the central score ring. */
+@keyframes ai-halo {
+  0%, 100% { transform: scale(1);    opacity: 0.55; }
+  50%      { transform: scale(1.12); opacity: 0.9; }
+}
+.animate-ai-halo {
+  animation: ai-halo 2.4s ease-in-out infinite;
+}
+
+/* Floating hearts in the modal backdrop. */
+@keyframes ai-float {
+  0%   { transform: translateY(0) scale(1);    opacity: 0; }
+  15%  { opacity: 0.8; }
+  100% { transform: translateY(-120px) scale(1.4); opacity: 0; }
+}
+.animate-ai-float {
+  animation: ai-float linear infinite;
+}
+
+/* Row reveal as each attribute finishes scoring. */
+@keyframes ai-reveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-ai-reveal {
+  animation: ai-reveal 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* Blinking analysis cursor / live dot. */
+@keyframes ai-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.3; transform: scale(0.7); }
+}
+.animate-ai-live {
+  animation: ai-live 1s ease-in-out infinite;
+}
+
+/* @keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (max-width: 640px) {
+  .animate-marquee {
+    animation-duration: 18s;
+  }
+}
+ */
+
+/* Hide scrollbars while keeping scroll functionality. */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+

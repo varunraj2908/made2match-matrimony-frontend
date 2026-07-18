@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import AuthBrandHeader from "@/components/sections/AuthBrandHeader";
 import { useLogin } from "@/hooks/useLogin";
-import MobileSplash from "@/components/sections/MobileSplash";
 
 const FIELD =
   "w-full pl-10 pr-12 py-3 rounded-xl text-sm text-white placeholder-white/55 outline-none transition-all bg-white/10 border border-white/25 focus:border-[#E8C547] focus:bg-white/15";
@@ -45,13 +44,9 @@ export default function LoginPage() {
   return (
     <>
       {/* Mobile — show splash screen */}
-      <div className="md:hidden">
-        <MobileSplash />
-      </div>
-
       {/* Desktop — show login form */}
       <div
-        className="hidden md:block h-full overflow-y-auto"
+        className="h-full overflow-y-auto"
         style={{ background: "linear-gradient(165deg,#2d1b35 0%,#8f0e39 45%,#c0174c 100%)" }}
       >
         <div className="relative w-full max-w-md lg:max-w-xl mx-auto min-h-full px-6 py-8 flex flex-col justify-center">
