@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import RegistrationConsent from "@/components/ui/RegistrationConsent";
 
 export default function RegistrationPage() {
   const router = useRouter();
@@ -130,36 +131,28 @@ export default function RegistrationPage() {
             </div>
           </div>
 
-          {/* Checkboxes */}
+          {/* Consent and newsletter */}
           <div className="space-y-3">
-            {([
-              { key: "agreeTerms", label: "I agree with Terms and conditions", required: true },
-              { key: "newsletter", label: "I want to receive the newsletter", required: false },
-            ] as { key: Field; label: string; required: boolean }[]).map(({ key, label, required }) => (
-              <label key={key} className="flex items-start gap-3 cursor-pointer">
-                <div
-                  onClick={() => setForm((f) => ({ ...f, [key]: !f[key] }))}
-                  className="w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all"
-                  style={{
-                    borderColor: form[key] ? "#c0174c" : errors[key] ? "#ef4444" : "#d1d5db",
-                    background: form[key] ? "#c0174c" : "white",
-                  }}
-                >
-                  {form[key] && (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" className="w-3 h-3">
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-                <span className="text-sm text-gray-600 leading-snug">
-                  {label}
-                  {required && <span style={{ color: "#c0174c" }}> *</span>}
-                </span>
-              </label>
-            ))}
-            {errors.agreeTerms && (
-              <p className="text-xs pl-8" style={{ color: "#ef4444" }}>{errors.agreeTerms}</p>
-            )}
+            <RegistrationConsent
+              checked={form.agreeTerms}
+              onChange={(checked) => {
+                setForm((current) => ({ ...current, agreeTerms: checked }));
+                setErrors((current) => ({ ...current, agreeTerms: "" }));
+              }}
+              error={errors.agreeTerms}
+            />
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={form.newsletter}
+                onChange={(event) => setForm((current) => ({
+                  ...current,
+                  newsletter: event.target.checked,
+                }))}
+                className="mt-0.5 h-4 w-4 accent-[#c0174c]"
+              />
+              <span className="text-sm text-gray-600">I want to receive the newsletter</span>
+            </label>
           </div>
 
           {/* Submit */}

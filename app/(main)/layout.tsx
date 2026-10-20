@@ -23,7 +23,7 @@ export default function MainLayout({
           <Footer />
         </div>
       )}
-      {!pathname.startsWith("/chat") && <ChatAssistant />}
+      {!pathname.startsWith("/chat") && pathname !== "/settings" && <ChatAssistant />}
       <MatchCelebration />
       <WelcomeCelebration />
       {/* Spacer so content clears the fixed mobile bottom nav */}

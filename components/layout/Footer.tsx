@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { submitContactMessage } from "@/services/contactService";
 import { useScrollLock } from "@/lib/useScrollLock";
+import QRCodeWidget from "@/components/ui/QRCodeWidget";
 
 const PRIMARY_LINKS: { label: string; href: string }[] = [
   { label: "Home", href: "/" },
@@ -22,8 +23,8 @@ const SECONDARY_LINKS: { label: string; href: string }[] = [
   { label: "Success Story", href: "/#success-stories" },
 ];
 
-const SUPPORT_PHONE = "+91 8075067058";
-const SUPPORT_PHONE_TEL = "+918075067058";
+const SUPPORT_PHONE = "+91 7909227177";
+const SUPPORT_PHONE_TEL = "+917909227177";
 const SUPPORT_EMAIL = "madetwomatch08@gmail.com";
 
 export default function Footer() {
@@ -121,6 +122,18 @@ export default function Footer() {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* QR CODE */}
+        <div className="flex flex-col items-center justify-start gap-2 shrink-0">
+          <h4 className="text-white font-bold text-base mb-2 self-start">
+            Scan & Visit
+          </h4>
+          <QRCodeWidget
+            url="https://made2match.in"
+            size={110}
+            label="made2match.in"
+          />
         </div>
 
         {/* SUPPORT */}

@@ -1,7 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRazorpay } from "@/hooks/useRazorpay";
+import SpecialOfferSideBanner from "@/components/ui/SpecialOfferSideBanner";
+import { getSubscriptionPlans, type SubscriptionPlan } from "@/services/paymentService";
+import { getMyProfileFull } from "@/services/profileService";
+import PaymentConfirmPopup from "@/components/modals/PaymentConfirmPopup";
 
 // ─── Data ───────────────────────────────────────────────────────────────────
 
@@ -202,6 +207,7 @@ type SubBadge = {
   price: string;
   duration: string;
   features: { icon: string; text: string; available: boolean }[];
+  planId?: number; // matched from backend
 };
 
 type PlanData = {
@@ -216,7 +222,25 @@ type PlanData = {
   btnLabel: string;
 };
 
-function PlanCard({ plan }: { plan: PlanData }) {
+// Helper — parse "₹1,499" → 1499, compute GST, return formatted strings
+function gstBreakdown(priceStr: string): { base: string; gst: string; total: string } {
+  const num = parseFloat(priceStr.replace(/[₹,]/g, "")) || 0;
+  const gst = Math.round(num * 0.18 * 100) / 100;
+  const total = Math.round((num + gst) * 100) / 100;
+  const fmt = (n: number) =>
+    "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return { base: fmt(num), gst: fmt(gst), total: fmt(total) };
+}
+
+function PlanCard({
+  plan,
+  onPay,
+  paying,
+}: {
+  plan: PlanData;
+  onPay: (planName: string, planId?: number) => void;
+  paying: boolean;
+}) {
   const [activeIdx, setActiveIdx] = useState(0);
   const active = plan.subBadges[activeIdx];
 
@@ -318,14 +342,25 @@ function PlanCard({ plan }: { plan: PlanData }) {
 
         {/* ── Choose button ── */}
         <button
-          className="w-full py-3 rounded-xl text-sm font-bold tracking-wide transition-all hover:opacity-90 hover:-translate-y-0.5 active:scale-95 mb-5"
+          onClick={() => onPay(active.label, active.planId)}
+          disabled={paying}
+          className="w-full py-3 rounded-xl text-sm font-bold tracking-wide transition-all hover:opacity-90 hover:-translate-y-0.5 active:scale-95 mb-5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           style={
             plan.highlight
               ? { background: "linear-gradient(135deg,#c0174c,#e8305e)", color: "white" }
               : { background: "white", color: "#c0174c", border: "2px solid #c0174c" }
           }
         >
-          {activeIdx === 0 ? plan.btnLabel : `Choose ${active.label}`}
+          {paying ? (
+            <>
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+              Processing…
+            </>
+          ) : (
+            activeIdx === 0 ? plan.btnLabel : `Choose ${active.label}`
+          )}
         </button>
 
         {/* ── Feature list ── */}
@@ -412,22 +447,37 @@ function CheckMark({ color = "#c0174c" }: { color?: string }) {
   );
 }
 
-function PayNowBtn({ label = "PAY NOW" }: { label?: string }) {
+function PayNowBtn({
+  label = "PAY NOW",
+  onClick,
+  loading,
+}: {
+  label?: string;
+  onClick?: () => void;
+  loading?: boolean;
+}) {
   return (
     <button
-      className="w-full py-3 rounded-lg text-white font-bold text-sm tracking-widest transition-all hover:opacity-90 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
-      style={{ background: "linear-gradient(135deg, #c0174c, #c0174c)" }}
+      onClick={onClick}
+      disabled={loading}
+      className="w-full py-3 rounded-lg text-white font-bold text-sm tracking-widest transition-all hover:opacity-90 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+      style={{ background: "linear-gradient(135deg, #c0174c, #e8305e)" }}
     >
-      {label}
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        className="w-3.5 h-3.5"
-      >
-        <path d="M9 18l6-6-6-6" />
-      </svg>
+      {loading ? (
+        <>
+          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          Processing…
+        </>
+      ) : (
+        <>
+          {label}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </>
+      )}
     </button>
   );
 }
@@ -458,11 +508,20 @@ function HomePage({ onUpgrade }: { onUpgrade: () => void }) {
 function SpecialOfferPage({
   onViewAll,
   onUpgrade,
+  onPay,
+  paying,
+  registrationPlanId,
+  testPlanId,
 }: {
   onViewAll: () => void;
   onUpgrade: () => void;
+  onPay: (label: string, planId?: number) => void;
+  paying: boolean;
+  registrationPlanId?: number;
+  testPlanId?: number;
 }) {
-   const router = useRouter();
+  const router = useRouter();
+  const [showMegaOffer, setShowMegaOffer] = useState(false);
   return (
     <div
       className="min-h-screen flex flex-col"
@@ -477,97 +536,150 @@ function SpecialOfferPage({
         }}
       >
         {/* Back nav and Skip button row */}
-        <div className="max-w-5xl mx-auto w-full mb-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto w-full mb-3 flex items-center justify-between">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800 transition cursor-pointer"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className="w-4 h-4"
-            >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
               <path d="M15 18l-6-6 6-6" />
             </svg>
             Back
           </button>
-          
           <button
             onClick={() => router.push('/home')}
             className="text-sm font-bold hover:underline cursor-pointer transition inline-flex items-center gap-1"
             style={{ color: "#c0174c" }}
           >
             Skip now
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className="w-3.5 h-3.5"
-            >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5">
               <path d="M9 18l6-6-6-6" />
             </svg>
           </button>
         </div>
 
+        {/* Special Offer Banner — REMOVED, now inline with title */}
+
         {/* Title */}
-        <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5">
-            <svg viewBox="0 0 20 20" fill="#bbb" className="w-4 h-4 sm:w-5 sm:h-5 opacity-40">
-              <path d="M10 0l1.5 6.5L18 10l-6.5 1.5L10 18l-1.5-6.5L2 10l6.5-1.5z" />
-            </svg>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-gray-900">
-              Special{" "}
-              <span
-                className="text-white px-3 sm:px-4 py-1 rounded-xl inline-block"
-                style={{
-                  background: "linear-gradient(135deg,#7c1d6f,#c0174c)",
-                }}
-              >
-                Offer
-              </span>
-            </h1>
-            <svg viewBox="0 0 20 20" fill="#bbb" className="w-4 h-4 sm:w-5 sm:h-5 opacity-40">
-              <path d="M10 0l1.5 6.5L18 10l-6.5 1.5L10 18l-1.5-6.5L2 10l6.5-1.5z" />
-            </svg>
+        <div className="relative mb-6 sm:mb-8">
+          <div className="flex items-center justify-center gap-4 sm:gap-6 mb-4 sm:mb-5 flex-wrap">
+
+            {/* Banner — same level as title, left */}
+            <div
+              className="relative w-full max-w-[420px] overflow-hidden rounded-xl shrink-0"
+              style={{
+                background: "linear-gradient(135deg, #ffd700 0%, #ffc331 40%, #ffaa00 100%)",
+                height: "72px",
+                boxShadow: "4px 5px 0px rgba(0,0,0,0.3)",
+              }}
+            >
+              {/* Halftone */}
+              <div className="absolute inset-0 opacity-20 pointer-events-none"
+                style={{ backgroundImage: "radial-gradient(circle, #000 1px, transparent 1px)", backgroundSize: "7px 7px" }} />
+              {/* Dark diagonal — right 48% */}
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: "linear-gradient(115deg, transparent 0%, transparent 52%, #1a1a2e 52%, #1a1a2e 100%)" }} />
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: "linear-gradient(115deg, transparent 48%, rgba(0,0,0,0.25) 52%, transparent 56%)" }} />
+
+              {/* LEFT — 75% OFF badge + Click Here button */}
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-2.5">
+                <div className="rounded-lg px-3 py-2 text-center"
+                  style={{ background: "linear-gradient(135deg, #c0174c, #e8305e)", boxShadow: "2px 2px 0 #8b102c", transform: "rotate(-3deg)" }}>
+                  <span className="font-black text-white leading-none block" style={{ fontSize: "20px" }}>75%</span>
+                  <span className="font-black text-white/90 leading-none uppercase tracking-wider block" style={{ fontSize: "10px" }}>OFF</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMegaOffer(true)}
+                  className="rounded-full px-4 py-1.5 text-center cursor-pointer animate-[offer-button-zoom_1.2s_ease-in-out_infinite] hover:[animation-play-state:paused]"
+                  style={{ background: "linear-gradient(135deg, #fff, #ffe87a)", boxShadow: "2px 3px 0 #e8a800" }}>
+                  <span className="font-black text-[#6b0f2e] uppercase leading-none" style={{ fontSize: "13px" }}>Click Here</span>
+                </button>
+              </div>
+
+              {/* MIDDLE — MEGA OFFER — centered in dark area */}
+              <div className="absolute z-10 flex items-center justify-center"
+                style={{ left: "52%", right: "22%", top: 0, bottom: "16px" }}>
+                <div className="text-center">
+                  <p className="font-black text-white uppercase leading-none" style={{ fontSize: "24px", textShadow: "2px 3px 0 rgba(0,0,0,0.6)", letterSpacing: "0.04em" }}>MEGA</p>
+                  <p className="font-black text-white uppercase leading-none" style={{ fontSize: "24px", textShadow: "2px 3px 0 rgba(0,0,0,0.6)", letterSpacing: "0.04em" }}>OFFER</p>
+                </div>
+              </div>
+
+              {/* RIGHT — ₹999 only */}
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
+                <span className="font-black text-white leading-none" style={{ fontSize: "34px", textShadow: "1px 2px 0 rgba(0,0,0,0.75)" }}>₹999</span>
+              </div>
+
+              {/* Bottom strip */}
+              <div className="absolute bottom-0 left-0 right-0 px-2 py-0.5 flex items-center justify-center gap-1"
+                style={{ background: "rgba(0,0,0,0.3)" }}>
+                <svg width="6" height="6" viewBox="0 0 24 24" fill="#ffc331"><path d="M5 3l14 9-14 9V3z"/></svg>
+                <span className="text-[7px] font-bold text-white/80 uppercase tracking-widest">Limited Time Offer</span>
+              </div>
+            </div>
+
+            {/* Title */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <svg viewBox="0 0 20 20" fill="#bbb" className="w-4 h-4 sm:w-5 sm:h-5 opacity-40">
+                <path d="M10 0l1.5 6.5L18 10l-6.5 1.5L10 18l-1.5-6.5L2 10l6.5-1.5z" />
+              </svg>
+              <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-gray-900">
+                Special{" "}
+                <span className="text-white px-3 sm:px-4 py-1 rounded-xl inline-block"
+                  style={{ background: "linear-gradient(135deg,#7c1d6f,#c0174c)" }}>
+                  Offer
+                </span>
+              </h1>
+              <svg viewBox="0 0 20 20" fill="#bbb" className="w-4 h-4 sm:w-5 sm:h-5 opacity-40">
+                <path d="M10 0l1.5 6.5L18 10l-6.5 1.5L10 18l-1.5-6.5L2 10l6.5-1.5z" />
+              </svg>
+            </div>
           </div>
-          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-1 flex-wrap text-sm sm:text-base">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-1 flex-wrap text-sm sm:text-base text-center">
             <span className="text-gray-800 font-semibold">Save upto 60%</span>
             <span className="text-gray-400 text-lg">+</span>
-            <span className="font-bold" style={{ color: "#c0174c" }}>
-              21 Days Money Back Guarantee!
-            </span>
+            <span className="font-bold" style={{ color: "#c0174c" }}>21 Days Money Back Guarantee!</span>
           </div>
-          <p className="text-gray-400 text-xs sm:text-sm">Offer ends today</p>
+          <p className="text-gray-400 text-xs sm:text-sm text-center">Offer ends today</p>
         </div>
 
         {/* Cards */}
         <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 items-start">
           {specialPlans.map((plan) => (
-            <PlanCard key={plan.id} plan={plan} />
+            <PlanCard key={plan.id} plan={plan} onPay={onPay} paying={paying} />
           ))}
         </div>
 
         {/* View All Packages */}
         <div className="flex justify-start items-center mb-10 w-full max-w-5xl mx-auto">
-          <button
-            onClick={onViewAll}
-            className="text-sm font-bold hover:underline transition inline-flex items-center gap-1"
-            style={{ color: "#c0174c" }}
-          >
-            View All Packages
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className="w-3.5 h-3.5"
+          <div className="flex w-full flex-wrap items-center justify-between gap-3">
+            <button
+              onClick={onViewAll}
+              className="text-sm font-bold hover:underline transition inline-flex items-center gap-1"
+              style={{ color: "#c0174c" }}
             >
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
+              View All Packages
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="w-3.5 h-3.5"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => onPay("Production Payment Test", testPlanId)}
+              disabled={paying}
+              className="hidden rounded-full border border-dashed border-amber-500 bg-amber-50 px-5 py-2.5 text-sm font-black text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {paying ? "Processing…" : "Test ₹10 Payment"}
+            </button>
+          </div>
         </div>
 
         {/* Help */}
@@ -589,7 +701,7 @@ function SpecialOfferPage({
               >
                 <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
-              8075067058
+              7909227177
             </button>
           </div>
           <p className="text-xs text-gray-400">
@@ -601,6 +713,101 @@ function SpecialOfferPage({
           </p>
         </div>
       </main>
+
+      {showMegaOffer && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mega-offer-title"
+        >
+          <button
+            type="button"
+            aria-label="Close mega offer"
+            className="absolute inset-0 bg-[#141126]/70 backdrop-blur-sm cursor-default"
+            onClick={() => setShowMegaOffer(false)}
+          />
+          <div className="relative w-full max-w-[562px] overflow-hidden rounded-[28px] border border-white/30 bg-white shadow-2xl">
+            <div
+              className="relative px-7 pb-8 pt-7 text-center text-white"
+              style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #52206d 58%, #c0174c 100%)" }}
+            >
+              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "8px 8px" }} />
+              <div className="absolute -left-10 -top-12 h-32 w-32 rounded-full bg-yellow-300/20 blur-2xl" />
+              <div className="absolute -bottom-12 -right-8 h-32 w-32 rounded-full bg-pink-300/20 blur-2xl" />
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setShowMegaOffer(false)}
+                className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-white/15 text-xl leading-none transition hover:bg-white/25"
+              >
+                ×
+              </button>
+              <div className="relative mx-auto mb-3 w-fit rounded-full border border-yellow-200/50 bg-yellow-300 px-3 py-1 text-xs font-black tracking-[0.18em] text-[#5b1739]">
+                LIMITED TIME OFFER
+              </div>
+              <p className="relative text-xs font-bold uppercase tracking-[0.22em] text-white/70">Exclusive member upgrade</p>
+              <p className="relative text-sm font-bold uppercase tracking-[0.25em] text-yellow-300">Mega Offer</p>
+              <h2 id="mega-offer-title" className="relative mt-1 flex items-center justify-center gap-3 font-black tracking-tight">
+                <span className="text-2xl text-white/60 line-through">₹3,996</span>
+                <span className="text-5xl">₹999</span>
+              </h2>
+              <p className="relative mt-2 text-base font-semibold text-white">Registration Offer <span className="mx-1 text-yellow-300">•</span> 1 Month Duration</p>
+              <div className="relative mt-4 flex justify-center gap-2">
+                <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-center">
+                  <p className="text-base font-black text-yellow-300">75%</p>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-white/75">Savings</p>
+                  <p className="mt-0.5 text-[9px] font-semibold text-white/60 line-through">₹3,996</p>
+                </div>
+                <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-center">
+                  <p className="text-base font-black text-yellow-300">24/7</p>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-white/75">Support</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-7 py-5">
+              <div className="mb-4 overflow-hidden rounded-2xl border border-[#f3d5df]">
+                <div className="flex items-center justify-between bg-[#fff7fa] px-4 py-2.5 text-sm font-medium text-gray-600">
+                  <span>Registration Offer</span>
+                  <span className="font-bold text-gray-900">₹999.00</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-[#f8e5eb] px-4 py-2.5 text-sm font-medium text-gray-600">
+                  <span>GST (18%)</span>
+                  <span className="font-bold text-gray-900">₹179.82</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-[#f3d5df] bg-[#c0174c] px-4 py-3 text-white">
+                  <span className="text-sm font-black uppercase tracking-wide">Total payable</span>
+                  <span className="text-xl font-black">₹1,178.82</span>
+                </div>
+              </div>
+              <p className="mb-3 text-center text-xs font-black uppercase tracking-[0.14em] text-[#52206d]">Everything you need to connect</p>
+              <div className="space-y-2 text-sm font-medium text-gray-700">
+                <p className="flex items-center gap-2"><span className="grid h-5 w-5 place-items-center rounded-full bg-[#fce8ef] text-xs font-black text-[#c0174c]">✓</span> Unlimited contacts</p>
+                <p className="flex items-center gap-2"><span className="grid h-5 w-5 place-items-center rounded-full bg-[#fce8ef] text-xs font-black text-[#c0174c]">✓</span> Unlimited chats</p>
+                <p className="flex items-center gap-2"><span className="grid h-5 w-5 place-items-center rounded-full bg-[#fce8ef] text-xs font-black text-[#c0174c]">✓</span> Secure payment and instant activation</p>
+              </div>
+              <div className="mt-4 flex items-center gap-2 rounded-xl bg-[#fff7ed] px-3 py-2 text-xs font-semibold text-[#7c3e14]">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4 shrink-0"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                Your payment is protected with secure checkout.
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMegaOffer(false);
+                  window.setTimeout(() => onPay("Registration Offer", registrationPlanId), 150);
+                }}
+                disabled={paying}
+                className="mt-5 w-full cursor-pointer rounded-2xl py-3 text-sm font-black uppercase tracking-wider text-white transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ background: "linear-gradient(135deg, #c0174c, #e8305e)", boxShadow: "0 7px 18px rgba(192, 23, 76, 0.28)" }}
+              >
+                <span className="inline-flex items-center gap-2">{paying ? "Processing…" : "Pay Now ₹1,178.82"}{!paying && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>}</span>
+              </button>
+              <p className="mt-2 text-center text-[11px] font-medium text-gray-400">Instant access after successful payment</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -613,9 +820,13 @@ type Duration = keyof (typeof allPackagesData)["prime"];
 function AllPackagesPage({
   onBack,
   onUpgrade,
+  onPay,
+  paying,
 }: {
   onBack: () => void;
   onUpgrade: () => void;
+  onPay: (label: string, planId?: number) => void;
+  paying: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("prime");
   const [duration, setDuration] = useState<Duration>("6months");
@@ -843,7 +1054,7 @@ function AllPackagesPage({
                 <span className="text-xl">{prices.gold.pay}</span>
               </div>
             </div>
-            <PayNowBtn />
+            <PayNowBtn onClick={() => onPay("Gold")} loading={paying} />
             <p className="text-center text-xs text-gray-400 mt-2">
               Limited time offer
             </p>
@@ -1062,21 +1273,122 @@ function AllPackagesPage({
 // ─── Root App ────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const router = useRouter();
   const [page, setPage] = useState("special");
+  const { openCheckout, loading: paying } = useRazorpay();
+  const [backendPlans, setBackendPlans] = useState<SubscriptionPlan[]>([]);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [me, setMe] = useState<{ firstName?: string; email?: string; phoneNumber?: string } | null>(null);
+  const [confirmPopup, setConfirmPopup] = useState<{
+    planLabel: string;
+    planId: number;
+    basePrice: number;
+  } | null>(null);
+
+  useEffect(() => {
+    getSubscriptionPlans().then(setBackendPlans).catch(() => {});
+    getMyProfileFull().then((p) => setMe({ firstName: p.firstName, email: p.email, phoneNumber: p.phoneNumber })).catch(() => {});
+  }, []);
+
+  const showToast = (msg: string, type: "success" | "error") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  /** Match a UI plan label to a backend plan by planType name */
+  const findPlanId = (label: string): number | undefined => {
+    const normalized = label.toUpperCase().replace(/\s+/g, "_").replace(/-/g, "_");
+    const plan = backendPlans.find(
+      (p) =>
+        p.planType === normalized ||
+        p.name.toUpperCase().replace(/\s+/g, "_") === normalized
+    );
+    return plan?.id;
+  };
+
+  // Helper — find the Registration Offer plan id (₹999)
+  const registrationPlanId = backendPlans.find(
+    (p) => p.planType === "REGISTRATION"
+  )?.id;
+  const testPlanId = backendPlans.find((p) => p.planType === "TEST")?.id;
+
+  const handlePay = (planLabel: string, planId?: number) => {
+    const id = planId ?? findPlanId(planLabel);
+    if (!id) {
+      showToast("Plan not available. Please contact support.", "error");
+      return;
+    }
+    // Find base price from backendPlans
+    const plan = backendPlans.find((p) => p.id === id);
+    if (plan?.planType === "TEST") {
+      proceedToRazorpay(plan.name, id);
+      return;
+    }
+    const basePrice = plan?.price ?? 0;
+    // Show GST confirmation popup before opening Razorpay
+    setConfirmPopup({ planLabel, planId: id, basePrice });
+  };
+
+  const proceedToRazorpay = (planLabel: string, planId: number) => {
+    setConfirmPopup(null);
+    openCheckout({
+      planId,
+      planName: planLabel,
+      userName: me?.firstName || "Member",
+      userEmail: me?.email || "",
+      userPhone: me?.phoneNumber || "",
+      onSuccess: (paymentId) => {
+        showToast(`Payment successful! ID: ${paymentId}`, "success");
+        setTimeout(() => router.push("/home"), 2500);
+      },
+      onError: (msg) => {
+        if (msg !== "Payment cancelled.") showToast(msg, "error");
+      },
+    });
+  };
 
   return (
     <>
+      {/* Toast notification */}
+      {toast && (
+        <div
+          className={`fixed top-5 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 rounded-xl text-white text-sm font-semibold shadow-xl flex items-center gap-2 transition-all`}
+          style={{ background: toast.type === "success" ? "#16a34a" : "#c0174c" }}
+        >
+          <span>{toast.type === "success" ? "✅" : "❌"}</span>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Payment confirmation popup with GST breakdown */}
+      {confirmPopup && (
+        <PaymentConfirmPopup
+          isOpen={true}
+          onClose={() => setConfirmPopup(null)}
+          onConfirm={() => proceedToRazorpay(confirmPopup.planLabel, confirmPopup.planId)}
+          planName={confirmPopup.planLabel}
+          basePrice={confirmPopup.basePrice}
+          loading={paying}
+        />
+      )}
+
       {page === "home" && <HomePage onUpgrade={() => setPage("special")} />}
       {page === "special" && (
         <SpecialOfferPage
           onViewAll={() => setPage("all")}
           onUpgrade={() => setPage("special")}
+          onPay={handlePay}
+          paying={paying}
+          registrationPlanId={registrationPlanId}
+          testPlanId={testPlanId}
         />
       )}
       {page === "all" && (
         <AllPackagesPage
           onBack={() => setPage("special")}
           onUpgrade={() => setPage("special")}
+          onPay={handlePay}
+          paying={paying}
         />
       )}
     </>

@@ -89,6 +89,14 @@ const CameraIcon = () => (
     <circle cx="12" cy="13" r="4" />
   </svg>
 );
+const ProfilePhotoPlaceholder = ({ iconClass = "h-16 w-16" }: { iconClass?: string }) => (
+  <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 text-gray-400">
+    <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M20 21a8 8 0 0 0-16 0" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  </div>
+);
 const UploadCloudIcon = () => (
   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" />
@@ -125,10 +133,12 @@ const ShieldIcon = () => (
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UploadedPhoto {
   id: string;
+  serverId?: number;
   url: string;       // blob URL (preview) or server URL
   name: string;
   size: number;
   isPrimary: boolean;
+  verificationStatus?: "PENDING" | "APPROVED" | "REJECTED";
   file?: File;       // present when newly picked — not yet uploaded
   serverUrl?: string;// present when photo already exists on the server
 }
@@ -346,11 +356,13 @@ const PhotoUploadModal = ({
       .then((items) => {
         const sorted = [...items].sort((a, b) => a.displayOrder - b.displayOrder);
         const loaded: UploadedPhoto[] = sorted.map((item) => ({
-          id: `server-${item.photoUrl}`,
+          id: `server-${item.id}`,
+          serverId: item.id,
           url: item.photoUrl,
           name: item.photoUrl.split("/").pop() ?? "photo",
           size: 0,
           isPrimary: item.isPrimary,
+          verificationStatus: item.verificationStatus,
           serverUrl: item.photoUrl,
         }));
         onPhotosChange(loaded);
@@ -401,9 +413,9 @@ const PhotoUploadModal = ({
     // Optimistically update UI
     onPhotosChange(photos.map(p => ({ ...p, isPrimary: p.id === id })));
     // If it's already on the server, call set-primary immediately and update the navbar avatar
-    if (target?.serverUrl) {
+    if (target?.serverUrl && target.serverId != null) {
       try {
-        await setPrimaryPhoto(target.serverUrl);
+        await setPrimaryPhoto(target.serverId);
         // Update navbar avatar in real-time
         if (typeof window !== "undefined") {
           window.dispatchEvent(
@@ -441,6 +453,7 @@ const PhotoUploadModal = ({
         url: uploadedMap.get(p.url) ?? p.serverUrl ?? p.url,
         serverUrl: uploadedMap.get(p.url) ?? p.serverUrl,
         file: undefined,
+        verificationStatus: p.file ? "PENDING" : p.verificationStatus,
       }));
       onPhotosChange(finalPhotos);
 
@@ -448,10 +461,10 @@ const PhotoUploadModal = ({
       const primary = finalPhotos.find(p => p.isPrimary);
       const primaryUrl = primary?.serverUrl ?? null;
 
-      if (primaryUrl) {
+      if (primary?.serverId != null) {
         // Always call set-primary so the backend stays in sync.
         // The endpoint is idempotent — safe to call even when unchanged.
-        try { await setPrimaryPhoto(primaryUrl); } catch { /* best effort */ }
+        try { await setPrimaryPhoto(primary.serverId); } catch { /* best effort */ }
       }
 
       const allUrls = finalPhotos.map(p => p.serverUrl).filter(Boolean) as string[];
@@ -537,6 +550,27 @@ const PhotoUploadModal = ({
                         <StarBadge /> Primary
                       </div>
                     )}
+                    {/* Verification status badge for server photos */}
+                    {!photo.file && photo.verificationStatus && (
+                      <div
+                        className="absolute bottom-1 left-1 right-1 text-center text-[8px] font-bold px-1 py-0.5 rounded-full"
+                        style={{
+                          background:
+                            photo.verificationStatus === "APPROVED"
+                              ? "rgba(22,163,74,0.85)"
+                              : photo.verificationStatus === "REJECTED"
+                                ? "rgba(220,38,38,0.85)"
+                                : "rgba(217,119,6,0.85)",
+                          color: "white",
+                        }}
+                      >
+                        {photo.verificationStatus === "APPROVED"
+                          ? "✓ Verified"
+                          : photo.verificationStatus === "REJECTED"
+                            ? "✕ Rejected"
+                            : "⏳ Pending"}
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black/55 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1.5">
                       {!photo.isPrimary && (
                         <button onClick={() => handleSetPrimary(photo.id)}
@@ -567,7 +601,19 @@ const PhotoUploadModal = ({
                       <p className="text-xs font-medium text-gray-700 truncate">{photo.name}</p>
                       {photo.file
                         ? <p className="text-[10px] text-blue-500 font-medium">Pending upload · {formatSize(photo.size)}</p>
-                        : <p className="text-[10px] text-green-600 font-medium">Saved on server</p>
+                        : <p className={`text-[10px] font-medium ${
+                            photo.verificationStatus === "APPROVED"
+                              ? "text-green-600"
+                              : photo.verificationStatus === "REJECTED"
+                                ? "text-red-600"
+                                : "text-amber-600"
+                          }`}>
+                            {photo.verificationStatus === "APPROVED"
+                              ? "Verified"
+                              : photo.verificationStatus === "REJECTED"
+                                ? "Rejected by verification"
+                                : "Pending CRM verification"}
+                          </p>
                       }
                     </div>
                     {photo.isPrimary && <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">PRIMARY</span>}
@@ -1009,6 +1055,7 @@ export default function MyProfilePage() {
           name: item.photoUrl.split("/").pop() ?? "photo",
           size: 0,
           isPrimary: item.isPrimary,
+          verificationStatus: item.verificationStatus,
           serverUrl: item.photoUrl,
         })));
       })
@@ -1039,7 +1086,7 @@ export default function MyProfilePage() {
   };
 
   const primaryPhoto  = photos.find(p => p.isPrimary);
-  const displayPhoto  = primaryPhoto?.url ?? profile?.profilePhotoUrl ?? "https://i.pravatar.cc/300?img=33";
+  const displayPhoto  = primaryPhoto?.url ?? profile?.profilePhotoUrl ?? "";
   const displayMobile = mobileNumber || profile?.phoneNumber || "+91-XXXXXXXXXX";
 
   // ── Real profile display values ──
@@ -1082,10 +1129,10 @@ export default function MyProfilePage() {
               <div className="shrink-0">
                 <div className="relative w-24 h-[118px] rounded-lg overflow-hidden border-2 mb-2 group cursor-pointer"
                   style={{ borderColor: "#c0174c" }} onClick={() => setShowPhotoModal(true)}>
-                  {!imgFallback ? (
+                  {displayPhoto && !imgFallback ? (
                     <img src={displayPhoto} alt={displayName} className="w-full h-full object-cover object-top" onError={() => setImgFallback(true)} />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl bg-linear-to-br from-gray-100 to-gray-200">🤵</div>
+                    <ProfilePhotoPlaceholder iconClass="h-11 w-11" />
                   )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
                     <div className="text-white"><CameraIcon /></div>
@@ -1145,10 +1192,10 @@ export default function MyProfilePage() {
             <div className="shrink-0 text-center hidden sm:block">
               <div className="relative w-36 h-36 rounded-xl overflow-hidden border-2 mb-2.5 group cursor-pointer"
                 style={{ borderColor: "#c0174c" }} onClick={() => setShowPhotoModal(true)}>
-                {!imgFallback ? (
+                {displayPhoto && !imgFallback ? (
                   <img src={displayPhoto} alt={displayName} className="w-full h-full object-cover object-top" onError={() => setImgFallback(true)} />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-5xl bg-linear-to-br from-gray-100 to-gray-200">🤵</div>
+                  <ProfilePhotoPlaceholder />
                 )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
                   <div className="text-white"><CameraIcon /></div>
@@ -1332,18 +1379,12 @@ export default function MyProfilePage() {
         onClose={() => setShowPhotoModal(false)}
         photos={photos}
         onPhotosChange={setPhotos}
-        onSaved={(primaryUrl, allUrls) => {
-          if (primaryUrl) {
-            setProfile((prev) => prev ? { ...prev, profilePhotoUrl: primaryUrl } : prev);
-            // Tell the navbar to refresh its avatar immediately
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(
-                new CustomEvent("profile:updated", { detail: { profilePhotoUrl: primaryUrl } })
-              );
-            }
+        onSaved={() => {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("profile:updated"));
           }
           setShowPhotoModal(false);
-          showToast("Photos saved successfully");
+          showToast("Photos submitted for CRM verification");
         }}
       />
 

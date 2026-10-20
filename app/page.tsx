@@ -22,12 +22,14 @@ import LocationMap from "@/components/sections/LocationMap";
 import Testimonials3D from "@/components/sections/Testimonials3D";
 import SweetStoriesCarousel from "@/components/sections/SweetStoriesCarousel";
 import MobileSplash from "@/components/sections/MobileSplash";
+import LandingOfferPopup from "@/components/modals/LandingOfferPopup";
 
 export default function Home() {
   const [open, setOpen] = useState(false);
   const [fromHeader, setFromHeader] = useState(false);
   const [showTopBtn, setShowTopBtn] = useState(false);
   const [fixedNavH, setFixedNavH] = useState(144);
+  const [showOfferPopup, setShowOfferPopup] = useState(false);
 
   const fixedNavRef = useRef<HTMLDivElement>(null);
 
@@ -96,8 +98,7 @@ export default function Home() {
         <MobileSplash />
       </div>
 
-      {/* Header + Navbar stick together at top:0 as a single block.
-          Position fixed guarantees this regardless of any ancestor overflow. */}
+      {/* Header + Navbar — fixed at top */}
       <div
         ref={fixedNavRef}
         style={{
@@ -112,8 +113,7 @@ export default function Home() {
         <SectionNavbar onScrollTo={scrollTo} />
       </div>
 
-      {/* Spacer matches the measured height of the fixed nav so content
-          below isn't covered (mobile Header is taller than desktop). */}
+      {/* Spacer matches the measured height of the fixed nav */}
       <div style={{ height: fixedNavH }} aria-hidden />
 
       <div ref={homeRef}>
@@ -171,6 +171,7 @@ export default function Home() {
       <RegisterNowButton onClick={openFromPage} />
 
       <RegisterModal open={open} onClose={close} belowHeader={fromHeader} />
+      {/* <LandingOfferPopup onClaim={openFromPage} forceOpen={showOfferPopup} onForceClose={() => setShowOfferPopup(false)} /> */}
 
       {showTopBtn && !open && (
        

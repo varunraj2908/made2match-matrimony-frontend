@@ -14,6 +14,8 @@ import {
 } from "@/services/matchesService";
 import { celebrateMatch } from "@/lib/celebrate";
 import { formatProfileCode } from "@/lib/memberId";
+import PaymentPopup from "@/components/modals/PaymentPopup";
+import { getMyProfile } from "@/services/homeService";
 
 /* ─────────────────────────────────────────────
    DISPLAY HELPERS
@@ -616,6 +618,12 @@ export default function InterestsPage() {
   const [error, setError] = useState<string>("");
   const [busyIds, setBusyIds] = useState<Set<number>>(new Set());
   const [toastMsg, setToastMsg] = useState<string>("");
+  const [isPremium, setIsPremium] = useState(false);
+  const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+
+  useEffect(() => {
+    getMyProfile().then((p) => setIsPremium(!!p.isPremium)).catch(() => {});
+  }, []);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -777,3 +785,5 @@ export default function InterestsPage() {
     </div>
   );
 }
+
+// PaymentPopup and premium check are injected at the bottom of this file

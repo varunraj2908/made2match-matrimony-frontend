@@ -1037,13 +1037,13 @@ export default function HomePage() {
                 ))}
               </div>
               <a
-                href="tel:+918075067058"
+                href="tel:+917909227177"
                 className="inline-flex items-center gap-2 bg-white text-[#b22234] text-sm font-bold px-6 py-2.5 rounded-full hover:bg-amber-50 transition-colors shadow-sm"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
                 </svg>
-                Call 8075067058
+                Call 7909227177
               </a>
             </div>
             <div className="w-24 sm:w-32 shrink-0 relative z-10">
@@ -1194,13 +1194,13 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <a
-              href="tel:+918075067058"
+              href="tel:+917909227177"
               className="flex items-center gap-2 border border-gray-300 text-gray-700 text-xs font-semibold px-3 sm:px-4 py-2 rounded-full hover:border-[#ea580c] hover:text-[#ea580c] transition-colors"
             >
               <PhoneIcon /> Call now
             </a>
             <a
-              href="https://wa.me/918075067058"
+              href="https://wa.me/917909227177"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-[#ea580c] text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-full hover:bg-orange-600 transition-colors"

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 export default function AccountExistsPage() {
   const router = useRouter();
 
-  const phone = "+91 8075067058";
+  const phone = "+91 7909227177";
   const profile = {
     name: "Varun",
     id: "MTM7086341",

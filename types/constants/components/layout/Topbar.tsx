@@ -9,10 +9,10 @@ export default function Topbar() {
         <div className="flex items-center gap-2">
           <span>Need Help?</span>
           <a
-            href="tel:+918075067058"
+            href="tel:+917909227177"
             className="font-bold hover:text-yellow-300 transition"
           >
-            Call +91 8075067058
+            Call +91 7909227177
           </a>
         </div>
       </div>

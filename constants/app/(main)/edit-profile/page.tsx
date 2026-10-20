@@ -945,7 +945,7 @@ export default function MyProfilePage() {
   const [imgFallback, setImgFallback]         = useState(false);
   const [showAcademicInput, setShowAcademicInput] = useState(true);
   const [openModal, setOpenModal]             = useState<string | null>(null);
-  const [mobileNumber, setMobileNumber]       = useState("+91-8075067058");
+  const [mobileNumber, setMobileNumber]       = useState("+91-7909227177");
   const [profile, setProfile]                 = useState<FullProfile | null>(null);
   const [saving, setSaving]                   = useState(false);
   const [toast, setToast]                     = useState("");

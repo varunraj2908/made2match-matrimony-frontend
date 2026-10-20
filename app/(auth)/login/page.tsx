@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 import AuthBrandHeader from "@/components/sections/AuthBrandHeader";
 import { useLogin } from "@/hooks/useLogin";
 
@@ -65,7 +66,10 @@ export default function LoginPage() {
         className="h-full overflow-y-auto"
         style={{ background: "linear-gradient(165deg,#2d1b35 0%,#8f0e39 45%,#c0174c 100%)" }}
       >
-        <div className="relative w-full max-w-md lg:max-w-xl mx-auto min-h-full px-6 py-8 flex flex-col justify-center">
+        <div
+          className="relative w-full mx-auto min-h-full px-5 py-10 sm:px-[73px] flex flex-col justify-center"
+          style={{ maxWidth: "612px" }}
+        >
           <div className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(232,197,71,0.2)" }} />
           <div className="pointer-events-none absolute bottom-10 -left-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(255,106,156,0.22)" }} />
 
@@ -127,7 +131,9 @@ export default function LoginPage() {
               </div>
 
               <div className="text-right mt-2">
-                <button className="cursor-pointer text-sm font-semibold text-[#E8C547] hover:underline">Forgot password?</button>
+                <Link href="/forgot-password" className="text-sm font-semibold text-[#E8C547] hover:underline">
+                  Forgot password?
+                </Link>
               </div>
 
               {error && (

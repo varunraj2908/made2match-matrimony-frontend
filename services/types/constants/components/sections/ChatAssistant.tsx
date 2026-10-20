@@ -121,7 +121,7 @@ const parseCriteria = (raw: string): { criteria: SearchCriteria; summary: string
   return { criteria: c, summary };
 };
 
-const SUPPORT_PHONE = "+91 8075067058";
+const SUPPORT_PHONE = "+91 7909227177";
 
 // Quick-reply chips shown under the greeting.
 const QUICK_REPLIES = [

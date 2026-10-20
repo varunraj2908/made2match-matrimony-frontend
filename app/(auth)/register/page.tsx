@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import AuthBrandHeader from "@/components/sections/AuthBrandHeader";
 import { useRegister } from "@/hooks/useRegister";
 import { registerSchema, RegisterRequest } from "@/schemas/authSchema";
+import RegistrationConsent from "@/components/ui/RegistrationConsent";
 
 const FIELD =
-  "w-full pl-10 pr-3 py-3 rounded-xl text-sm text-white placeholder-white/55 outline-none transition-all bg-white/10 border border-white/25 focus:border-[#E8C547] focus:bg-white/15";
+  "w-full pl-10 pr-3 py-2.5 rounded-xl text-sm text-white placeholder-white/55 outline-none transition-all bg-white/10 border border-white/25 focus:border-[#E8C547] focus:bg-white/15";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState("");
   const [showPwd, setShowPwd] = useState(false);
+  const [acceptedPolicies, setAcceptedPolicies] = useState(false);
 
   const set = (k: keyof RegisterRequest, v: string) => {
     setForm((s) => ({ ...s, [k]: v }));
@@ -30,6 +32,13 @@ export default function RegisterPage() {
 
   const handleSubmit = () => {
     setApiError("");
+    if (!acceptedPolicies) {
+      setErrors((current) => ({
+        ...current,
+        consent: "Please accept the Terms and Conditions and Privacy Policy.",
+      }));
+      return;
+    }
     const result = registerSchema.safeParse(form);
     if (!result.success) {
       const errs: Record<string, string> = {};
@@ -37,7 +46,11 @@ export default function RegisterPage() {
       setErrors(errs);
       return;
     }
-    mutate(form, {
+    mutate({
+      ...form,
+      acceptedTerms: true,
+      acceptedPrivacyPolicy: true,
+    }, {
       onSuccess: (res: any) => {
         const tokens = res?.data;
         if (tokens?.accessToken) {
@@ -49,7 +62,12 @@ export default function RegisterPage() {
         router.push("/onboarding/basic-details");
       },
       onError: (e: any) => {
-        setApiError(e?.response?.data?.message || "Registration failed. Please try again.");
+        setApiError(
+          e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          e?.message ||
+          "Registration failed. Please try again."
+        );
       },
     });
   };
@@ -59,7 +77,10 @@ export default function RegisterPage() {
       className="h-full overflow-y-auto"
       style={{ background: "linear-gradient(165deg,#2d1b35 0%,#8f0e39 45%,#c0174c 100%)" }}
     >
-      <div className="relative w-full max-w-md lg:max-w-xl mx-auto min-h-full px-6 py-8 flex flex-col">
+      <div
+        className="relative w-full mx-auto min-h-full px-5 py-10 sm:px-[73px] flex flex-col justify-center"
+        style={{ maxWidth: "612px" }}
+      >
         <div className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(232,197,71,0.2)" }} />
         <div className="pointer-events-none absolute bottom-10 -left-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(255,106,156,0.22)" }} />
 
@@ -67,7 +88,7 @@ export default function RegisterPage() {
           <AuthBrandHeader />
 
           <div
-            className="mt-6 rounded-3xl p-6 backdrop-blur-md"
+            className="mt-6 rounded-3xl p-6 sm:p-10 backdrop-blur-md"
             style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}
           >
             <div className="flex justify-center">
@@ -76,11 +97,11 @@ export default function RegisterPage() {
               </span>
             </div>
 
-            <h2 className="mt-4 text-center text-2xl font-black text-white">Create your free account</h2>
+            <h2 className="mt-3 text-center text-2xl font-black text-white">Create your free account</h2>
             <p className="mt-1 text-center text-sm text-white/70">Join lakhs of happy members</p>
 
             {/* Full name */}
-            <label className="block text-sm font-bold text-white/90 mt-6 mb-1.5">Full name</label>
+            <label className="block text-sm font-bold text-white/90 mt-4 mb-1">Full name</label>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E8C547" strokeWidth="2">
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
@@ -91,7 +112,7 @@ export default function RegisterPage() {
             {errors.fullName && <p className="text-amber-200 text-xs mt-1">{errors.fullName}</p>}
 
             {/* Mobile */}
-            <label className="block text-sm font-bold text-white/90 mt-4 mb-1.5">Mobile number</label>
+            <label className="block text-sm font-bold text-white/90 mt-3 mb-1">Mobile number</label>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E8C547" strokeWidth="2">
                 <rect x="5" y="2" width="14" height="20" rx="2" />
@@ -107,7 +128,7 @@ export default function RegisterPage() {
             {errors.mobileNumber && <p className="text-amber-200 text-xs mt-1">{errors.mobileNumber}</p>}
 
             {/* Email */}
-            <label className="block text-sm font-bold text-white/90 mt-4 mb-1.5">Email address</label>
+            <label className="block text-sm font-bold text-white/90 mt-3 mb-1">Email address</label>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E8C547" strokeWidth="2">
                 <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -118,7 +139,7 @@ export default function RegisterPage() {
             {errors.email && <p className="text-amber-200 text-xs mt-1">{errors.email}</p>}
 
             {/* Password */}
-            <label className="block text-sm font-bold text-white/90 mt-4 mb-1.5">Password</label>
+            <label className="block text-sm font-bold text-white/90 mt-3 mb-1">Password</label>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#E8C547" strokeWidth="2">
                 <rect x="3" y="11" width="18" height="11" rx="2" />
@@ -141,16 +162,31 @@ export default function RegisterPage() {
             </div>
             {errors.password && <p className="text-amber-200 text-xs mt-1">{errors.password}</p>}
 
+            <div className="mt-3">
+              <RegistrationConsent
+                checked={acceptedPolicies}
+                onChange={(checked) => {
+                  setAcceptedPolicies(checked);
+                  setErrors((current) => ({ ...current, consent: "" }));
+                }}
+                error={errors.consent}
+                dark
+              />
+            </div>
+
             {apiError && (
-              <p className="mt-3 text-center text-sm text-amber-200 bg-red-500/20 border border-red-400/30 rounded-lg py-2">
-                {apiError}
-              </p>
+              <div className="flex items-start gap-2 bg-red-500/20 border border-red-400/40 rounded-xl px-4 py-3">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="2.5" strokeLinecap="round" className="shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <p className="text-red-200 text-sm font-medium">{apiError}</p>
+              </div>
             )}
 
             <button
               onClick={handleSubmit}
               disabled={isPending}
-              className="w-full mt-6 py-3.5 rounded-full text-[#5e0a24] font-extrabold active:scale-[0.98] transition-transform disabled:opacity-60"
+              className="w-full mt-5 py-2.5 rounded-full text-[#5e0a24] font-extrabold active:scale-[0.98] transition-transform disabled:opacity-60"
               style={{ background: "linear-gradient(135deg,#ffe08a,#E8C547 55%,#d4a017)", boxShadow: "0 8px 22px rgba(232,197,71,0.4)" }}
             >
               {isPending ? "Creating account…" : "Register Free →"}

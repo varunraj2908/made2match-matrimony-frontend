@@ -5,8 +5,13 @@ import { RegisterRequest } from "@/schemas/authSchema";
 
 export type { RegisterRequest };
 
+export type RegistrationPayload = RegisterRequest & {
+  acceptedTerms: true;
+  acceptedPrivacyPolicy: true;
+};
+
 export const registerUser = async (
-  data: RegisterRequest
+  data: RegistrationPayload
 ) => {
   const response = await axiosInstance.post(
     "/auth/register",
@@ -15,6 +20,8 @@ export const registerUser = async (
       email: data.email,
       password: data.password,
       phoneNumber: data.mobileNumber,
+      acceptedTerms: data.acceptedTerms,
+      acceptedPrivacyPolicy: data.acceptedPrivacyPolicy,
     }
   );
 
@@ -29,5 +36,25 @@ export interface LoginRequest {
 
 export const loginUser = async (data: LoginRequest) => {
   const response = await axiosInstance.post("/auth/login", data);
+  return response.data;
+};
+
+// ── Forgot password ───────────────────────────────────────────
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export const forgotPassword = async (data: ForgotPasswordRequest) => {
+  const response = await axiosInstance.post("/auth/forgot-password", data);
+  return response.data;
+};
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export const resetPassword = async (data: ResetPasswordRequest) => {
+  const response = await axiosInstance.post("/auth/reset-password", data);
   return response.data;
 };

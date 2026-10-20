@@ -442,21 +442,10 @@ export default function Settings() {
   const [showMobileMenu, setShowMobileMenu] =
     useState(false);
   
-  const [isChecking, setIsChecking] = useState(true);
+  const [isChecking, setIsChecking] = useState(false);
 
-  // Prevent direct URL access - only allow navigation from within app
-  useEffect(() => {
-    const canAccess = sessionStorage.getItem('allowSettingsAccess');
-    
-    if (!canAccess) {
-      // Direct URL access detected - redirect to home
-      router.replace('/home');
-    } else {
-      // Clear the flag immediately after checking
-      sessionStorage.removeItem('allowSettingsAccess');
-      setIsChecking(false);
-    }
-  }, [router]);
+  // Settings page is accessible to all authenticated users
+  // No access guard needed — auth is handled by the token/session layer
   
   // Show nothing while checking access
   if (isChecking) {
@@ -500,18 +489,17 @@ export default function Settings() {
         fontFamily: "'Segoe UI', sans-serif",
       }}
     >
-      {/* Back Button - Mobile Only */}
-      <div className="max-w-7xl mx-auto px-4 pt-4 pb-3 lg:hidden flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 pt-4 pb-3 lg:hidden flex items-center justify-end md:justify-start">
         <button
           onClick={() => router.back()}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-white border-2 border-[#f5d0d7] text-[#b22234] hover:bg-[#b22234] hover:text-white hover:border-[#b22234] transition-colors shadow-md"
+          className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-white border-2 border-[#f5d0d7] text-[#b22234] hover:bg-[#b22234] hover:text-white hover:border-[#b22234] transition-colors shadow-md"
           aria-label="Go back"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        
+
         {/* Mobile Settings Button */}
         <button
           onClick={() => setShowMobileMenu(true)}
@@ -562,7 +550,7 @@ export default function Settings() {
 
             {/* Sidebar */}
             <div
-              className={`absolute top-0 right-0 h-full w-[85%] max-w-sm bg-white shadow-2xl transition-transform duration-500 ease-in-out rounded-l-3xl overflow-hidden ${
+              className={`absolute top-0 right-0 h-full w-[85%] max-w-sm bg-white shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden ${
                 showMobileMenu
                   ? 'translate-x-0'
                   : 'translate-x-full'
