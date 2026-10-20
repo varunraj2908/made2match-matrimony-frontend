@@ -10,6 +10,7 @@ import { getMyProfile, type MyProfile } from "@/services/homeService";
 import { fetchNotifications, persistReadIds, markInterestsReadOnServer, type AppNotification } from "@/services/notificationService";
 import { getReceivedInterests } from "@/services/matchesService";
 import { getUnreadMessageCount } from "@/services/chatService";
+import PaymentPopup from "@/components/modals/PaymentPopup";
 import { setAppBadge } from "@/lib/appBadge";
 import { formatProfileCode } from "@/lib/memberId";
 
@@ -112,6 +113,7 @@ export default function Navbar() {
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [me, setMe] = useState<MyProfile | null>(null);
+  const [showPaymentPopup, setShowPaymentPopup] = useState(false);
 
   const menuRef        = useRef<HTMLDivElement | null>(null);
   const mobileMenuRef  = useRef<HTMLDivElement | null>(null);
@@ -375,6 +377,7 @@ export default function Navbar() {
   );
 
   return (
+    <>
     <header className="w-full bg-gray-100 shadow-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 relative">
         <div className="flex items-center justify-between h-16">
@@ -459,6 +462,29 @@ export default function Navbar() {
                   : item.id === "chat"
                     ? unreadMessageCount
                     : 0;
+                const isChatLocked = item.id === "chat" && !me?.isPremium;
+                if (isChatLocked) {
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setShowPaymentPopup(true)}
+                      className={`relative flex h-12 w-20 flex-col items-center justify-center gap-1 rounded-xl transition-all group ${
+                        isActive(item.href) ? "text-[#b22234]" : "text-gray-500 hover:text-[#b22234]"
+                      }`}
+                    >
+                      <span className="relative flex h-5 w-8 items-center justify-center">
+                        {item.icon}
+                        <span className="absolute -bottom-1 -right-1 bg-amber-400 rounded-full w-3 h-3 flex items-center justify-center">
+                          <svg width="6" height="6" viewBox="0 0 24 24" fill="none">
+                            <rect x="3" y="11" width="18" height="11" rx="2" fill="white"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="white" strokeWidth="3"/>
+                          </svg>
+                        </span>
+                      </span>
+                      <span className="w-full text-center text-[10px] font-semibold leading-none">{item.label}</span>
+                    </button>
+                  );
+                }
                 return (
                 <Link
                   key={item.id}
@@ -541,6 +567,9 @@ export default function Navbar() {
                       setShowNotifications(false);
                     }}
                     className="flex items-center gap-1 group cursor-pointer"
+                    aria-label="Open profile menu"
+                    aria-haspopup="menu"
+                    aria-expanded={showUserMenu}
                   >
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#f5d0d7] hover:border-[#b22234] transition-colors">
                       <img
@@ -552,7 +581,7 @@ export default function Navbar() {
                         }}
                       />
                     </div>
-                    {/* <svg
+                    <svg
                       width="12"
                       height="12"
                       viewBox="0 0 12 12"
@@ -567,7 +596,7 @@ export default function Navbar() {
                       }}
                     >
                       <path d="M2 4l4 4 4-4" />
-                    </svg> */}
+                    </svg>
                   </button>
                 </div>
               </>
@@ -710,6 +739,26 @@ export default function Navbar() {
                   : item.id === "chat"
                     ? unreadMessageCount
                     : 0;
+                if (item.id === "chat" && !me?.isPremium) {
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setShowPaymentPopup(true)}
+                      className="relative flex flex-col items-center justify-center gap-0.5 h-full transition-colors text-white/65 hover:text-white"
+                    >
+                      <span className="relative">
+                        {item.icon}
+                        <span className="absolute -bottom-0.5 -right-1 bg-amber-400 rounded-full w-2.5 h-2.5 flex items-center justify-center">
+                          <svg width="5" height="5" viewBox="0 0 24 24" fill="none">
+                            <rect x="3" y="11" width="18" height="11" rx="2" fill="white"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="white" strokeWidth="3"/>
+                          </svg>
+                        </span>
+                      </span>
+                      <span className="text-[10px] font-semibold leading-none">{item.label}</span>
+                    </button>
+                  );
+                }
                 return (
                 <Link
                   key={item.id}
@@ -739,5 +788,12 @@ export default function Navbar() {
         </div>
       )}
     </header>
+
+    {/* Payment popup for free users clicking Messages */}
+    <PaymentPopup
+      isOpen={showPaymentPopup}
+      onClose={() => setShowPaymentPopup(false)}
+    />
+  </>
   );
 }

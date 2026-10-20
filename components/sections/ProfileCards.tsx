@@ -4,6 +4,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import CoastHeaderBar from "../layout/CoastHeaderBar";
+import PaymentPopup from "../modals/PaymentPopup";
 import FilterBar, { type FilterState } from "./FilterTab";
 import {
   cacheSentInterest,
@@ -15,6 +16,7 @@ import {
   type MatchFilters,
   type SidebarLabel,
 } from "@/services/matchesService";
+import { getMyProfile } from "@/services/homeService";
 
 const toTitleCase = (str?: string) => {
   if (!str || str === "—") return str ?? "—";
@@ -702,17 +704,22 @@ const ProfileCardGrid = ({
   onOpen,
   onShortlist,
   onInterest,
+  onContact,
 }: {
   profile: CardProfile;
   onOpen: (p: CardProfile) => void;
   onShortlist: (p: CardProfile) => void;
   onInterest: (p: CardProfile) => void;
+  onContact: (p: CardProfile) => void;
 }) => {
   const [imgError, setImgError] = useState(false);
   const tags = [profile.profession, profile.education, profile.religion, profile.height].filter(Boolean).slice(0, 4) as string[];
 
   return (
-    <div className="rounded-2xl bg-white border border-gray-200 p-2.5 group shadow-[0_10px_30px_-12px_rgba(0,0,0,0.18)] hover:shadow-[0_16px_42px_-12px_rgba(192,23,76,0.25)] hover:border-[#f0c6d2] transition-all">
+    <div
+      onClick={() => onOpen(profile)}
+      className="rounded-2xl bg-white border border-gray-200 p-2.5 group shadow-[0_10px_30px_-12px_rgba(0,0,0,0.18)] hover:shadow-[0_16px_42px_-12px_rgba(192,23,76,0.25)] hover:border-[#f0c6d2] transition-all"
+    >
       {/* Photo (click to open) */}
       <div
         onClick={() => onOpen(profile)}
@@ -782,12 +789,6 @@ const ProfileCardGrid = ({
           </div>
         )}
 
-        {/* Ready-for-relationship pill */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/30 backdrop-blur-md border border-white/15 text-white text-xs font-medium px-3 py-1.5 rounded-full">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="#ff2d6f"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
-          Ready for relationship
-        </div>
-
         {/* Shortlist heart */}
         <span
           role="button"
@@ -838,7 +839,7 @@ const ProfileCardGrid = ({
       <div className="flex items-center gap-2 pt-2">
         <button
           type="button"
-          onClick={() => onInterest(profile)}
+          onClick={(event) => { event.stopPropagation(); onInterest(profile); }}
           className="flex-1 flex items-center justify-center gap-2 text-white text-base font-bold py-2.5 rounded-full cursor-pointer transition-transform active:scale-95 hover:scale-[1.02]"
           style={{ background: "linear-gradient(135deg,#ff5d8f,#c0174c)", boxShadow: "0 8px 22px rgba(192,23,76,0.45)" }}
         >
@@ -847,7 +848,7 @@ const ProfileCardGrid = ({
         </button>
         <button
           type="button"
-          onClick={() => onShortlist(profile)}
+          onClick={(event) => { event.stopPropagation(); onShortlist(profile); }}
           aria-label="Shortlist"
           className="w-10 h-10 rounded-full bg-[#fdeef2] border border-[#f3c6d4] flex items-center justify-center text-[#c0174c] cursor-pointer hover:bg-[#fbdce6] active:scale-95 transition-all"
         >
@@ -855,11 +856,20 @@ const ProfileCardGrid = ({
         </button>
         <button
           type="button"
-          onClick={() => onOpen(profile)}
+          onClick={(event) => { event.stopPropagation(); onContact(profile); }}
           aria-label="Call"
           className="w-10 h-10 rounded-full bg-[#fdeef2] border border-[#f3c6d4] flex items-center justify-center text-[#c0174c] cursor-pointer hover:bg-[#fbdce6] active:scale-95 transition-all"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+        </button>
+        <button
+          type="button"
+          onClick={(event) => { event.stopPropagation(); onContact(profile); }}
+          aria-label="Chat on WhatsApp"
+          className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 transition-all shadow-md"
+          style={{ background: "#25D366" }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
         </button>
       </div>
 
@@ -884,28 +894,31 @@ const ProfileCardList = ({
   onOpen,
   onShortlist,
   onInterest,
+  onContact,
 }: {
   profile: CardProfile;
   onOpen: (p: CardProfile) => void;
   onShortlist: (p: CardProfile) => void;
   onInterest: (p: CardProfile) => void;
+  onContact: (p: CardProfile) => void;
 }) => {
   const [imgError, setImgError] = useState(false);
   return (
-    <div className="relative bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col min-h-[186px]">
+    <div
+      onClick={() => onOpen(profile)}
+      className="relative bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col min-h-[186px]"
+    >
       {/* WhatsApp — top-right corner */}
-      <a
-        href="https://wa.me/919999999999"
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
+      <button
+        type="button"
+        onClick={(event) => { event.stopPropagation(); onContact(profile); }}
         aria-label="Chat on WhatsApp"
         className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-[#25D366] flex items-center justify-center shadow-md hover:scale-110 transition-transform"
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
         </svg>
-      </a>
+      </button>
 
       <div className="flex gap-3 px-3 py-2 flex-1">
         <button
@@ -1036,14 +1049,14 @@ const ProfileCardList = ({
       <div className="flex items-stretch gap-1.5 px-3 pb-3 pt-0 mt-auto">
         <button
           type="button"
-          onClick={() => onInterest(profile)}
+          onClick={(event) => { event.stopPropagation(); onInterest(profile); }}
           className="flex-1 bg-[#b22234] text-white text-[11px] font-bold py-2.5 rounded cursor-pointer transition-colors hover:bg-[#9a1d2b]"
         >
           ❤ Interest
         </button>
         <button
           type="button"
-          onClick={() => onShortlist(profile)}
+          onClick={(event) => { event.stopPropagation(); onShortlist(profile); }}
           className="flex-1 border border-[#b22234] text-[#b22234] text-[11px] font-bold py-2.5 rounded cursor-pointer transition-colors hover:bg-[#fdeef2]"
         >
           ⭐ Shortlist
@@ -1057,7 +1070,8 @@ const ProfileCardList = ({
         </button>
         <button
           type="button"
-          onClick={() => onOpen(profile)}
+          onClick={(event) => { event.stopPropagation(); onContact(profile); }}
+          aria-label="Call"
           className="px-3 text-xs text-[#b22234] font-bold border border-[#b22234] rounded cursor-pointer transition-colors hover:bg-[#fdeef2]"
         >
           📞
@@ -1076,37 +1090,67 @@ const Pagination = ({
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-}) => (
-  <div className="flex items-center justify-center gap-1 mt-6 flex-wrap">
-    <button
-      onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-      disabled={currentPage === 1}
-      className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-[#b22234] hover:text-white hover:border-[#b22234] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-    >
-      ‹
-    </button>
-    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+}) => {
+  if (totalPages <= 1) return null;
+
+  // Build smart page list with ellipsis
+  const pages: (number | "...")[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage > 3) pages.push("...");
+    for (
+      let i = Math.max(2, currentPage - 1);
+      i <= Math.min(totalPages - 1, currentPage + 1);
+      i++
+    )
+      pages.push(i);
+    if (currentPage < totalPages - 2) pages.push("...");
+    pages.push(totalPages);
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-1 mt-6 flex-wrap">
       <button
-        key={page}
-        onClick={() => onPageChange(page)}
-        className={`w-8 h-8 text-sm rounded font-medium transition-colors ${
-          currentPage === page
-            ? "bg-[#b22234] text-white border border-[#b22234]"
-            : "border border-gray-300 text-gray-700 hover:bg-[#b22234] hover:text-white hover:border-[#b22234]"
-        }`}
+        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+        disabled={currentPage === 1}
+        className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-[#b22234] hover:text-white hover:border-[#b22234] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
-        {page}
+        ‹
       </button>
-    ))}
-    <button
-      onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-      disabled={currentPage === totalPages}
-      className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-[#b22234] hover:text-white hover:border-[#b22234] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-    >
-      ›
-    </button>
-  </div>
-);
+      {pages.map((page, i) =>
+        page === "..." ? (
+          <span
+            key={`ellipsis-${i}`}
+            className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm"
+          >
+            …
+          </span>
+        ) : (
+          <button
+            key={page}
+            onClick={() => onPageChange(page as number)}
+            className={`w-8 h-8 text-sm rounded font-medium transition-colors ${
+              currentPage === page
+                ? "bg-[#b22234] text-white border border-[#b22234]"
+                : "border border-gray-300 text-gray-700 hover:bg-[#b22234] hover:text-white hover:border-[#b22234]"
+            }`}
+          >
+            {page}
+          </button>
+        )
+      )}
+      <button
+        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+        disabled={currentPage === totalPages}
+        className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-[#b22234] hover:text-white hover:border-[#b22234] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        ›
+      </button>
+    </div>
+  );
+};
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ProfileCards() {
@@ -1126,6 +1170,8 @@ export default function ProfileCards() {
   const [blockedProfileIds, setBlockedProfileIds] = useState<Set<number>>(new Set());
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [hasPartnerPreferences, setHasPartnerPreferences] = useState(false);
+  const [contactProfile, setContactProfile] = useState<CardProfile | null>(null);
+  const [isPaidMember, setIsPaidMember] = useState(false);
 
   // appendModeRef tracks whether the next fetch should append or replace items
   const appendModeRef  = useRef(false);
@@ -1137,6 +1183,12 @@ export default function ProfileCards() {
   // Keep page/total refs in sync with state
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { totalPagesRef.current  = totalPages;  }, [totalPages]);
+
+  useEffect(() => {
+    getMyProfile()
+      .then((profile) => setIsPaidMember(Boolean(profile?.isPremium)))
+      .catch(() => setIsPaidMember(false));
+  }, []);
 
   // Fetch blocked profile IDs on mount
   useEffect(() => {
@@ -1299,11 +1351,6 @@ export default function ProfileCards() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMenu, currentPage, filterKey, blockedProfileIds, preferencesLoaded, hasPartnerPreferences]);
 
-  const handleOpen = (p: CardProfile) => {
-    recordProfileView(p.numericId).catch(() => undefined);
-    router.push(`/profiles/${p.numericId}`);
-  };
-
   const handleShortlist = async (p: CardProfile) => {
     try {
       await shortlistProfile(p.numericId);
@@ -1315,6 +1362,15 @@ export default function ProfileCards() {
       );
       window.setTimeout(() => setShortlistMsg(""), 2500);
     }
+  };
+
+  const handleProfileOpen = (profile: CardProfile) => {
+    if (!isPaidMember) {
+      setContactProfile(profile);
+      return;
+    }
+    recordProfileView(profile.numericId).catch(() => undefined);
+    router.push(`/profiles/${profile.numericId}`);
   };
 
   const handleInterest = async (p: CardProfile) => {
@@ -1474,9 +1530,10 @@ export default function ProfileCards() {
                     <ProfileCardList
                       key={`${profile.id}-${i}`}
                       profile={profile}
-                      onOpen={handleOpen}
+                      onOpen={handleProfileOpen}
                       onShortlist={handleShortlist}
                       onInterest={handleInterest}
+                      onContact={setContactProfile}
                     />
                   ))}
                 </div>
@@ -1489,9 +1546,10 @@ export default function ProfileCards() {
                         <ProfileCardGrid
                           key={`${profile.id}-${i}`}
                           profile={profile}
-                          onOpen={handleOpen}
+                          onOpen={handleProfileOpen}
                           onShortlist={handleShortlist}
                           onInterest={handleInterest}
+                          onContact={setContactProfile}
                         />
                       ))}
                     </div>
@@ -1501,9 +1559,10 @@ export default function ProfileCards() {
                         <div key={`${profile.id}-${i}`} className="contents">
                           <ProfileCardList
                             profile={profile}
-                            onOpen={handleOpen}
+                            onOpen={handleProfileOpen}
                             onShortlist={handleShortlist}
                             onInterest={handleInterest}
+                            onContact={setContactProfile}
                           />
                         </div>
                       ))}
@@ -1539,6 +1598,11 @@ export default function ProfileCards() {
           {/* end main content */}
         </div>
       </div>
+      <PaymentPopup
+        isOpen={contactProfile !== null}
+        profileName={contactProfile ? toTitleCase(contactProfile.name) : undefined}
+        onClose={() => setContactProfile(null)}
+      />
     </div>
   );
 }

@@ -51,13 +51,13 @@ export default function Header({
         {/* MARQUEE */}
         <div className="overflow-hidden w-full lg:w-auto">
           <div className="whitespace-nowrap animate-marquee text-[#c0174c] font-semibold text-xs sm:text-sm text-center">
-            🇮🇳 India’s No.1 Made2Match App • Find Your Perfect Match •
-            Made2Match 💍
+            🇮🇳 India&apos;s No.1 Made2Match App • Find Your Perfect Match • Made2Match 💍
           </div>
         </div>
 
         {/* BUTTONS */}
         <div className="flex items-center justify-center lg:justify-end gap-2 sm:gap-4">
+
           <span className="hidden lg:block text-gray-700 font-medium italic text-base">
             Let&apos;s Get Married
           </span>

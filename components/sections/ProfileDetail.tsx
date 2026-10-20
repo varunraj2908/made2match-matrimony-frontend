@@ -21,6 +21,7 @@ import { submitProfileReport, type ProfileReportRequest } from "@/services/profi
 import { addReportNotification } from "@/services/notificationService";
 import AiMatchModal, { type MatchPerson } from "./AiMatchModal";
 import { formatProfileCode } from "@/lib/memberId";
+import PaymentPopup from "@/components/modals/PaymentPopup";
 
 // ── Display helpers ─────────────────────────────────────────────
 const FALLBACK_AVATAR = (name?: string) =>
@@ -192,8 +193,8 @@ function ReportViolationModal({
             <p>
               We work with our trust and safety team to take action against people
               who misuse Made2Match. You can reach us at{" "}
-              <a href="tel:+918075067058" className="font-semibold text-[#c0174c] hover:underline">
-                +91-8075067058
+              <a href="tel:+917909227177" className="font-semibold text-[#c0174c] hover:underline">
+                +91-7909227177
               </a>{" "}
               or email{" "}
               <a
@@ -386,7 +387,7 @@ interface ProfileData {
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const PROFILE: ProfileData = {
   id: "MTM01247",
-  name: "Lorem Ipsum",
+  name: "",
   age: 20,
   height: "5'1 In",
   weight: "45 Kgs / 99 lbs",
@@ -398,19 +399,9 @@ const PROFILE: ProfileData = {
   profession: "Accounts / Finance",
   annualIncome: "2 – 3 Lakhs",
   lastLogin: "1 hour ago",
-  photo: "https://randomuser.me/api/portraits/women/44.jpg",
-  photos: [
-    "https://randomuser.me/api/portraits/women/44.jpg",
-    "https://randomuser.me/api/portraits/women/45.jpg",
-    "https://randomuser.me/api/portraits/women/46.jpg",
-    "https://randomuser.me/api/portraits/women/47.jpg",
-    "https://randomuser.me/api/portraits/women/48.jpg",
-    "https://randomuser.me/api/portraits/women/49.jpg",
-    "https://randomuser.me/api/portraits/women/50.jpg",
-    "https://randomuser.me/api/portraits/women/51.jpg",
-  ],
-  about:
-    "My daughter is a Manager with a Master's degree currently working in Private sector in Gurgaon. We come from a Middle class, Nuclear family background with traditional values.",
+  photo: "",
+  photos: [],
+  about: "",
   bodyType: "Slim",
   complexion: "Fair",
   physicalStatus: "Normal",
@@ -471,7 +462,7 @@ const PROFILE: ProfileData = {
     dosh: "Not Specified",
     motherTongue: "Hindi",
     aboutPartner:
-      "My groom is a Manager with a Master's degree currently working in Private sector in Gurgaon. We come from a Middle class, Nuclear family background with traditional values.",
+      "Looking for a compatible life partner who values mutual respect, understanding, family, and a lasting relationship.",
   },
 };
 
@@ -942,11 +933,18 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
   const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [showPaymentPopup, setShowPaymentPopup] = useState(false);
 
   // Logged-in user — used as the other side of the AI compatibility match.
   useEffect(() => {
     getMyProfileFull()
-      .then(setMe)
+      .then((p) => {
+        setMe(p);
+        // Auto-open payment popup for free users viewing a profile
+        if (!p.isPremium) {
+          setShowPaymentPopup(true);
+        }
+      })
       .catch(() => undefined);
   }, []);
 
@@ -984,6 +982,10 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
   };
 
   const handleChatNow = () => {
+    if (!me?.isPremium) {
+      setShowPaymentPopup(true);
+      return;
+    }
     if (!profile) return;
     router.push(`/chat/${profile.userId}`);
   };
@@ -1192,7 +1194,7 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
         drinkingHabits: friendly(pref.drinkingAcceptable) || "Any",
         smokingHabits: friendly(pref.smokingAcceptable) || "Any",
         occupation: pref.preferredOccupation || "Any",
-        aboutPartner: pref.partnerDescription || PROFILE.partnerPreferences.aboutPartner,
+        aboutPartner: PROFILE.partnerPreferences.aboutPartner,
         // Not part of the preference record → default to "Any".
         motherTongue: "Any",
         physicalStatus: "Any",
@@ -1208,9 +1210,15 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
   // Gender-aware wording (template is bride-worded by default).
   const g = (profile?.gender || "").toUpperCase();
   const isBride = !(g === "MALE" || g === "GROOM" || g === "M");
-  const selfNoun = isBride ? "bride" : "groom";
   const partnerNoun = isBride ? "Groom" : "Bride";
   const possessive = isBride ? "Her" : "His";
+  const generatedAbout = [
+    `${p.name} is${p.age ? ` ${p.age} years old` : ""}`,
+    isFilled(p.profession) ? `and works as ${p.profession}` : "",
+    isFilled(p.education) ? `with an education in ${p.education}` : "",
+    isFilled(p.location) ? `from ${p.location}` : "",
+  ].filter(Boolean).join(" ") + ".";
+  const profileAbout = profile?.bio?.trim() || generatedAbout;
 
   // Build the AI match pair from the CURRENT profile + the logged-in viewer.
   // The viewed profile keeps its real data; the viewer fills the opposite slot.
@@ -1228,6 +1236,7 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
     : undefined;
 
   return (
+    <>
     <div className="min-h-screen bg-gray-100">
       {/* AI compatibility analysis popup — analyses the current profile */}
       <AiMatchModal
@@ -1287,7 +1296,10 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
       {/* Floating "Ask AI" button — right side, stacked above the chat FAB.
           z below the chat layer (1400) so the chat popup covers it when open. */}
       <button
-        onClick={() => setAiOpen(true)}
+        onClick={() => {
+          if (!me?.isPremium) { setShowPaymentPopup(true); return; }
+          setAiOpen(true);
+        }}
         className="group fixed bottom-[8.75rem] lg:bottom-[5.5rem] right-5 z-[1300] w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center transition-transform hover:scale-110 active:scale-95 animate-fab-pulse"
         style={{ background: "linear-gradient(135deg,#c0174c,#ea580c)" }}
         aria-label="Ask AI to analyze compatibility"
@@ -1297,7 +1309,7 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
           ✦
         </span>
         <span className="pointer-events-none absolute right-16 px-3 py-1.5 rounded-full bg-[#2D1B35] text-white text-xs font-bold whitespace-nowrap opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all shadow-lg">
-          Ask AI
+          AI Compatibility Checker
         </span>
       </button>
 
@@ -1356,38 +1368,38 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
                 {/* Right Panel */}
                 <div className="sm:w-52 shrink-0">
                   <p className="text-[10px] text-gray-600 leading-relaxed mb-3 line-clamp-5">
-                    {p.about}
+                    {profileAbout}
                   </p>
                   {/* Social Icons */}
                   <div className="flex gap-2 mb-3">
                     {/* Facebook */}
-                    <a href="#" aria-label="Facebook" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ backgroundColor: "#1877F2" }}>
+                    <button onClick={() => { if (!me?.isPremium) { setShowPaymentPopup(true); return; } }} aria-label="Facebook" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ backgroundColor: "#1877F2" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
                         <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
                       </svg>
-                    </a>
+                    </button>
                     {/* Instagram */}
-                    <a href="#" aria-label="Instagram" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)" }}>
+                    <button onClick={() => { if (!me?.isPremium) { setShowPaymentPopup(true); return; } }} aria-label="Instagram" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ background: "linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
                         <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
                         <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
                       </svg>
-                    </a>
+                    </button>
                     {/* LinkedIn */}
-                    <a href="#" aria-label="LinkedIn" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ backgroundColor: "#0A66C2" }}>
+                    <button onClick={() => { if (!me?.isPremium) { setShowPaymentPopup(true); return; } }} aria-label="LinkedIn" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ backgroundColor: "#0A66C2" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
                         <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
                         <rect x="2" y="9" width="4" height="12" />
                         <circle cx="4" cy="4" r="2" />
                       </svg>
-                    </a>
+                    </button>
                     {/* WhatsApp */}
-                    <a href="#" aria-label="WhatsApp" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ backgroundColor: "#25D366" }}>
+                    <button onClick={() => { if (!me?.isPremium) { setShowPaymentPopup(true); return; } }} aria-label="WhatsApp" className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ backgroundColor: "#25D366" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                       </svg>
-                    </a>
+                    </button>
                   </div>
                   {(() => {
                     const STATUS_UI: Record<
@@ -1465,15 +1477,6 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 sm:p-5">
             <SectionHeader icon="👤" title="Personal Information" />
 
-            {/* About */}
-            <div className="mb-5 p-3 bg-orange-50 rounded-lg border border-orange-100">
-              <div className="flex items-center gap-2 mb-2">
-                <span>📍</span>
-                <span className="text-xs font-bold text-gray-700">About the {selfNoun}</span>
-              </div>
-              <p className="text-xs text-gray-600 leading-relaxed">{p.about}</p>
-            </div>
-
             {/* Basic Details */}
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-3">
@@ -1486,8 +1489,8 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
                   { label: "Age", value: `${p.age} Yrs` },
                   { label: "Height", value: p.height },
                   { label: "Weight", value: p.weight },
-                  { label: "Email", value: me && profile && me.id === profile.id ? (profile?.email || me.email || "") : (profile?.email || "") },
-                  { label: "Phone Number", value: me && profile && me.id === profile.id ? (profile?.phoneNumber || me.phoneNumber || "") : (profile?.phoneNumber || "") },
+                  { label: "Email", value: me?.isPremium ? (profile?.email || "—") : "🔒 Upgrade to view" },
+                  { label: "Phone Number", value: me?.isPremium ? (profile?.phoneNumber || "—") : "🔒 Upgrade to view" },
                   { label: "Mother Tongue", value: p.motherTongue },
                   { label: "Marital Status", value: p.maritalStatus },
                 ]}
@@ -1533,7 +1536,7 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-sm">📍</span>
-                <span className="text-sm font-bold text-gray-700">{selfNoun === "bride" ? "Bride" : "Groom"}&apos;s Location</span>
+                <span className="text-sm font-bold text-gray-700">{isBride ? "Bride" : "Groom"}&apos;s Location</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
                 <div>
@@ -1692,5 +1695,13 @@ export default function ProfileDetail({ id }: ProfileDetailProps = {}) {
         </div>
       </div>
     </div>
+
+    {/* Payment popup — auto-opens for free users */}
+    <PaymentPopup
+      isOpen={showPaymentPopup}
+      onClose={() => setShowPaymentPopup(false)}
+      profileName={profile ? [profile.firstName, profile.lastName].filter(Boolean).join(" ") : undefined}
+    />
+    </>
   );
 }

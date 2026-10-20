@@ -162,19 +162,21 @@ export default function OnboardingSuccessPage() {
 
           {/* Primary CTA */}
           <button
-            onClick={() => router.push("/home")}
-            className="w-full py-3.5 rounded-2xl text-white text-sm font-black tracking-wide transition-all hover:opacity-90 active:scale-95"
+            onClick={() => router.push("/upload-image")}
+           
+
+             className="w-full py-3.5 cursor-pointer rounded-2xl text-white text-sm font-black tracking-wide transition-all hover:opacity-90 active:scale-95"
             style={{
               background: "linear-gradient(135deg, #c0174c, #8b0f38)",
               boxShadow: "0 4px 16px rgba(192,23,76,0.35)",
             }}
           >
-            View My Matches →
+            Complete your profile for better matches →
           </button>
 
           {/* Secondary */}
           <button
-            onClick={() => router.push("/upload-image")}
+            onClick={() => router.push("/home")}
             className="w-full text-center text-sm font-semibold mt-3 hover:opacity-70 transition-opacity"
             style={{
               color: "#c0174c",
@@ -183,8 +185,8 @@ export default function OnboardingSuccessPage() {
               cursor: "pointer",
               textDecoration: "underline",
             }}
-          >
-            Complete your profile for better matches
+           >
+            View My Matches
           </button>
 
         </div>

@@ -20,7 +20,7 @@ import {
   type MyProfile,
   type ProfileActivity,
 } from "@/services/homeService";
-import { uploadProfilePhoto } from "@/services/profileService";
+import { uploadProfilePhoto, getMyPhotos } from "@/services/profileService";
 import { downloadBiodata } from "@/lib/biodata";
 import { formatProfileCode } from "@/lib/memberId";
 
@@ -76,6 +76,12 @@ const ChevronLeft = () => (
 const CrownIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">
     <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+  </svg>
+);
+const UserAvatarIcon = ({ className = "w-9 h-9" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M20 21a8 8 0 0 0-16 0" />
+    <circle cx="12" cy="7" r="4" />
   </svg>
 );
 const EditIcon = () => (
@@ -467,11 +473,10 @@ export default function HomePage() {
     viewedByMe: true,
   });
 
-  const [profilePhoto, setProfilePhoto] = useState<string>(
-    "https://i.pravatar.cc/300?img=33",
-  );
+  const [profilePhoto, setProfilePhoto] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>("");
+  const [photoStatus, setPhotoStatus] = useState<"PENDING" | "APPROVED" | "REJECTED" | null>(null);
   const [profileWarning, setProfileWarning] = useState<string>("");
   const [downloadingBiodata, setDownloadingBiodata] = useState(false);
 
@@ -534,6 +539,11 @@ export default function HomePage() {
           setMe({ ...data, phoneNumber: phoneFromStorage });
         }
       }
+      // Fetch primary photo verification status
+      getMyPhotos().then((photos) => {
+        const primary = photos.find((p) => p.isPrimary) ?? photos[0];
+        if (primary) setPhotoStatus(primary.verificationStatus);
+      }).catch(() => {});
     });
 
     load(getActivityCounts(), setCounts);
@@ -628,11 +638,11 @@ export default function HomePage() {
       // previously cached avatar) without needing a page refresh.
       const freshUrl = photoUrl ? `${photoUrl}?t=${Date.now()}` : undefined;
       if (freshUrl) setProfilePhoto(freshUrl);
-      // Tell the rest of the UI (Navbar, etc.) — pass the new URL so the avatar
-      // updates instantly instead of waiting on a (possibly cached) re-fetch.
-      window.dispatchEvent(
-        new CustomEvent("profile:updated", { detail: { profilePhotoUrl: freshUrl } }),
-      );
+      // Photo just uploaded — mark as pending verification
+      setPhotoStatus("PENDING");
+      // Refresh consumers from the backend. The raw upload stays private until
+      // CRM approval, so it must not be broadcast as the public navbar avatar.
+      window.dispatchEvent(new CustomEvent("profile:updated"));
     } catch (ex: any) {
       setUploadError(
         ex?.response?.data?.message ||
@@ -662,17 +672,21 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ── Mobile Profile Banner ── */}
-      <div className="lg:hidden bg-white border border-gray-200 px-4 py-3 mx-3 mt-3 lg:mt-0 rounded-xl lg:rounded-none">
-        <div className="flex items-center gap-3">
+      <div className="lg:hidden bg-white border border-gray-200 px-3 py-2 sm:px-4 sm:py-3 mx-3 mt-3 lg:mt-0 rounded-xl lg:rounded-none">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className="relative shrink-0">
-            <img
-              src={profilePhoto}
-              alt={displayName}
-              className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = FALLBACK_PHOTO(displayName);
-              }}
-            />
+            <div className="flex h-16 w-16 sm:h-14 sm:w-14 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-gray-100 text-gray-400 shadow-md">
+              {profilePhoto ? (
+                <img
+                  src={profilePhoto}
+                  alt={displayName}
+                  className="h-full w-full object-cover"
+                  onError={() => setProfilePhoto("")}
+                />
+              ) : (
+                <UserAvatarIcon />
+              )}
+            </div>
             <button
               onClick={handlePhotoClick}
               disabled={isUploading}
@@ -698,36 +712,59 @@ export default function HomePage() {
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-gray-800 text-sm capitalize">{displayNameFormatted}</h3>
-            <p className="text-[10px] text-gray-400 font-mono">
+            <h3 className="font-bold text-gray-800 text-base capitalize">{displayNameFormatted}</h3>
+            <p className="text-xs text-gray-400 font-mono">
               <span className="font-bold text-[#c0174c]">{userIdLabel}</span> • {isPremium ? "Prime member" : "Free member"}
             </p>
-            <div className="flex items-center gap-1 text-[10px] text-[#b22234] font-medium mt-0.5">
+            <div className="flex items-center gap-1 text-xs text-[#b22234] font-medium mt-0.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#b22234" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
               </svg>
               Made2Match Matrimony
             </div>
+            {photoStatus && photoStatus !== "APPROVED" && (
+              <div className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${
+                photoStatus === "PENDING"
+                  ? "border-amber-200 bg-amber-50 text-amber-700"
+                  : "border-red-200 bg-red-50 text-red-600"
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${
+                  photoStatus === "PENDING"
+                    ? "animate-pulse bg-amber-400"
+                    : "bg-red-400"
+                }`} />
+                {photoStatus === "PENDING" ? "Under Verification" : "Photo Rejected"}
+              </div>
+            )}
           </div>
 
           {!isPremium && (
             <button
               onClick={() => router.push("/specialoffer")}
-              className="cursor-pointer shrink-0 bg-[#b22234] text-white text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-red-700 transition-colors"
+              className="cursor-pointer shrink-0 bg-[#b22234] text-white text-xs font-bold px-3 py-1.5 rounded-full hover:bg-red-700 transition-colors"
             >
               Upgrade
             </button>
           )}
         </div>
 
-        <div className="mt-3">
+        <div className="mt-2 sm:mt-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-500">Profile completeness</span>
-            <span className="text-[10px] font-bold text-[#ea580c]">{completionPct}%</span>
+            <span className="text-xs text-gray-500">Profile completeness</span>
+            <span className="text-xs font-bold text-[#ea580c]">{completionPct}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1.5">
             <div className="bg-[#ea580c] h-1.5 rounded-full" style={{ width: `${completionPct}%` }} />
           </div>
+          <button
+            onClick={() => router.push("/edit-profile")}
+            className="mt-1.5 sm:mt-2 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-[#ea580c] bg-white py-1 sm:py-1.5 text-xs font-semibold text-[#ea580c] transition-colors hover:bg-[#ea580c] hover:text-white"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+            Complete Profiles
+          </button>
         </div>
         {uploadError && (
           <p className="text-[10px] text-red-500 mt-2">{uploadError}</p>
@@ -735,7 +772,7 @@ export default function HomePage() {
         <button
           onClick={handleDownloadBiodata}
           disabled={!me || downloadingBiodata}
-          className="cursor-pointer mt-3 w-full flex items-center justify-center gap-2 border border-[#b22234] text-[#b22234] text-xs font-bold py-2 rounded-full hover:bg-[#b22234] hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
+          className="cursor-pointer mt-2 sm:mt-3 w-full flex items-center justify-center gap-2 border border-[#b22234] text-[#b22234] text-sm font-bold py-1.5 sm:py-2 rounded-full hover:bg-[#b22234] hover:text-white transition-colors disabled:opacity-50"
         >
           {downloadingBiodata ? "Preparing…" : (<><DownloadIcon /> Download Biodata</>)}
         </button>
@@ -753,14 +790,18 @@ export default function HomePage() {
         <aside className="w-52 shrink-0 space-y-4 hidden lg:block">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
             <div className="relative w-20 h-20 mx-auto mb-3">
-              <img
-                src={profilePhoto}
-                alt={displayName}
-                className="w-20 h-20 rounded-full object-cover border-3 border-white shadow-md"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = FALLBACK_PHOTO(displayName);
-                }}
-              />
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-3 border-white bg-gray-100 text-gray-400 shadow-md">
+                {profilePhoto ? (
+                  <img
+                    src={profilePhoto}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                    onError={() => setProfilePhoto("")}
+                  />
+                ) : (
+                  <UserAvatarIcon className="h-12 w-12" />
+                )}
+              </div>
               <div
                 onClick={handlePhotoClick}
                 className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center"
@@ -800,6 +841,17 @@ export default function HomePage() {
               </svg>
               Made2Match Matrimony
             </div>
+            {/* Photo verification status badge */}
+            {photoStatus && photoStatus !== "APPROVED" && (
+              <div className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full mb-1 ${
+                photoStatus === "PENDING"
+                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                  : "bg-red-50 text-red-600 border border-red-200"
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${photoStatus === "PENDING" ? "bg-amber-400 animate-pulse" : "bg-red-400"}`} />
+                {photoStatus === "PENDING" ? "Under Verification" : "Photo Rejected"}
+              </div>
+            )}
             <p className="text-[11px] font-mono font-bold text-[#c0174c] mb-1.5">{userIdLabel}</p>
             <span
               className="inline-block text-[10px] font-bold px-3 py-1 rounded-full text-white shadow-sm"
@@ -892,7 +944,12 @@ export default function HomePage() {
             ].map((item) => (
               <button
                 key={item.label}
-                onClick={() => router.push(item.href)}
+                onClick={() => {
+                  if (item.href === "/settings") {
+                    sessionStorage.setItem("allowSettingsAccess", "1");
+                  }
+                  router.push(item.href);
+                }}
                 className="cursor-pointer w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-[#ea580c] transition-colors border-b border-gray-50 last:border-0"
               >
                 <span className="text-gray-400">{item.icon}</span>
@@ -1054,13 +1111,13 @@ export default function HomePage() {
                 ))}
               </div>
               <a
-                href={`tel:+91${me?.phoneNumber || '8075067058'}`}
+                href="tel:+917909227177"
                 className="inline-flex items-center gap-2 bg-white text-[#b22234] text-sm font-bold px-6 py-2.5 rounded-full hover:bg-amber-50 transition-colors shadow-sm"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
                 </svg>
-                Call {me?.phoneNumber || '8075067058'}
+                Call 7909227177
               </a>
             </div>
             <div className="w-24 sm:w-32 shrink-0 relative z-10">
@@ -1211,13 +1268,13 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <a
-              href={`tel:+91${me?.phoneNumber || '8075067058'}`}
+              href="tel:+917909227177"
               className="flex items-center gap-2 border border-gray-300 text-gray-700 text-xs font-semibold px-3 sm:px-4 py-2 rounded-full hover:border-[#ea580c] hover:text-[#ea580c] transition-colors"
             >
               <PhoneIcon /> Call now
             </a>
             <a
-              href={`https://wa.me/91${me?.phoneNumber || '8075067058'}`}
+              href="https://wa.me/917909227177"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 bg-[#ea580c] text-white text-xs font-semibold px-3 sm:px-4 py-2 rounded-full hover:bg-orange-600 transition-colors"

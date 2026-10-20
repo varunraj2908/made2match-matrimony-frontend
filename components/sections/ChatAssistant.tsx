@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { searchProfiles, type SearchCriteria } from "@/services/searchService";
 import { sendAssistantMessage, type AssistantApiProfile } from "@/services/assistantService";
+import PaymentPopup from "@/components/modals/PaymentPopup";
+import { getMyProfile } from "@/services/homeService";
 
 type Action = { label: string; href: string };
 type AssistantProfile = {
@@ -13,17 +15,8 @@ type AssistantProfile = {
   location?: string;
   profession?: string;
   photo?: string;
-  href?: string; // navigation override (used for sample profiles)
+  href?: string;
 };
-
-// Fallback profiles shown when the API has no results / the user isn't logged in,
-// so the chat always shows some profiles when asked.
-const SAMPLE_PROFILES: AssistantProfile[] = [
-  { id: -1, name: "Ananya Sharma", age: 28, location: "Bangalore", profession: "Software Engineer", photo: "/image1.jpg", href: "/search" },
-  { id: -2, name: "Priya Nair", age: 27, location: "Kochi, Kerala", profession: "Doctor", photo: "/image3.jpg", href: "/search" },
-  { id: -3, name: "Kavya Iyer", age: 26, location: "Chennai", profession: "Designer", photo: "/matrimony7.jpg", href: "/search" },
-  { id: -4, name: "Sneha Patel", age: 29, location: "Ahmedabad", profession: "Chartered Accountant", photo: "/matrimony1.webp", href: "/search" },
-];
 type Msg = {
   role: "bot" | "user";
   text: string;
@@ -121,7 +114,7 @@ const parseCriteria = (raw: string): { criteria: SearchCriteria; summary: string
   return { criteria: c, summary };
 };
 
-const SUPPORT_PHONE = "+91 8075067058";
+const SUPPORT_PHONE = "+91 7909227177";
 
 // Quick-reply chips shown under the greeting.
 const QUICK_REPLIES = [
@@ -290,6 +283,13 @@ export default function ChatAssistant() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isPremium, setIsPremium] = useState(false);
+  const [showPaymentPopup, setShowPaymentPopup] = useState(false);
+
+  // Load premium status once
+  useEffect(() => {
+    getMyProfile().then((p) => setIsPremium(!!p.isPremium)).catch(() => {});
+  }, []);
 
   // Parse criteria from the user's text, fetch matching profiles, show cards.
   const showMatches = (rawText: string) => {
@@ -306,7 +306,6 @@ export default function ChatAssistant() {
               text: summary
                 ? "No exact matches for that — here are some popular profiles 💞"
                 : "Here are some popular profiles you might like 💞",
-              profiles: SAMPLE_PROFILES,
               actions: [{ label: "Refine in Search", href: "/search" }],
             },
           ]);
@@ -336,7 +335,6 @@ export default function ChatAssistant() {
           {
             role: "bot",
             text: "Here are a few profiles you might like 💞 — log in to see your personalised matches.",
-            profiles: SAMPLE_PROFILES,
             actions: [{ label: "Open Search", href: "/search" }],
           },
         ]);
@@ -457,7 +455,14 @@ export default function ChatAssistant() {
                       {m.profiles.map((p) => (
                         <button
                           key={p.id}
-                          onClick={() => { setOpen(false); router.push(p.href ?? `/profiles/${p.id}`); }}
+                          onClick={() => {
+                            if (!isPremium) {
+                              setShowPaymentPopup(true);
+                              return;
+                            }
+                            setOpen(false);
+                            router.push(p.href ?? `/profiles/${p.id}`);
+                          }}
                           className="flex items-center gap-2.5 bg-white border border-gray-100 rounded-xl p-2 shadow-sm text-left transition-all hover:border-[#c0174c]/40 hover:shadow-md"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -480,7 +485,13 @@ export default function ChatAssistant() {
                       {m.actions.map((a) => (
                         <button
                           key={a.href + a.label}
-                          onClick={() => { setOpen(false); router.push(a.href); }}
+                          onClick={() => {
+                            setOpen(false);
+                            if (a.href === "/settings") {
+                              sessionStorage.setItem("allowSettingsAccess", "1");
+                            }
+                            router.push(a.href);
+                          }}
                           className="text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors hover:bg-[#c0174c] hover:text-white"
                           style={{ borderColor: "#c0174c", color: "#c0174c" }}
                         >
@@ -542,6 +553,10 @@ export default function ChatAssistant() {
           </form>
         </div>
       )}
+      <PaymentPopup
+        isOpen={showPaymentPopup}
+        onClose={() => setShowPaymentPopup(false)}
+      />
     </>
   );
 }

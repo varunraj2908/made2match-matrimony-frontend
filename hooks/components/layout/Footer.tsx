@@ -22,8 +22,8 @@ const SECONDARY_LINKS: { label: string; href: string }[] = [
   { label: "Success Story", href: "/#success-stories" },
 ];
 
-const SUPPORT_PHONE = "+91 8075067058";
-const SUPPORT_PHONE_TEL = "+918075067058";
+const SUPPORT_PHONE = "+91 7909227177";
+const SUPPORT_PHONE_TEL = "+917909227177";
 const SUPPORT_EMAIL = "madetwomatch08@gmail.com";
 
 export default function Footer() {

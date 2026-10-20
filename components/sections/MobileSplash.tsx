@@ -102,9 +102,9 @@ export default function MobileSplash() {
 
       <FloatingHearts />
 
-      <div className="relative z-10 w-full max-w-sm min-h-screen px-7 py-10 flex flex-col items-center text-center">
+      <div className="relative z-10 w-full max-w-sm min-h-screen px-7 py-10 flex flex-col items-center justify-center text-center">
         {/* Emblem with rotating gradient ring + halo */}
-        <div className="mt-12 relative w-48 h-48 flex items-center justify-center">
+        <div className="order-2 mt-8 relative w-48 h-48 flex items-center justify-center">
           {/* halo */}
           <div className="absolute w-48 h-48 rounded-full animate-ai-halo" style={{ background: `radial-gradient(circle, ${GOLD}55, transparent 70%)` }} />
           {/* rotating conic ring */}
@@ -134,23 +134,23 @@ export default function MobileSplash() {
         </div>
 
         {/* Title */}
-        <h1 className="mt-9 text-[45px] font-black leading-none drop-shadow" style={{ fontFamily: "Georgia, serif" }}>
+        <h1 className="order-1 text-[45px] font-black leading-none drop-shadow" style={{ fontFamily: "Georgia, serif" }}>
           <span className="text-white">Made</span>
           <span style={{ color: GOLD }}>2</span>
           <span className="text-white">Match</span>
         </h1>
         {/* shimmer underline */}
-        <div className="relative mt-2 h-1 w-44 rounded-full overflow-hidden" style={{ background: "rgba(232,197,71,0.4)" }}>
+        <div className="order-1 relative mt-2 h-1 w-44 rounded-full overflow-hidden" style={{ background: "rgba(232,197,71,0.4)" }}>
           <div className="absolute inset-0 animate-ai-shimmer" />
         </div>
 
-        <p className="mt-3 text-[11px] font-bold tracking-[0.34em] text-amber-200/90">
+        <p className="order-1 mt-3 text-[11px] font-bold tracking-[0.34em] text-amber-200/90">
           INDIA&apos;S NO.1 MATRIMONY
         </p>
-        <p className="mt-2 text-sm text-white/90">Find your perfect life partner</p>
+        <p className="order-1 mt-2 text-sm text-white/90">Find your perfect life partner</p>
 
         {/* Indian flag pill */}
-        <div className="mt-3 inline-flex h-3.5 w-16 rounded-full overflow-hidden shadow-sm ring-1 ring-white/30">
+        <div className="order-1 mt-3 inline-flex h-3.5 w-16 rounded-full overflow-hidden shadow-sm ring-1 ring-white/30">
           <span className="flex-1" style={{ background: "#FF9933" }} />
           <span className="flex-1 bg-white flex items-center justify-center">
             <span className="text-[7px] leading-none text-blue-800">☸</span>
@@ -159,7 +159,7 @@ export default function MobileSplash() {
         </div>
 
         {/* Glass stat cards */}
-        <div className="mt-8 grid grid-cols-3 gap-3 w-full">
+        <div className="order-3 mt-8 hidden grid-cols-3 gap-3 w-full sm:grid">
           {STATS.map((s) => (
             <div
               key={s.label}
@@ -179,7 +179,7 @@ export default function MobileSplash() {
         {/* CTAs */}
         <button
           onClick={() => router.push("/register")}
-          className="w-full mt-9 py-3.5 rounded-full text-[#5e0a24] font-extrabold text-base active:scale-[0.98] transition-transform"
+          className="order-4 w-full mt-8 py-3.5 rounded-full text-[#5e0a24] font-extrabold text-base active:scale-[0.98] transition-transform sm:mt-9"
           style={{
             background: `linear-gradient(135deg,#ffe08a,${GOLD} 55%,#d4a017)`,
             boxShadow: "0 10px 26px rgba(232,197,71,0.45), inset 0 1px 0 rgba(255,255,255,0.6)",
@@ -190,7 +190,7 @@ export default function MobileSplash() {
 
         <button
           onClick={() => router.push("/login")}
-          className="w-full mt-3 py-3.5 rounded-full text-white font-bold text-base backdrop-blur-sm active:scale-[0.98] transition-transform"
+          className="order-4 w-full mt-3 py-3.5 rounded-full text-white font-bold text-base backdrop-blur-sm active:scale-[0.98] transition-transform"
           style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.45)" }}
         >
           Login
@@ -201,7 +201,7 @@ export default function MobileSplash() {
           <button
             onClick={handleInstall}
             disabled={installing}
-            className="w-full mt-3 py-3.5 rounded-full font-bold text-base active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-70"
+            className="order-4 w-full mt-3 py-3.5 rounded-full font-bold text-base active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-70"
             style={{
               background: "rgba(255,255,255,0.08)",
               border: "1px solid rgba(232,197,71,0.5)",
@@ -230,7 +230,7 @@ export default function MobileSplash() {
 
         {/* Already installed indicator */}
         {isInstalled && (
-          <div className="mt-3 flex items-center justify-center gap-2 text-green-300 text-sm font-semibold">
+          <div className="order-4 mt-3 flex items-center justify-center gap-2 text-green-300 text-sm font-semibold">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
               <polyline points="22 4 12 14.01 9 11.01" />
@@ -239,7 +239,7 @@ export default function MobileSplash() {
           </div>
         )}
 
-        <p className="mt-auto pt-8 text-[10px] tracking-[0.28em] text-white/45">
+        <p className="absolute bottom-6 text-[10px] tracking-[0.28em] text-white/45">
           MADE WITH ❤ IN INDIA
         </p>
       </div>

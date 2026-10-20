@@ -10,7 +10,7 @@ export default function AuthLayout({
 }) {
   const pathname = usePathname();
   // Login & register are full-screen splash-themed — no top header.
-  const hideTopbar = pathname === "/login" || pathname === "/register";
+  const hideTopbar = ["/login", "/register", "/forgot-password", "/reset-password"].includes(pathname);
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">

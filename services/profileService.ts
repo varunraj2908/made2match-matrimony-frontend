@@ -338,27 +338,81 @@ export const updateMyProfile = async (payload: ProfileUpdatePayload) => {
 };
 
 // ── Profile photo upload (primary — replaces profilePhotoUrl) ──────────────
-export const uploadProfilePhoto = async (file: File): Promise<string> => {
+const UPLOAD_TARGET_BYTES = 900 * 1024;
+const UPLOAD_MAX_DIMENSION = 2200;
+
+const loadImage = (file: File): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("This photo could not be read. Please choose a JPG, PNG or WebP image."));
+    };
+    image.src = url;
+  });
+
+const preparePhotoForUpload = async (file: File): Promise<File> => {
+  if (file.size <= UPLOAD_TARGET_BYTES) return file;
+
+  const image = await loadImage(file);
+  const largestSide = Math.max(image.naturalWidth, image.naturalHeight);
+  let scale = Math.min(1, UPLOAD_MAX_DIMENSION / largestSide);
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Photo processing is not supported in this browser.");
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    const quality = Math.max(0.62, 0.88 - attempt * 0.07);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", quality),
+    );
+    if (!blob) throw new Error("Photo processing failed. Please try another image.");
+
+    if (blob.size <= UPLOAD_TARGET_BYTES) {
+      const baseName = file.name.replace(/\.[^.]+$/, "") || "profile-photo";
+      return new File([blob], `${baseName}.jpg`, {
+        type: "image/jpeg",
+        lastModified: file.lastModified,
+      });
+    }
+    scale *= 0.82;
+  }
+
+  throw new Error("This photo could not be reduced below the upload limit. Please choose another image.");
+};
+
+const uploadPhoto = async (path: string, file: File): Promise<string> => {
+  const preparedFile = await preparePhotoForUpload(file);
   const fd = new FormData();
-  fd.append("file", file);
-  const response = await axiosInstance.post<ApiEnvelope<{ photoUrl: string }>>(
-    "/profiles/photos/upload",
-    fd,
-    { headers: { "Content-Type": "multipart/form-data" } },
-  );
-  return response.data.data.photoUrl;
+  fd.append("file", preparedFile);
+
+  try {
+    const response = await axiosInstance.post<ApiEnvelope<{ photoUrl: string }>>(path, fd);
+    return response.data.data.photoUrl;
+  } catch (error: any) {
+    if (error?.response?.status === 413) {
+      throw new Error("Photo is too large for the server. Please choose a smaller image.");
+    }
+    throw error;
+  }
+};
+
+export const uploadProfilePhoto = async (file: File): Promise<string> => {
+  return uploadPhoto("/profiles/photos/upload", file);
 };
 
 // ── Additional (gallery) photo upload ──────────────────────────────────────
 export const uploadAdditionalPhoto = async (file: File): Promise<string> => {
-  const fd = new FormData();
-  fd.append("file", file);
-  const response = await axiosInstance.post<ApiEnvelope<{ photoUrl: string }>>(
-    "/profiles/photos/upload/additional",
-    fd,
-    { headers: { "Content-Type": "multipart/form-data" } },
-  );
-  return response.data.data.photoUrl;
+  return uploadPhoto("/profiles/photos/upload/additional", file);
 };
 
 // ── Delete a photo by URL ───────────────────────────────────────────────────
@@ -370,9 +424,11 @@ export const deleteProfilePhoto = async (photoUrl: string): Promise<void> => {
 
 // ── List all gallery photos for current user ────────────────────────────────
 export interface ProfilePhotoItem {
+  id: number;
   photoUrl: string;
   isPrimary: boolean;
   displayOrder: number;
+  verificationStatus: "PENDING" | "APPROVED" | "REJECTED";
 }
 
 export const getMyPhotos = async (): Promise<ProfilePhotoItem[]> => {
@@ -381,9 +437,9 @@ export const getMyPhotos = async (): Promise<ProfilePhotoItem[]> => {
 };
 
 // ── Set a photo as primary ──────────────────────────────────────────────────
-export const setPrimaryPhoto = async (photoUrl: string): Promise<void> => {
-  await axiosInstance.put("/profiles/photos/set-primary", null, {
-    params: { photoUrl },
+export const setPrimaryPhoto = async (photoId: number): Promise<void> => {
+  await axiosInstance.put("/profiles/photos/set-primary-by-id", {
+    photoId,
   });
 };
 

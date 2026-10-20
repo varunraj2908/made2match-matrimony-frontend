@@ -1,0 +1,35 @@
+'use client'
+import Footer from "@/components/layout/Footer";
+import Navbar from "@/components/layout/Navbar";
+import ChatAssistant from "@/components/sections/ChatAssistant";
+import MatchCelebration from "@/components/sections/MatchCelebration";
+import WelcomeCelebration from "@/components/sections/WelcomeCelebration";
+import { usePathname } from "next/navigation";
+
+export default function MainLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+   const pathname = usePathname();
+
+  return (
+    <>
+      <Navbar />
+      {children}
+      {!pathname.startsWith("/chat") && (
+        // Footer hidden on mobile only for the profiles list screen.
+        <div className={pathname === "/profiles" ? "hidden md:block" : ""}>
+          <Footer />
+        </div>
+      )}
+      {!pathname.startsWith("/chat") && <ChatAssistant />}
+      <MatchCelebration />
+      <WelcomeCelebration />
+      {/* Spacer so content clears the fixed mobile bottom nav */}
+      {!pathname.startsWith("/chat") && (
+        <div className="h-16 lg:hidden" aria-hidden />
+      )}
+    </>
+  );
+}

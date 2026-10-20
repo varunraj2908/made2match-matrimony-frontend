@@ -192,8 +192,8 @@ function ReportViolationModal({
             <p>
               We work with our trust and safety team to take action against people
               who misuse Made2Match. You can reach us at{" "}
-              <a href="tel:+918075067058" className="font-semibold text-[#c0174c] hover:underline">
-                +91-8075067058
+              <a href="tel:+917909227177" className="font-semibold text-[#c0174c] hover:underline">
+                +91-7909227177
               </a>{" "}
               or email{" "}
               <a

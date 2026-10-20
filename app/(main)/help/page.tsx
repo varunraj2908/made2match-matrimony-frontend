@@ -21,7 +21,7 @@ function BackBar() {
   );
 }
 
-const tabs = ["Contact Us", "Business Enquiries", "Feedback", "Our Retail Stores"];
+const tabs = ["Contact Us", "Business Enquiries", "Feedback"];
 
 const faqs = [
   { q: "How do I login if I forget my email, mobile number?", a: "You can recover your account by visiting the login page and clicking 'Forgot Details'. Enter your registered mobile number or email and follow the instructions sent to you." },
@@ -95,7 +95,7 @@ function ContactUs() {
               <span className="text-xl">🇮🇳</span>
               <div>
                 <span className="font-bold text-gray-700 text-sm mr-2">INDIA</span>
-                <span className="text-sm text-gray-600">+91 8075067058</span>
+                <span className="text-sm text-gray-600">+91 7909227177</span>
               </div>
             </div>
           </div>
@@ -109,7 +109,7 @@ function ContactUs() {
                 <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
             </div>
-            <span className="text-sm text-gray-600">Call <span className="font-semibold text-gray-800">+91 8075067058</span></span>
+            <span className="text-sm text-gray-600">Call <span className="font-semibold text-gray-800">+91 7909227177</span></span>
           </div>
         </div>
       </div>
@@ -319,7 +319,7 @@ export default function HelpPage() {
           <div className="absolute right-36 top-12 w-14 h-14 rounded-full opacity-30" style={{ background: "#fde68a" }} />
           <div className="px-5 sm:px-8 py-7 sm:py-10">
             <h1 className="text-2xl sm:text-3xl font-black text-white">Help &amp; Support</h1>
-            <p className="text-xs sm:text-sm text-white mt-1 sm:mt-2">We're here to help you find your perfect match</p>
+            <p className="text-xs sm:text-sm text-white mt-1 sm:mt-2">We&apos;re here to help you find your perfect match</p>
           </div>
         </div>
 

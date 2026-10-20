@@ -4,24 +4,24 @@ export default function StatusBar() {
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:px-6">
         {[
           {
-            icon: "👤",
-            value: "1000",
-            label: "VERIFIED PROFILES",
-          },
-          {
-            icon: "🛡️",
-            value: "100%",
-            label: "SECURITY",
+            icon: "💍",
+            value: "10,000+",
+            label: "HAPPY MARRIAGES",
           },
           {
             icon: "🤖",
             value: "AI",
-            label: "POWERED MATCHING",
+            label: "POWERED SMART MATCHING",
+          },
+          {
+            icon: "🔒",
+            value: "100%",
+            label: "SECURE & PRIVATE",
           },
           {
             icon: "🕐",
-            value: "24",
-            label: "HOURS OF CUSTOMER SUPPORT",
+            value: "24/7",
+            label: "CUSTOMER SUPPORT",
           },
         ].map((stat, i) => (
           <div
