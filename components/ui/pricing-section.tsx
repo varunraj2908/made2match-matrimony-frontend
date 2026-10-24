@@ -206,17 +206,10 @@ export default function PricingSection() {
 
   return (
     <div
-      className="px-4 py-16 mx-auto relative bg-[#fdf5f7] overflow-hidden"
+      className="px-4 py-16 mx-auto relative overflow-hidden"
+      style={{ background: "#fde8ef" }}
       ref={pricingRef}
     >
-      <div
-        className="absolute top-0 left-[10%] right-[10%] w-[80%] h-full z-0 pointer-events-none"
-        style={{
-          backgroundImage: `radial-gradient(circle at center, #c0174c 0%, transparent 70%)`,
-          opacity: 0.18,
-          mixBlendMode: "multiply",
-        }}
-      />
 
       <div className="relative z-10 text-center mb-6 max-w-3xl mx-auto">
         <p className="text-[#c0174c] text-xs font-bold tracking-widest uppercase mb-3">

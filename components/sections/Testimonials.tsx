@@ -39,28 +39,7 @@ export default function Testimonials() {
   const t = TESTIMONIALS[idx];
 
   return (
-    <section className="relative overflow-hidden bg-[#fffaf5] px-4 py-16 sm:px-6 lg:px-8">
-      {/* Decorative dots */}
-      <span
-        aria-hidden
-        className="absolute top-10 left-10 w-16 h-16 rounded-full hidden md:block"
-        style={{ background: "#e8b44f" }}
-      />
-      <span
-        aria-hidden
-        className="absolute bottom-10 left-32 w-8 h-8 rounded-full hidden md:block"
-        style={{ background: "#c0174c" }}
-      />
-      <span
-        aria-hidden
-        className="absolute top-1/2 right-10 w-12 h-12 rounded-full hidden md:block"
-        style={{ background: "#e8b44f" }}
-      />
-      <span
-        aria-hidden
-        className="absolute bottom-12 right-32 w-16 h-16 rounded-full hidden md:block"
-        style={{ background: "#c0174c" }}
-      />
+    <section className="relative overflow-hidden px-4 pb-16 pt-0 sm:px-6 lg:px-8" style={{ background: "#fde8ef" }}>
 
       <div className="relative max-w-3xl mx-auto text-center">
         <h2

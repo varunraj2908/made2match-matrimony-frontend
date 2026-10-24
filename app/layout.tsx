@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display, Mea_Culpa, Imperial_Script } from "next/font/google";
 import QueryProvider from "@/providers/QueryProvider";
 import CookieConsent from "@/components/layout/CookieConsent";
 import PWARegister from "@/components/layout/PWARegister";
@@ -8,11 +8,31 @@ import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/seo";
 import { organizationSchema, websiteSchema } from "./schema";
 import "./globals.css";
 
-// A highly legible, screen-optimized UI font, self-hosted by next/font.
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-inter",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-playfair",
+  weight: ["700", "800", "900"],
+});
+
+const meaCulpa = Mea_Culpa({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mea-culpa",
+  weight: ["400"],
+});
+
+const imperialScript = Imperial_Script({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-imperial-script",
+  weight: ["400"],
 });
 
 const DEFAULT_TITLE = "Made2Match — Matrimony | Find Your Perfect Life Partner";
@@ -100,7 +120,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable} ${meaCulpa.variable} ${imperialScript.variable}`}>
       <head>
         {/* JSON-LD Structured Data for Google */}
         <script

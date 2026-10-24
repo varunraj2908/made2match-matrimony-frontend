@@ -43,7 +43,7 @@ export default function FAQSection() {
   const toggle = (i: number) => setOpenIndex(openIndex === i ? null : i);
 
   return (
-    <section className="py-14 sm:py-20 px-4 sm:px-6 lg:px-8" style={{ background: "#fdf5f5" }}>
+    <section className="py-14 sm:py-20 px-4 sm:px-6 lg:px-8" style={{ background: "#fde8ef" }}>
       <div className="max-w-3xl mx-auto">
 
         {/* Header */}

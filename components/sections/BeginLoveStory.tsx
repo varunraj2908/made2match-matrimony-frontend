@@ -1,7 +1,7 @@
 export default function BeginLoveStory({ onClick }: { onClick: () => void }) {
   return (
     <section
-      className="my-4 overflow-visible relative px-4 sm:px-6 lg:px-8 py-10 min-h-40"
+      className="overflow-visible relative px-4 sm:px-6 lg:px-8 py-10 min-h-40"
       style={{
         background:
           "linear-gradient(135deg, #8b1a3a 0%, #c0174c 60%, #d4185a 100%)",

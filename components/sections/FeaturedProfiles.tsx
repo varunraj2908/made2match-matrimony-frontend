@@ -32,7 +32,7 @@ export default function FeaturedProfiles() {
   };
 
   return (
-    <section className="bg-white px-4 py-12 sm:px-6 lg:px-8">
+    <section className="px-4 py-12 sm:px-6 lg:px-8" style={{ background: "#fde8ef" }}>
       <div className="mx-auto max-w-7xl lg:px-6">
         <div className="mb-6 text-center">
           <h2 className="text-3xl font-extrabold text-gray-800 sm:text-4xl" style={{ fontFamily: "Georgia, serif" }}>

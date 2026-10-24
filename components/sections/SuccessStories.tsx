@@ -63,7 +63,7 @@ export default function SuccessStories() {
   };
 
   return (
-    <section className="bg-white px-4 sm:px-6 lg:px-8 py-14">
+    <section className="px-4 sm:px-6 lg:px-8 pb-14" style={{ background: "#fde8ef", paddingTop: 50 }}>
       <div className="mx-auto max-w-7xl lg:px-6">
         {/* Header */}
         <div className="text-center mb-10">

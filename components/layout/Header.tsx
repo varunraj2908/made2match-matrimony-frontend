@@ -9,7 +9,7 @@ export default function Header({
   const router = useRouter();
 
   return (
-    <header className="sticky top-0 z-999 bg-white border-b border-gray-200">
+    <header className="sticky top-0 z-999 border-b border-[#f5dde5]" style={{ background: "#fde8ef" }}>
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between px-4 lg:px-6 py-3 gap-1 lg:gap-0">
         
         {/* TOP SECTION */}
@@ -23,7 +23,7 @@ export default function Header({
               className="object-cover w-28 -ml-2 sm:-ml-3 lg:-ml-4"
             />
 
-            <div className="w-auto lg:w-75">
+            <div className="w-auto lg:w-75 flex flex-col leading-none">
               <span
                 className="text-[26px] font-extrabold tracking-tight"
                 style={{
@@ -38,6 +38,12 @@ export default function Header({
                   <span className="text-[#c0174c] text-[36px]">M</span>
                   atch
                 </span>
+              </span>
+              <span
+                className="text-[11px] font-bold tracking-[0.3em] uppercase"
+                style={{ color: "#c0174c", letterSpacing: "0.3em", marginTop: "-2px" }}
+              >
+                Matrimony
               </span>
             </div>
           </div>
