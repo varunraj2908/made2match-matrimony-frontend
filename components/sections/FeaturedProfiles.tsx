@@ -9,7 +9,7 @@ const profiles = {
   bride: [
     { name: "Sandra Benny", age: 27, height: "5'4\"", city: "Kochi", image: "/sandra-profile.jpg" },
     { name: "Sushama", age: 27, height: "5'3\"", city: "Palakkad", image: "/sushama-profile.jpg" },
-    { name: "Varsha", age: 29, height: "5'5\"", city: "Trivandrum", image: "/varsha-profile.jpg" },
+    { name: "Varsha", age: 29, height: "5'5\"", city: "Thiruvananthapuram", image: "/varsha-profile.jpg" },
     { name: "Lakshmi", age: 29, height: "5'4\"", city: "Malappuram", image: "/lakshmi-profile.jpg" },
     { name: "Anjana", age: 27, height: "5'4\"", city: "Malappuram", image: "/anjana-profile.jpg" },
   ],

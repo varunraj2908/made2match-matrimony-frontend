@@ -5,8 +5,8 @@ export default function StatusBar() {
         {[
           {
             icon: "💍",
-            value: "10,000+",
-            label: "HAPPY MARRIAGES",
+            value: "1000+",
+            label: "VERIFIED PROFILES",
           },
           {
             icon: "🤖",

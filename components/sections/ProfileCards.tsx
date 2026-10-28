@@ -93,7 +93,16 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 };
 
 
-// ─── Sidebar data ─────────────────────────────────────────────────────────────
+// ─── Gender-based avatar fallback ────────────────────────────────────────────
+const getAvatarByGender = (profile: CardProfile, myGender?: string | null): string => {
+  // Use profile's own gender directly
+  if (profile.gender === "groom") return "/Male Avatar.png";
+  if (profile.gender === "bride") return "/Woman Avatar.png";
+  // Fallback: opposite of logged-in user gender
+  if (myGender === "MALE") return "/Woman Avatar.png";
+  if (myGender === "FEMALE") return "/Male Avatar.png";
+  return "/Male Avatar.png";
+};
 const SIDEBAR_SECTIONS = [
   {
     heading: null,
@@ -705,12 +714,14 @@ const ProfileCardGrid = ({
   onShortlist,
   onInterest,
   onContact,
+  myGender,
 }: {
   profile: CardProfile;
   onOpen: (p: CardProfile) => void;
   onShortlist: (p: CardProfile) => void;
   onInterest: (p: CardProfile) => void;
   onContact: (p: CardProfile) => void;
+  myGender?: string | null;
 }) => {
   const [imgError, setImgError] = useState(false);
   const tags = [profile.profession, profile.education, profile.religion, profile.height].filter(Boolean).slice(0, 4) as string[];
@@ -727,13 +738,18 @@ const ProfileCardGrid = ({
         style={{ aspectRatio: "3 / 2.6" }}
       >
         {imgError || !profile.photo ? (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center text-6xl">👤</div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center">
+            <img src={getAvatarByGender(profile, myGender)} alt="avatar" className="w-full h-full object-cover object-top" />
+          </div>
         ) : (
           <img
             src={profile.photo}
             alt={profile.name}
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onError={() => setImgError(true)}
+            onError={(e) => {
+              setImgError(true);
+              (e.target as HTMLImageElement).src = getAvatarByGender(profile, myGender);
+            }}
           />
         )}
 
@@ -895,12 +911,14 @@ const ProfileCardList = ({
   onShortlist,
   onInterest,
   onContact,
+  myGender,
 }: {
   profile: CardProfile;
   onOpen: (p: CardProfile) => void;
   onShortlist: (p: CardProfile) => void;
   onInterest: (p: CardProfile) => void;
   onContact: (p: CardProfile) => void;
+  myGender?: string | null;
 }) => {
   const [imgError, setImgError] = useState(false);
   return (
@@ -928,15 +946,18 @@ const ProfileCardList = ({
         >
           <div className="relative w-32 h-32 rounded-md overflow-hidden border-2 border-[#f5d0d7]">
             {imgError || !profile.photo ? (
-              <div className="w-full h-full bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center text-xl">
-                👤
+              <div className="w-full h-full bg-gradient-to-br from-[#fce4ec] to-[#f8bbd0] flex items-center justify-center">
+                <img src={getAvatarByGender(profile, myGender)} alt="avatar" className="w-full h-full object-cover object-top" />
               </div>
             ) : (
               <img
                 src={profile.photo}
                 alt={profile.name}
                 className="w-full h-full object-cover object-top"
-                onError={() => setImgError(true)}
+                onError={(e) => {
+                  setImgError(true);
+                  (e.target as HTMLImageElement).src = getAvatarByGender(profile, myGender);
+                }}
               />
             )}
             {/* NEWLY JOINED 3D folded corner — today only */}
@@ -1172,6 +1193,7 @@ export default function ProfileCards() {
   const [hasPartnerPreferences, setHasPartnerPreferences] = useState(false);
   const [contactProfile, setContactProfile] = useState<CardProfile | null>(null);
   const [isPaidMember, setIsPaidMember] = useState(false);
+  const [myGender, setMyGender] = useState<string | null>(null);
 
   // appendModeRef tracks whether the next fetch should append or replace items
   const appendModeRef  = useRef(false);
@@ -1186,7 +1208,10 @@ export default function ProfileCards() {
 
   useEffect(() => {
     getMyProfile()
-      .then((profile) => setIsPaidMember(Boolean(profile?.isPremium)))
+      .then((profile) => {
+        setIsPaidMember(Boolean(profile?.isPremium));
+        setMyGender(profile?.gender?.toUpperCase() || null);
+      })
       .catch(() => setIsPaidMember(false));
   }, []);
 
@@ -1365,10 +1390,6 @@ export default function ProfileCards() {
   };
 
   const handleProfileOpen = (profile: CardProfile) => {
-    if (!isPaidMember) {
-      setContactProfile(profile);
-      return;
-    }
     recordProfileView(profile.numericId).catch(() => undefined);
     router.push(`/profiles/${profile.numericId}`);
   };
@@ -1448,14 +1469,7 @@ export default function ProfileCards() {
           <div className="border border-gray-200 rounded-xl bg-white px-[10px] py-[10px]">
             <FilterBar value={filterState} onChange={handleFilterChange} />
           </div>
-          {/* Count */}
-          {!loading && !error && (
-            <p className="text-xs text-gray-500">
-              Showing <span className="font-semibold text-gray-800">{items.length}</span> of{" "}
-              <span className="font-semibold text-gray-800">{totalElements.toLocaleString()}</span>{" "}
-              profiles
-            </p>
-          )}
+          {/* Count removed */}
         </div>
         <div className="h-px bg-gray-200" />
       </div>
@@ -1475,14 +1489,6 @@ export default function ProfileCards() {
               <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 flex items-center gap-2">
                 <FilterBar value={filterState} onChange={handleFilterChange} />
               </div>
-              {!loading && !error && (
-                <p className="text-xs text-gray-500 mt-1.5 px-1">
-                  Showing{" "}
-                  <span className="font-semibold text-gray-800">{items.length}</span> of{" "}
-                  <span className="font-semibold text-gray-800">{totalElements.toLocaleString()}</span>{" "}
-                  profiles
-                </p>
-              )}
             </div>
             <div className="pt-2">
             {error && (
@@ -1534,6 +1540,7 @@ export default function ProfileCards() {
                       onShortlist={handleShortlist}
                       onInterest={handleInterest}
                       onContact={setContactProfile}
+                      myGender={myGender}
                     />
                   ))}
                 </div>
@@ -1550,6 +1557,7 @@ export default function ProfileCards() {
                           onShortlist={handleShortlist}
                           onInterest={handleInterest}
                           onContact={setContactProfile}
+                          myGender={myGender}
                         />
                       ))}
                     </div>
@@ -1563,6 +1571,7 @@ export default function ProfileCards() {
                             onShortlist={handleShortlist}
                             onInterest={handleInterest}
                             onContact={setContactProfile}
+                            myGender={myGender}
                           />
                         </div>
                       ))}

@@ -62,15 +62,15 @@ export default function LoginPage() {
     <>
       {/* Mobile — unchanged */}
       <div
-        className="h-full overflow-y-auto lg:hidden"
+        className="h-full overflow-y-auto overflow-x-hidden lg:hidden"
         style={{ background: "linear-gradient(165deg,#2d1b35 0%,#8f0e39 45%,#c0174c 100%)" }}
       >
         <div
-          className="relative w-full mx-auto min-h-full px-5 py-10 sm:px-[73px] flex flex-col justify-center"
+          className="relative w-full mx-auto min-h-full px-5 py-10 sm:px-[73px] flex flex-col justify-center overflow-x-hidden"
           style={{ maxWidth: "612px" }}
         >
-          <div className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(232,197,71,0.2)" }} />
-          <div className="pointer-events-none absolute bottom-10 -left-16 w-60 h-60 rounded-full blur-3xl" style={{ background: "rgba(255,106,156,0.22)" }} />
+          <div className="pointer-events-none absolute -top-16 -right-16 w-60 h-60 rounded-full blur-3xl opacity-0" style={{ background: "rgba(232,197,71,0.2)" }} />
+          <div className="pointer-events-none absolute bottom-10 -left-16 w-60 h-60 rounded-full blur-3xl opacity-0" style={{ background: "rgba(255,106,156,0.22)" }} />
           <div className="relative z-10">
             <AuthBrandHeader />
             <div

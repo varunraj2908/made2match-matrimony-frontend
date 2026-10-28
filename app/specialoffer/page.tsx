@@ -7,6 +7,7 @@ import SpecialOfferSideBanner from "@/components/ui/SpecialOfferSideBanner";
 import { getSubscriptionPlans, type SubscriptionPlan } from "@/services/paymentService";
 import { getMyProfileFull } from "@/services/profileService";
 import PaymentConfirmPopup from "@/components/modals/PaymentConfirmPopup";
+import PayNowQRPopup from "@/components/modals/PayNowQRPopup";
 
 // ─── Data ───────────────────────────────────────────────────────────────────
 
@@ -522,6 +523,7 @@ function SpecialOfferPage({
 }) {
   const router = useRouter();
   const [showMegaOffer, setShowMegaOffer] = useState(false);
+  const [showPayNow, setShowPayNow] = useState(false);
   return (
     <div
       className="min-h-screen flex flex-col"
@@ -547,6 +549,17 @@ function SpecialOfferPage({
             Back
           </button>
           <button
+            onClick={() => setShowPayNow(true)}
+            className="text-sm font-bold cursor-pointer transition inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-white"
+            style={{ background: "linear-gradient(135deg, #981a3d 0%, #c0174c 60%, #d4185a 100%)", boxShadow: "0 4px 12px rgba(192,23,76,0.35)" }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5">
+              <rect x="1" y="4" width="22" height="16" rx="2" />
+              <line x1="1" y1="10" x2="23" y2="10" />
+            </svg>
+            Pay Now
+          </button>
+          <button
             onClick={() => router.push('/home')}
             className="text-sm font-bold hover:underline cursor-pointer transition inline-flex items-center gap-1"
             style={{ color: "#c0174c" }}
@@ -557,6 +570,9 @@ function SpecialOfferPage({
             </svg>
           </button>
         </div>
+
+        {/* QR Popup */}
+        {showPayNow && <PayNowQRPopup onClose={() => setShowPayNow(false)} />}
 
         {/* Special Offer Banner — REMOVED, now inline with title */}
 

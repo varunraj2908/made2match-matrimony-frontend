@@ -46,7 +46,8 @@ export interface MatchProfile {
   isNewProfile?: boolean;
   isPremium?: boolean;
   recommendationType?: string;
-  createdAt?: string;           // ISO date-time for "today" badge
+  createdAt?: string;
+  gender?: string;          // "MALE" | "FEMALE" from backend
 }
 
 export interface ProfileActivity {

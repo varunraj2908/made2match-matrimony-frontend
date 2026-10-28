@@ -56,8 +56,10 @@ const fromMatch = (m: MatchProfile): CardProfile => ({
   profession: m.occupation,
   income: m.annualIncome,
   about: m.bio,
-  photo: m.profilePhotoUrl || fallbackPhoto(m.fullName),
+  // Skip backend placeholder avatars (ui-avatars, default placeholders)
+  photo: (m.profilePhotoUrl && !m.profilePhotoUrl.includes("ui-avatars") && !m.profilePhotoUrl.includes("placeholder") && !m.profilePhotoUrl.includes("default")) ? m.profilePhotoUrl : undefined,
   isPremium: m.isPremium,
+  gender: m.gender === "MALE" ? "groom" : m.gender === "FEMALE" ? "bride" : undefined,
   isNew: isJoinedToday(m.createdAt),
   createdAt: m.createdAt,
 });

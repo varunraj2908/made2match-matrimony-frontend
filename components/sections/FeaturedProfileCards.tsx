@@ -40,7 +40,7 @@ const DEFAULT_PROFILES: ShowcaseProfile[] = [
     bio: "MBA, finance pro. Music, cooking & long talks.",
     rating: 4.6,
     age: 26,
-    city: "Trivandrum",
+    city: "Thiruvananthapuram",
   },
 ];
 

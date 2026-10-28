@@ -7,7 +7,7 @@ import RegistrationConsent from "@/components/ui/RegistrationConsent";
 
 type LookingFor = "bride" | "groom";
 const AGE_OPTIONS = ["18 - 22","22 - 26","26 - 30","30 - 35","35 - 40","40 - 45","45+"];
-const LOCATION_OPTIONS = ["Mumbai","Delhi","Bangalore","Hyderabad","Chennai","Kochi","Kolkata","Pune"];
+const LOCATION_OPTIONS = ["Mumbai","Delhi","Bangalore","Hyderabad","Chennai","Kochi","Kolkata","Pune","Thiruvananthapuram"];
 const RELIGION_OPTIONS = ["Hindu","Muslim","Christian","Sikh","Buddhist","Jain","Other"];
 
 interface Slide {
@@ -198,19 +198,7 @@ function HeroForm() {
       <div className="hidden lg:block absolute right-0 top-0 bottom-0 z-20" style={{ width: 152 }}>
       </div>
 
-      {/* Single floating card — top center, above form */}
-      <div className="hidden lg:block absolute z-20 bg-white rounded-2xl p-3 shadow-xl w-44 text-center"
-        style={{ top: "8%", left: "calc(42% + 100px)", transform: "translateX(-50%)", opacity: 0.6 }}>
-        <div className="relative w-12 h-12 mx-auto mb-1">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-black text-xl"
-            style={{ background: "linear-gradient(135deg, #f97316, #c0174c)" }}>A</div>
-          <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center text-white text-[8px]">✓</span>
-        </div>
-        <p className="text-[13px] font-bold text-gray-800">Anjali, 26</p>
-        <p className="text-[10px] text-gray-400">Kochi · Software Engineer</p>
-        <p className="text-[11px] font-bold text-[#c0174c] my-1">94% match</p>
-        <button className="w-full py-1.5 rounded-lg text-[11px] font-bold text-white" style={{ background: "#c0174c" }}>♥ Send interest</button>
-      </div>
+      {/* Single floating card removed */}
       <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-stretch min-h-[560px]">
 
         {/* LEFT — carousel */}

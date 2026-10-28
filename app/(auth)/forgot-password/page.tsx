@@ -49,11 +49,11 @@ export default function ForgotPasswordPage() {
   return (
     <>
       {/* Mobile — unchanged */}
-      <div className="h-full overflow-y-auto lg:hidden"
+      <div className="h-full overflow-y-auto overflow-x-hidden lg:hidden"
         style={{ background: "linear-gradient(165deg,#2d1b35 0%,#8f0e39 45%,#c0174c 100%)" }}>
-        <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col justify-center px-6 py-8 lg:max-w-xl">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-60 w-60 rounded-full blur-3xl" style={{ background: "rgba(232,197,71,0.2)" }} />
-          <div className="pointer-events-none absolute -left-16 bottom-10 h-60 w-60 rounded-full blur-3xl" style={{ background: "rgba(255,106,156,0.22)" }} />
+        <div className="relative mx-auto flex min-h-full w-full max-w-md flex-col justify-center px-6 py-8 lg:max-w-xl overflow-x-hidden">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-60 w-60 rounded-full blur-3xl opacity-0" style={{ background: "rgba(232,197,71,0.2)" }} />
+          <div className="pointer-events-none absolute -left-16 bottom-10 h-60 w-60 rounded-full blur-3xl opacity-0" style={{ background: "rgba(255,106,156,0.22)" }} />
           <div className="relative z-10">
             <AuthBrandHeader />
             <div className="mt-6 rounded-3xl p-6 backdrop-blur-md lg:p-11"
