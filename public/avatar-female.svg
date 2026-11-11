@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <circle cx="100" cy="100" r="100" fill="#fde8ef"/>
+  <!-- Body -->
+  <rect x="45" y="130" width="110" height="80" rx="20" fill="#e8305e" opacity="0.8"/>
+  <!-- Head -->
+  <circle cx="100" cy="95" r="38" fill="#f5c5a3"/>
+  <!-- Long hair -->
+  <ellipse cx="100" cy="65" rx="40" ry="22" fill="#3d2314"/>
+  <rect x="62" y="65" width="14" height="55" rx="7" fill="#3d2314"/>
+  <rect x="124" y="65" width="14" height="55" rx="7" fill="#3d2314"/>
+  <!-- Eyes -->
+  <circle cx="88" cy="93" r="4.5" fill="#3d2314"/>
+  <circle cx="112" cy="93" r="4.5" fill="#3d2314"/>
+  <!-- Bindi -->
+  <circle cx="100" cy="78" r="3" fill="#c0174c"/>
+  <!-- Mouth -->
+  <path d="M88 108 Q100 120 112 108" stroke="#c0174c" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+</svg>

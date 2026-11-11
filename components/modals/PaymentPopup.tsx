@@ -54,7 +54,9 @@ const BENEFITS = [
 ];
 
 export default function PaymentPopup({ isOpen, onClose, profileName }: PaymentPopupProps) {
-  const router = useRouter();
+  // Popup hidden — return null to disable
+  if (isOpen) onClose?.();
+  return null;
 
   useEffect(() => {
     if (!isOpen) return;

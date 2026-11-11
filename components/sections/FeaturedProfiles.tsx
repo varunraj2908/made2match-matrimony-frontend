@@ -9,7 +9,7 @@ const profiles = {
   bride: [
     { name: "Sandra Benny", age: 27, height: "5'4\"", city: "Kochi", image: "/sandra-profile.jpg" },
     { name: "Sushama", age: 27, height: "5'3\"", city: "Palakkad", image: "/sushama-profile.jpg" },
-    { name: "Varsha", age: 29, height: "5'5\"", city: "Trivandrum", image: "/varsha-profile.jpg" },
+    { name: "Varsha", age: 29, height: "5'5\"", city: "Thiruvananthapuram", image: "/varsha-profile.jpg" },
     { name: "Lakshmi", age: 29, height: "5'4\"", city: "Malappuram", image: "/lakshmi-profile.jpg" },
     { name: "Anjana", age: 27, height: "5'4\"", city: "Malappuram", image: "/anjana-profile.jpg" },
   ],
@@ -32,7 +32,7 @@ export default function FeaturedProfiles() {
   };
 
   return (
-    <section className="bg-white px-4 py-12 sm:px-6 lg:px-8">
+    <section className="px-4 py-12 sm:px-6 lg:px-8" style={{ background: "#fde8ef" }}>
       <div className="mx-auto max-w-7xl lg:px-6">
         <div className="mb-6 text-center">
           <h2 className="text-3xl font-extrabold text-gray-800 sm:text-4xl" style={{ fontFamily: "Georgia, serif" }}>

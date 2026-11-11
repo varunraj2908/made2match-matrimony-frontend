@@ -462,7 +462,7 @@ export default function Navbar() {
                   : item.id === "chat"
                     ? unreadMessageCount
                     : 0;
-                const isChatLocked = item.id === "chat" && !me?.isPremium;
+                const isChatLocked = false; // chat always accessible
                 if (isChatLocked) {
                   return (
                     <button

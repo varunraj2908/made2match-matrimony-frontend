@@ -1,12 +1,12 @@
 export default function StatusBar() {
   return (
-    <section className="border-b border-rose-100 bg-[#fff8fa] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+    <section className="border-b border-rose-100 px-4 py-8 sm:px-6 lg:px-8 lg:py-10" style={{ background: "#fde8ef" }}>
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:px-6">
         {[
           {
             icon: "💍",
-            value: "10,000+",
-            label: "HAPPY MARRIAGES",
+            value: "1000+",
+            label: "VERIFIED PROFILES",
           },
           {
             icon: "🤖",

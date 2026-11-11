@@ -200,10 +200,21 @@ function SortByPill({
 /* ─────────────────────────────────────────────
    LOCATION MODAL PILL
 ───────────────────────────────────────────── */
-const KERALA_DISTRICTS = [
-  "Kochi","Thrissur","Kozhikode","Kollam","Trivandrum",
-  "Kottayam","Palakkad","Malappuram","Kannur","Alappuzha",
-  "Idukki","Kasaragod","Pathanamthitta","Wayanad",
+const KERALA_DISTRICTS: { label: string; value: string }[] = [
+  { label: "Kochi",                  value: "Kochi" },
+  { label: "Thrissur",               value: "Thrissur" },
+  { label: "Kozhikode",              value: "Kozhikode" },
+  { label: "Kollam",                 value: "Kollam" },
+  { label: "Thiruvananthapuram",     value: "Trivandrum" },
+  { label: "Kottayam",               value: "Kottayam" },
+  { label: "Palakkad",               value: "Palakkad" },
+  { label: "Malappuram",             value: "Malappuram" },
+  { label: "Kannur",                 value: "Kannur" },
+  { label: "Alappuzha",              value: "Alappuzha" },
+  { label: "Idukki",                 value: "Idukki" },
+  { label: "Kasaragod",              value: "Kasaragod" },
+  { label: "Pathanamthitta",         value: "Pathanamthitta" },
+  { label: "Wayanad",                value: "Wayanad" },
 ];
 
 function LocationPill({
@@ -267,7 +278,7 @@ function LocationPill({
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
         </svg>
-        {selected ?? "Location"}
+        {selected ? (selected === "Trivandrum" ? "Thiruvananthapuram" : selected) : "Location"}
         <svg className={`w-3 h-3 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
           fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7"/>
@@ -333,22 +344,23 @@ function LocationPill({
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">District</label>
                 <div className="grid grid-cols-3 gap-2">
                   {KERALA_DISTRICTS.map((d) => {
-                    const sel = pending === d;
+                    const sel = pending === d.value;
                     return (
                       <button
-                        key={d}
-                        onClick={() => setPending(sel ? null : d)}
-                        className="px-3 py-2 rounded-xl border-2 text-xs font-semibold transition-all active:scale-95"
+                        key={d.value}
+                        onClick={() => setPending(sel ? null : d.value)}
+                        className="px-2 py-2 rounded-xl border-2 text-xs font-semibold transition-all active:scale-95 overflow-hidden"
                         style={{
                           borderColor: sel ? "#c0174c" : "#e5e7eb",
                           background: sel ? "linear-gradient(135deg,#fff0f4,#fff8f9)" : "#fafafa",
                           color: sel ? "#c0174c" : "#374151",
+                          fontSize: d.label.length > 10 ? "10px" : undefined,
                         }}
                       >
                         {sel && (
                           <span className="mr-1">✓</span>
                         )}
-                        {d}
+                        {d.label}
                       </button>
                     );
                   })}
@@ -987,7 +999,7 @@ export default function FilterBar({ value, onChange }: FilterBarProps = {}) {
       {/* Scrollable pills — Sort by modal pill is first, then the rest */}
       <div
         ref={scrollRef}
-        className="flex items-center gap-2 overflow-x-auto flex-1"
+        className="flex items-center gap-2 overflow-x-auto flex-1 no-scrollbar"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         onScroll={updateArrows}
       >

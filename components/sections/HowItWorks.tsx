@@ -517,7 +517,7 @@ export default function HowItWorks() {
       <section
         ref={sectionRef}
         className="py-14 md:py-20 px-4 overflow-hidden relative"
-        style={{ background: "#fdf5f5" }}
+        style={{ background: "#fde8ef" }}
       >
         <div
           className="absolute top-1/2 left-1/2 w-52 h-52 md:w-64 md:h-64 rounded-full pointer-events-none"

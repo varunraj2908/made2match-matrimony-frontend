@@ -87,8 +87,14 @@ export default function SectionNavbar({ onScrollTo }: NavbarProps) {
   };
 
   return (
-    <header className="relative bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-6 flex items-center justify-center h-16">
+    <header className="relative border-b border-[#f5dde5] shadow-sm" style={{ background: "#fde8ef" }}>
+      <div className="max-w-7xl mx-auto px-6 flex items-center justify-center h-16 relative">
+        {/* Left text — large screen only */}
+        <span className="hidden lg:block absolute left-6 select-none"
+          style={{ fontFamily: "var(--font-mea-culpa), cursive", fontSize: "28px", color: "rgba(192,23,76,0.85)" }}>
+          Find Your Match
+        </span>
+
         {/* Desktop (lg+): light pill nav — active item highlighted in pink */}
         <nav
           className="hidden lg:flex items-center gap-1 rounded-full px-1.5 py-1.5 bg-white/40 backdrop-blur-xl"
@@ -137,7 +143,11 @@ export default function SectionNavbar({ onScrollTo }: NavbarProps) {
           })}
         </nav>
 
-        {/* Mobile / tablet (below lg): icon + label nav */}
+        {/* Right text — large screen only */}
+        <span className="hidden lg:block absolute right-6 select-none"
+          style={{ fontFamily: "var(--font-mea-culpa), cursive", fontSize: "28px", color: "rgba(192,23,76,0.85)" }}>
+          Made2Match
+        </span>
         <nav className="flex lg:hidden items-center gap-1">
           {navItems.map((item) => {
             const isActive = active === item.key;
